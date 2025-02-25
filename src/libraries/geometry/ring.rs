@@ -152,3 +152,260 @@ fn is_left(p0: &Point, p1: &Point, p2: &Point) -> i32 {
 		0
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	// ^ Adjust the `use` path as needed depending on how your project is structured.
+
+	#[test]
+	fn test_ring_new_is_empty() {
+		let ring = Ring::new();
+		assert!(ring.is_empty());
+		assert_eq!(ring.points.len(), 0);
+	}
+
+	#[test]
+	fn test_ring_add_point() {
+		let mut ring = Ring::new();
+		ring.add_point(Point::new(1.0, 2.0));
+		assert!(!ring.is_empty());
+		assert_eq!(ring.points.len(), 1);
+
+		let p = ring.last().unwrap();
+		assert_eq!(p.x, 1.0);
+		assert_eq!(p.y, 2.0);
+	}
+
+	#[test]
+	fn test_ring_close_adds_first_point_at_end() {
+		let mut ring = Ring::new();
+		ring.add_point(Point::new(0.0, 0.0));
+		ring.add_point(Point::new(1.0, 1.0));
+		assert_eq!(ring.points.len(), 2);
+
+		ring.close();
+		// Closing the ring should add the first point again if not already present
+		assert_eq!(ring.points.len(), 3);
+		assert_eq!(ring.points[0].x, ring.points[2].x);
+		assert_eq!(ring.points[0].y, ring.points[2].y);
+	}
+
+	#[test]
+	fn test_ring_close_does_not_duplicate_if_already_closed() {
+		let mut ring = Ring::new();
+		ring.add_point(Point::new(0.0, 0.0));
+		ring.add_point(Point::new(1.0, 1.0));
+		ring.add_point(Point::new(0.0, 0.0)); // Already closed by user
+		assert_eq!(ring.points.len(), 3);
+
+		ring.close();
+		// Because the first and last points match, no extra point should be added
+		assert_eq!(ring.points.len(), 3);
+	}
+
+	#[test]
+	fn test_ring_get_bbox() {
+		let mut ring = Ring::new();
+		ring.add_point(Point::new(2.0, 3.0));
+		ring.add_point(Point::new(-1.0, 10.0));
+		ring.add_point(Point::new(5.0, -4.0));
+
+		let bbox = ring.get_bbox();
+		assert_eq!(bbox.min.x, -1.0);
+		assert_eq!(bbox.min.y, -4.0);
+		assert_eq!(bbox.max.x, 5.0);
+		assert_eq!(bbox.max.y, 10.0);
+	}
+
+	#[test]
+	fn test_ring_translate() {
+		let mut ring = Ring::new();
+		ring.add_point(Point::new(0.0, 0.0));
+		ring.add_point(Point::new(1.0, 2.0));
+
+		ring.translate(Point::new(3.0, 4.0));
+		// Now ring points should have each coordinate offset by (3,4)
+		assert_eq!(ring.points[0].x, 3.0);
+		assert_eq!(ring.points[0].y, 4.0);
+		assert_eq!(ring.points[1].x, 4.0);
+		assert_eq!(ring.points[1].y, 6.0);
+	}
+
+	#[test]
+	fn test_ring_last() {
+		let mut ring = Ring::new();
+		assert!(ring.last().is_none());
+
+		ring.add_point(Point::new(1.0, 2.0));
+		let p = ring.last().unwrap();
+		assert_eq!(p.x, 1.0);
+		assert_eq!(p.y, 2.0);
+	}
+
+	#[test]
+	fn test_ring_get_segments() {
+		let mut ring = Ring::new();
+		ring.add_point(Point::new(0.0, 0.0));
+		ring.add_point(Point::new(10.0, 0.0));
+		ring.add_point(Point::new(10.0, 5.0));
+		// We have 3 points, so get_segments() should yield 2 segments:
+		// 1) (0,0) -> (10,0)
+		// 2) (10,0) -> (10,5)
+		let segments = ring.get_segments();
+		assert_eq!(segments.len(), 2);
+		assert_eq!(segments[0].start.x, 0.0);
+		assert_eq!(segments[0].start.y, 0.0);
+		assert_eq!(segments[0].end.x, 10.0);
+		assert_eq!(segments[0].end.y, 0.0);
+		assert_eq!(segments[1].start.x, 10.0);
+		assert_eq!(segments[1].start.y, 0.0);
+		assert_eq!(segments[1].end.x, 10.0);
+		assert_eq!(segments[1].end.y, 5.0);
+	}
+
+	#[test]
+	fn test_ring_add_quadratic_bezier_flat() {
+		// Start -> Ctrl -> End where the curve is a straight line if ctrl lies on line
+		let mut ring = Ring::new();
+		let start = Point::new(0.0, 0.0);
+		let ctrl = Point::new(1.0, 0.0);
+		let end = Point::new(2.0, 0.0);
+		ring.add_point(start);
+		// A very large tolerance should force no recursion
+		ring.add_quadratic_bezier(start, ctrl, end, 10000.0);
+
+		// Because it's basically a flat line, it should add just end point
+		// ring.points: [start, end]
+		assert_eq!(ring.points.len(), 2);
+		assert_eq!(ring.points[0].x, 0.0);
+		assert_eq!(ring.points[0].y, 0.0);
+		assert_eq!(ring.points[1].x, 2.0);
+		assert_eq!(ring.points[1].y, 0.0);
+	}
+
+	#[test]
+	fn test_ring_add_quadratic_bezier_subdiv() {
+		// A real curve (ctrl is above the line start->end),
+		// with a small tolerance so it subdivides.
+		let mut ring = Ring::new();
+		let start = Point::new(0.0, 0.0);
+		let ctrl = Point::new(1.0, 2.0);
+		let end = Point::new(2.0, 0.0);
+		ring.add_point(start);
+
+		// A small tolerance => more subdivisions
+		ring.add_quadratic_bezier(start, ctrl, end, 0.0001);
+
+		// We won't test every single point,
+		// but we can confirm we ended up with multiple points
+		assert!(ring.points.len() > 2);
+		// The last point should be "end"
+		let last_point = ring.points.last().unwrap();
+		assert!((last_point.x - 2.0).abs() < f32::EPSILON);
+		assert!((last_point.y - 0.0).abs() < f32::EPSILON);
+	}
+
+	#[test]
+	fn test_ring_add_cubic_bezier_flat() {
+		let mut ring = Ring::new();
+		let start = Point::new(0.0, 0.0);
+		let c1 = Point::new(1.0, 0.0);
+		let c2 = Point::new(2.0, 0.0);
+		let end = Point::new(3.0, 0.0);
+		ring.add_point(start);
+
+		ring.add_cubic_bezier(start, c1, c2, end, 10000.0);
+		// Because it's effectively a flat line, the ring should end with end
+		assert_eq!(
+			ring.points.len(),
+			2,
+			"No subdivisions expected if curve is flat"
+		);
+		let last = ring.points.last().unwrap();
+		assert_eq!(last.x, 3.0);
+		assert_eq!(last.y, 0.0);
+	}
+
+	#[test]
+	fn test_ring_add_cubic_bezier_subdiv() {
+		let mut ring = Ring::new();
+		let start = Point::new(0.0, 0.0);
+		let c1 = Point::new(0.0, 2.0);
+		let c2 = Point::new(2.0, 2.0);
+		let end = Point::new(2.0, 0.0);
+		ring.add_point(start);
+
+		// Use a very small tolerance to force subdivisions
+		ring.add_cubic_bezier(start, c1, c2, end, 0.0001);
+
+		// We expect more than 2 points in ring
+		assert!(ring.points.len() > 2);
+		// End point should be the last
+		let last = ring.points.last().unwrap();
+		assert!((last.x - 2.0).abs() < f32::EPSILON);
+		assert!((last.y - 0.0).abs() < f32::EPSILON);
+	}
+
+	#[test]
+	fn test_ring_winding_number_empty_or_single() {
+		let ring = Ring::new();
+		let pt = Point::new(1.0, 1.0);
+		assert_eq!(ring.winding_number(&pt), 0);
+
+		let mut ring2 = Ring::new();
+		ring2.add_point(Point::new(0.0, 0.0));
+		assert_eq!(ring2.winding_number(&pt), 0);
+
+		// If there's only 2 points, it's basically just a line, not a closed polygon
+		ring2.add_point(Point::new(10.0, 0.0));
+		assert_eq!(ring2.winding_number(&pt), 0);
+	}
+
+	#[test]
+	fn test_ring_winding_number_simple_square() {
+		// A simple square ring around the origin:
+		// (0,0) -> (10,0) -> (10,10) -> (0,10) -> back to (0,0)
+		let mut ring = Ring::new();
+		ring.add_point(Point::new(0.0, 0.0));
+		ring.add_point(Point::new(10.0, 0.0));
+		ring.add_point(Point::new(10.0, 10.0));
+		ring.add_point(Point::new(0.0, 10.0));
+		ring.close(); // ensures last point matches first
+
+		let inside = Point::new(5.0, 5.0);
+		let outside = Point::new(11.0, 5.0);
+
+		// For a standard counterclockwise ring, any inside point
+		// typically yields a winding_number of 1
+		let wn_inside = ring.winding_number(&inside);
+		assert_eq!(
+			wn_inside, 1,
+			"Expected winding number of 1 for inside point"
+		);
+
+		let wn_outside = ring.winding_number(&outside);
+		assert_eq!(
+			wn_outside, 0,
+			"Expected winding number of 0 for outside point"
+		);
+	}
+
+	#[test]
+	fn test_is_left_function() {
+		// Just to be explicit, though it's tested indirectly by winding_number
+		let p0 = Point::new(0.0, 0.0);
+		let p1 = Point::new(1.0, 0.0);
+		// p2 above the line p0->p1 => is_left should return +1
+		let p2_above = Point::new(0.5, 1.0);
+		assert_eq!(is_left(&p0, &p1, &p2_above), 1);
+
+		// p2 below the line => is_left should return -1
+		let p2_below = Point::new(0.5, -1.0);
+		assert_eq!(is_left(&p0, &p1, &p2_below), -1);
+
+		// p2 exactly on the line => 0
+		let p2_on_line = Point::new(0.5, 0.0);
+		assert_eq!(is_left(&p0, &p1, &p2_on_line), 0);
+	}
+}
