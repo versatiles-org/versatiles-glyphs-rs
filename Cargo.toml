@@ -3,4 +3,16 @@ name = "sdf-glyphs-rs"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "sdf_glyphs"
+path = "src/lib.rs"
+
 [dependencies]
+anyhow = "1.0.96"
+flate2 = "1.1.0"
+prost = "0.13.5"
+rstar = "0.12.2"
+ttf-parser = "0.25.1"
+
+[build-dependencies]
+prost-build = "0.13.5"
