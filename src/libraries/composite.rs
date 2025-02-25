@@ -1,7 +1,4 @@
-use super::{
-	decompress::maybe_decompress,
-	protobuf::{PbfFontstack, PbfGlyph},
-};
+use super::protobuf::{PbfFontstack, PbfGlyph};
 use anyhow::{anyhow, Result};
 use prost::Message;
 use std::collections::HashMap;
@@ -13,9 +10,8 @@ pub fn composite(glyph_buffers: &[Vec<u8>]) -> Result<Vec<u8>> {
 	let mut is_first = true;
 
 	for buf in glyph_buffers {
-		let decompressed = maybe_decompress(buf)?;
 		// Decode a FontStack
-		let fontstack = PbfFontstack::decode(&*decompressed)
+		let fontstack = PbfFontstack::decode(buf.as_slice())
 			.map_err(|_| anyhow!("Failed to parse FontStack from buffer"))?;
 
 		// Merge the name & range if it’s the first buffer, or append names

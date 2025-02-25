@@ -1,5 +1,4 @@
 mod composite;
-mod decompress;
 mod font;
 mod glyph;
 mod glyphs;
