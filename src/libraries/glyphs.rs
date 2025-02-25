@@ -1,4 +1,7 @@
-use super::{protobuf::{PbfFontstack, PbfGlyph}, sdf::render_sdf};
+use super::{
+	protobuf::{PbfFontstack, PbfGlyph},
+	sdf::render_sdf,
+};
 use anyhow::{anyhow, Context, Result};
 use prost::Message;
 use ttf_parser::Face;
@@ -42,7 +45,7 @@ pub fn range_glyphs(data: &[u8], start: char, end: char) -> Result<Vec<u8>> {
 				height: g.height,
 				left: g.left,
 				top: g.top,
-				advance: g.advance as u32, 
+				advance: g.advance as u32,
 			};
 			fontstack.glyphs.push(glyph);
 		}

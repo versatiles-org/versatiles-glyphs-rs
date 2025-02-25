@@ -1,17 +1,15 @@
 use super::{
-	super::{glyph::{build_glyph_outline, GlyphInfo},geometry::Point},
+	super::{
+		geometry::Point,
+		glyph::{build_glyph_outline, GlyphInfo},
+	},
 	rtree::{min_distance_to_line_segment, SegmentValue},
 };
 use rstar::RTree;
 use ttf_parser::Face;
 
 // https://github.com/mapbox/sdf-glyph-foundry/blob/6ed4f2099009fc8a1a324626345ceb29dcd5277c/include/mapbox/glyph_foundry_impl.hpp
-pub fn render_sdf(
-	code_point: char,
-	face: &Face,
-	buffer: i32,
-	cutoff: f32,
-) -> Option<GlyphInfo> {
+pub fn render_sdf(code_point: char, face: &Face, buffer: i32, cutoff: f32) -> Option<GlyphInfo> {
 	let glyph_id = face.glyph_index(code_point)?;
 
 	let mut rings = build_glyph_outline(glyph_id, face);
@@ -34,7 +32,7 @@ pub fn render_sdf(
 	);
 
 	// Build a R-tree of line segments
-	let  segments = rings
+	let segments = rings
 		.get_segments()
 		.into_iter()
 		.map(SegmentValue::new)

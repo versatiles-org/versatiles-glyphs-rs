@@ -1,4 +1,3 @@
-
 #[derive(Debug, Default)]
 pub struct GlyphInfo {
 	pub advance: f64,

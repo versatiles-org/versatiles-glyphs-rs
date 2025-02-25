@@ -18,7 +18,6 @@ impl FaceMetadata {
 	}
 }
 
-
 // ---------------------------------------------------------
 // 1) LOAD: analogous to AsyncLoad / Load(...)
 //    Pure Rust version using ttf-parser

@@ -1,5 +1,5 @@
-use std::mem::swap;
 use super::super::geometry::{Point, Ring, Rings};
+use std::mem::swap;
 use ttf_parser::OutlineBuilder;
 
 pub struct RingBuilder {

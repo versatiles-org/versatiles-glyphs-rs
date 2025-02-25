@@ -1,6 +1,6 @@
-use std::f32::INFINITY;
-use rstar::{RTree, RTreeObject, AABB};
 use super::super::geometry::{Point, Segment};
+use rstar::{RTree, RTreeObject, AABB};
+use std::f32::INFINITY;
 
 #[derive(Clone)]
 pub struct SegmentValue {
