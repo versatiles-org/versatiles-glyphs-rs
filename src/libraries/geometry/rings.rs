@@ -1,13 +1,20 @@
+#![allow(dead_code)]
+
 use super::{BBox, Point, Ring, Segment};
 
 pub struct Rings {
-	rings: Vec<Ring>,
+	pub rings: Vec<Ring>,
 }
 
 impl Rings {
 	pub fn new() -> Self {
 		Rings { rings: Vec::new() }
 	}
+
+	pub fn len(&self) -> usize {
+		self.rings.len()
+	}
+
 	pub fn add_ring(&mut self, ring: Ring) {
 		self.rings.push(ring);
 	}

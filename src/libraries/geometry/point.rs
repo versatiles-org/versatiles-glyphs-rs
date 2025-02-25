@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[derive(Clone, Copy, Debug)]
 pub struct Point {
 	pub x: f32,
@@ -34,6 +36,10 @@ impl Point {
 	pub fn translate(&mut self, offset: Point) {
 		self.x += offset.x;
 		self.y += offset.y;
+	}
+
+	pub fn as_tuple(&self) -> (f32, f32) {
+		(self.x, self.y)
 	}
 }
 

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::{BBox, Point, Segment};
 
 pub struct Ring {
@@ -11,6 +13,14 @@ impl Ring {
 
 	pub fn is_empty(&self) -> bool {
 		self.points.is_empty()
+	}
+
+	pub fn len(&self) -> usize {
+		self.points.len()
+	}
+
+	pub fn clear(&mut self) {
+		self.points.clear();
 	}
 
 	pub fn add_point(&mut self, point: Point) {
