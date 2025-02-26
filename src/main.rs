@@ -21,9 +21,9 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-	#[clap(alias = "converter")]
-	/// Convert between different tile containers
 	Convert(commands::convert::Subcommand),
+	
+	//Debug(commands::convert::Subcommand),
 }
 
 // ---------------------------------------------------------
@@ -35,5 +35,6 @@ fn main() -> Result<()> {
 
 	match &cli.command {
 		Commands::Convert(arguments) => commands::convert::run(arguments),
+		//Commands::Debug(arguments) => commands::debug::run(arguments),
 	}
 }

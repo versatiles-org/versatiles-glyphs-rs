@@ -4,7 +4,7 @@ use ttf_parser::Face;
 #[derive(Debug)]
 pub struct FaceMetadata {
 	pub family_name: String,
-	pub style_name: Option<String>,
+	pub style_name: String,
 	pub codepoints: Vec<u32>,
 }
 
@@ -32,13 +32,17 @@ pub fn load_font_metadata(face: &Face) -> Result<FaceMetadata> {
 		.unwrap_or_else(|| "UnknownFamily".to_string());
 
 	// Style name, e.g. Subfamily
-	let style_name = face.names().into_iter().find_map(|n| {
-		if n.name_id == ttf_parser::name_id::SUBFAMILY {
-			n.to_string()
-		} else {
-			None
-		}
-	});
+	let style_name = face
+		.names()
+		.into_iter()
+		.find_map(|n| {
+			if n.name_id == ttf_parser::name_id::SUBFAMILY {
+				n.to_string()
+			} else {
+				None
+			}
+		})
+		.unwrap_or(String::from("unknown"));
 
 	// Enumerate all codepoints in the font’s cmap:
 	let mut codepoints = Vec::new();

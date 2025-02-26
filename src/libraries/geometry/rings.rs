@@ -33,6 +33,12 @@ impl Rings {
 		}
 	}
 
+	pub fn scale(&mut self, scale: f32) {
+		for ring in &mut self.rings {
+			ring.scale(scale);
+		}
+	}
+
 	pub fn get_segments(&self) -> Vec<Segment> {
 		self
 			.rings

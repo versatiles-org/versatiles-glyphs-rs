@@ -2,12 +2,12 @@ use super::{
 	protobuf::{PbfFontstack, PbfGlyph},
 	sdf::render_sdf,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, ensure, Result};
 use prost::Message;
 use ttf_parser::Face;
 
 /// Generate a PBF buffer of glyphs in [start..=end].
-pub fn range_glyphs(face: &Face, start: char, end: char) -> Result<Vec<u8>> {
+pub fn range_glyphs(face: &Face, start: u32, end: u32) -> Result<Vec<u8>> {
 	if end < start {
 		return Err(anyhow!("start must be <= end"));
 	}
@@ -27,16 +27,21 @@ pub fn range_glyphs(face: &Face, start: char, end: char) -> Result<Vec<u8>> {
 	fontstack.range = format!("{}-{}", start, end);
 
 	// For codepoints in [start..end]
-	for cp in start..=end {
+	for index in start..=end {
+		let cp = char::from_u32(index).unwrap();
+
 		// Check if face has a glyph for this codepoint
 		if face.glyph_index(cp).is_none() {
 			continue;
 		}
+
+		ensure!(cp as u32 == index, "Invalid codepoint: {}", index);
+		
 		// Render the SDF
-		if let Some(g) = render_sdf(cp, &face, 3, 0.25) {
+		if let Some(g) = render_sdf(cp, &face, 3, 0.25,24) {
 			// Convert to your proto::Glyph
 			let glyph = PbfGlyph {
-				id: cp as u32,
+				id: index,
 				bitmap: Some(g.bitmap), // raw bytes
 				width: g.width,
 				height: g.height,

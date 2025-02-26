@@ -9,27 +9,35 @@ use rstar::RTree;
 use ttf_parser::Face;
 
 // https://github.com/mapbox/sdf-glyph-foundry/blob/6ed4f2099009fc8a1a324626345ceb29dcd5277c/include/mapbox/glyph_foundry_impl.hpp
-pub fn render_sdf(code_point: char, face: &Face, buffer: i32, cutoff: f32) -> Option<GlyphInfo> {
+pub fn render_sdf(
+	code_point: char,
+	face: &Face,
+	buffer: i32,
+	cutoff: f32,
+	size: u32,
+) -> Option<GlyphInfo> {
 	let glyph_id = face.glyph_index(code_point)?;
 
 	let mut rings = build_glyph_outline(glyph_id, face);
 
+	let scale = size as f32 / face.height() as f32;
+	rings.scale(scale);
+
 	// Calculate the real glyph bbox.
-	let mut bbox = rings.get_bbox();
-	bbox.round();
+	let bbox = rings.get_bbox();
 
 	if bbox.width() == 0.0 || bbox.height() == 0.0 {
 		return None;
 	}
 
 	// Offset so that glyph outlines are in the bounding box.
-	rings.translate(
-		bbox
-			.min
-			.clone()
-			.inverted()
-			.translated(Point::new(buffer as f32, buffer as f32)),
-	);
+	let offset = bbox
+		.min
+		.clone()
+		.inverted()
+		.translated(Point::new(buffer as f32, buffer as f32));
+
+	rings.translate(offset);
 
 	// Build a R-tree of line segments
 	let segments = rings
@@ -43,9 +51,9 @@ pub fn render_sdf(code_point: char, face: &Face, buffer: i32, cutoff: f32) -> Op
 	// 5) For each pixel, compute distance, check inside-ness, etc.
 	let buffered_width = bbox.width() as usize + 2 * buffer as usize;
 	let buffered_height = bbox.height() as usize + 2 * buffer as usize;
-	let bitmap_size = buffered_width * buffered_height;
 
-	let mut bitmap = Vec::with_capacity(bitmap_size);
+	let mut bitmap = Vec::new();
+	bitmap.resize(buffered_width * buffered_height, 0);
 
 	let offset = 0.5f32;
 	let radius = 8.0;

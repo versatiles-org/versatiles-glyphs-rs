@@ -53,6 +53,12 @@ impl Ring {
 		}
 	}
 
+	pub fn scale(&mut self, scale: f32) {
+		for point in &mut self.points {
+			point.scale(scale);
+		}
+	}
+
 	pub fn last(&self) -> Option<&Point> {
 		self.points.last()
 	}

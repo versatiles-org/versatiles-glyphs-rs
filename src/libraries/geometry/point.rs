@@ -38,6 +38,11 @@ impl Point {
 		self.y += offset.y;
 	}
 
+	pub fn scale(&mut self, scale: f32) {
+		self.x *= scale;
+		self.y *= scale;
+	}
+
 	pub fn as_tuple(&self) -> (f32, f32) {
 		(self.x, self.y)
 	}
