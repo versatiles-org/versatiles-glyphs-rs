@@ -1,0 +1,5 @@
+[![Crates.io](https://img.shields.io/crates/v/sdf_glpyhs?label=crates.io)](https://crates.io/crates/sdf_glpyhs)
+[![Crates.io](https://img.shields.io/crates/d/sdf_glpyhs?label=downloads)](https://crates.io/crates/sdf_glpyhs)
+[![Code Coverage](https://codecov.io/gh/versatiles-org/sdf_glyphs/branch/main/graph/badge.svg?token=IDHAI13M0K)](https://codecov.io/gh/versatiles-org/sdf_glyphs)
+[![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/versatiles-org/sdf_glyphs/ci.yml)](https://github.com/versatiles-org/sdf_glyphs/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
