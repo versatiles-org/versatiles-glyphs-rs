@@ -7,9 +7,9 @@ pub struct Ring {
 }
 
 impl Default for Ring {
-    fn default() -> Self {
-        Self::new()
-    }
+	fn default() -> Self {
+		Self::new()
+	}
 }
 
 impl Ring {
@@ -147,11 +147,11 @@ impl Ring {
 		for p2 in ring.iter().skip(1) {
 			if p1.y <= pt.y {
 				if p2.y > pt.y && is_left(p1, p2, pt) > 0 {
-    						winding_number += 1;
-    					}
+					winding_number += 1;
+				}
 			} else if p2.y <= pt.y && is_left(p1, p2, pt) < 0 {
-   						winding_number -= 1;
-   					}
+				winding_number -= 1;
+			}
 			p1 = p2;
 		}
 		winding_number

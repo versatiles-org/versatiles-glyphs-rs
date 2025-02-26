@@ -7,9 +7,9 @@ pub struct Rings {
 }
 
 impl Default for Rings {
-    fn default() -> Self {
-        Self::new()
-    }
+	fn default() -> Self {
+		Self::new()
+	}
 }
 
 impl Rings {

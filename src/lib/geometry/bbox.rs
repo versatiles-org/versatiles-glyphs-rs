@@ -8,9 +8,9 @@ pub struct BBox {
 }
 
 impl Default for BBox {
-    fn default() -> Self {
-        Self::new()
-    }
+	fn default() -> Self {
+		Self::new()
+	}
 }
 
 impl BBox {

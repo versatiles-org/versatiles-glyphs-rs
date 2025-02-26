@@ -1,7 +1,7 @@
+use super::{PbfFontstack, PbfGlyph};
 use anyhow::{anyhow, Result};
 use prost::Message;
 use std::collections::HashMap;
-use super::{PbfFontstack, PbfGlyph};
 
 /// Merge multiple PBF buffers with glyph data into one combined PBF.
 pub fn composite(glyph_buffers: &[Vec<u8>]) -> Result<Vec<u8>> {
