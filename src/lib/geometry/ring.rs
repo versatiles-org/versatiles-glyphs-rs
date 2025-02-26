@@ -249,7 +249,7 @@ mod tests {
 
 		ring.scale(0.3);
 		assert_eq!(ring.points[0].as_tuple(), (0.0, 0.0));
-		assert_eq!(ring.points[1].as_tuple(), (3.0, 6.0));
+		assert_eq!(ring.points[1].as_tuple(), (0.3, 0.6));
 	}
 
 	#[test]
