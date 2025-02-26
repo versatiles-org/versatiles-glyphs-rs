@@ -429,19 +429,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sdf-glyphs-rs"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "indicatif",
- "prost",
- "prost-build",
- "rstar",
- "ttf-parser",
-]
-
-[[package]]
 name = "smallvec"
 version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -489,6 +476,19 @@ name = "unicode-ident"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "00e2473a93778eb0bad35909dff6a10d28e63f792f16ed15e404fca9d5eeedbe"
+
+[[package]]
+name = "versatiles_glyphs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "indicatif",
+ "prost",
+ "prost-build",
+ "rstar",
+ "ttf-parser",
+]
 
 [[package]]
 name = "wasi"

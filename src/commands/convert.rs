@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
-use sdf_glyphs::font::load_font_metadata;
-use sdf_glyphs::glyph::render_glyph_range;
+use versatiles_glyphs::font::load_font_metadata;
+use versatiles_glyphs::glyph::render_glyph_range;
 use ttf_parser::Face;
 
 #[derive(clap::Args, Debug)]

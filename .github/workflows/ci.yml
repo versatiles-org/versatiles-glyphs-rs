@@ -8,7 +8,6 @@ on:
       - "!**" # Don't run twice on commits with tags
     paths-ignore:
       - "scripts/**"
-      - ".github/**"
       - "**.md"
   pull_request:
   schedule:

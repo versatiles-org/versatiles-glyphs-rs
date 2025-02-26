@@ -1,14 +1,14 @@
 [package]
-name = "sdf-glyphs-rs"
+name = "versatiles_glyphs"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "sdf_glyphs"
+name = "versatiles_glyphs"
 path = "src/lib/mod.rs"
 
 [[bin]]
-name = "sdf_glyphs"
+name = "versatiles_glyphs"
 path = "src/main.rs"
 
 [profile.release]
