@@ -23,6 +23,9 @@ jobs:
     name: "Test"
     runs-on: ubuntu-latest
     steps:
+      - name: Install protobuf-compiler
+        run: apt-get install protobuf-compiler
+
       - name: Check out
         uses: actions/checkout@v4
 
