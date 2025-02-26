@@ -39,10 +39,10 @@ pub fn run(arguments: &Subcommand) -> Result<()> {
 	let mut groups = std::collections::HashMap::<u32, u32>::new();
 	metadata.codepoints.iter().for_each(|cp| {
 		let group = cp / GROUP_SIZE;
-		if groups.contains_key(&group) {
-			*groups.get_mut(&group).unwrap() += 1;
+		if let std::collections::hash_map::Entry::Vacant(e) = groups.entry(group) {
+			e.insert(1);
 		} else {
-			groups.insert(group, 1);
+			*groups.get_mut(&group).unwrap() += 1;
 		}
 	});
 	let mut groups = groups.into_iter().collect::<Vec<(u32, u32)>>();

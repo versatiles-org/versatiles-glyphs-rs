@@ -27,9 +27,7 @@ pub fn composite(glyph_buffers: &[Vec<u8>]) -> Result<Vec<u8>> {
 
 		// Merge glyphs: if we have not seen a glyph_id, add it
 		for g in fontstack.glyphs {
-			if !seen_glyphs.contains_key(&g.id) {
-				seen_glyphs.insert(g.id, g);
-			}
+			seen_glyphs.entry(g.id).or_insert(g);
 		}
 	}
 

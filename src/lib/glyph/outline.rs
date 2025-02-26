@@ -10,5 +10,5 @@ pub fn build_glyph_outline(code_point: char, face: &Face, size: f32) -> Option<R
 	let scale = size / face.height() as f32;
 	rings.scale(scale);
 
-	return Some(rings);
+	Some(rings)
 }

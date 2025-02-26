@@ -6,6 +6,12 @@ pub struct Ring {
 	pub points: Vec<Point>,
 }
 
+impl Default for Ring {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Ring {
 	pub fn new() -> Self {
 		Ring { points: Vec::new() }
@@ -140,18 +146,12 @@ impl Ring {
 		let mut winding_number = 0;
 		for p2 in ring.iter().skip(1) {
 			if p1.y <= pt.y {
-				if p2.y > pt.y {
-					if is_left(&p1, p2, pt) > 0 {
-						winding_number += 1;
-					}
-				}
-			} else {
-				if p2.y <= pt.y {
-					if is_left(&p1, p2, pt) < 0 {
-						winding_number -= 1;
-					}
-				}
-			}
+				if p2.y > pt.y && is_left(p1, p2, pt) > 0 {
+    						winding_number += 1;
+    					}
+			} else if p2.y <= pt.y && is_left(p1, p2, pt) < 0 {
+   						winding_number -= 1;
+   					}
 			p1 = p2;
 		}
 		winding_number

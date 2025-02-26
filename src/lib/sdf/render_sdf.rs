@@ -28,7 +28,6 @@ pub fn render_sdf(mut rings: Rings, buffer: usize, cutoff: f32) -> Option<SdfGly
 	// Offset so that glyph outlines are in the bounding box.
 	let offset = bbox
 		.min
-		.clone()
 		.inverted()
 		.translated(Point::new(buffer as f32, buffer as f32));
 
@@ -47,8 +46,7 @@ pub fn render_sdf(mut rings: Rings, buffer: usize, cutoff: f32) -> Option<SdfGly
 	let width = bbox.width() as usize + 2 * buffer;
 	let height = bbox.height() as usize + 2 * buffer;
 
-	let mut bitmap = Vec::new();
-	bitmap.resize(width * height, 0);
+	let mut bitmap = vec![0; width * height];
 
 	let offset = 0.5f32;
 	let radius = 8.0;
@@ -72,16 +70,11 @@ pub fn render_sdf(mut rings: Rings, buffer: usize, cutoff: f32) -> Option<SdfGly
 
 			d += cutoff * 256.0;
 
-			let mut n = d.round() as i32;
-			if n < 0 {
-				n = 0;
-			} else if n > 255 {
-				n = 255;
-			}
+			let n = (255.0 - d).clamp(0.0, 255.0);
 
 			// The final code does 255 - n, so that "outside" is white,
 			// "inside" is black, or vice versa:
-			bitmap[i] = (255 - n as u8) as u8;
+			bitmap[i] = n.round() as u8;
 		}
 	}
 

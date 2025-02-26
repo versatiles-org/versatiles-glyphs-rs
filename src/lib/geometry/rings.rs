@@ -6,6 +6,12 @@ pub struct Rings {
 	pub rings: Vec<Ring>,
 }
 
+impl Default for Rings {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Rings {
 	pub fn new() -> Self {
 		Rings { rings: Vec::new() }
@@ -13,6 +19,10 @@ impl Rings {
 
 	pub fn len(&self) -> usize {
 		self.rings.len()
+	}
+
+	pub fn is_empty(&self) -> bool {
+		self.rings.is_empty()
 	}
 
 	pub fn add_ring(&mut self, ring: Ring) {

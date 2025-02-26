@@ -1,6 +1,5 @@
 use super::super::geometry::{Point, Segment};
 use rstar::{RTree, RTreeObject, AABB};
-use std::f32::INFINITY;
 
 #[derive(Clone)]
 pub struct SegmentValue {
@@ -31,7 +30,7 @@ pub fn min_distance_to_line_segment(rtree: &RTree<SegmentValue>, p: Point, radiu
 	let query_env = AABB::from_corners([p.x - radius, p.y - radius], [p.x + radius, p.y + radius]);
 	let candidates = rtree.locate_in_envelope_intersecting(&query_env);
 
-	let mut best_sq = INFINITY;
+	let mut best_sq = f32::INFINITY;
 	let squared_rad = radius * radius;
 	for candidate in candidates {
 		let seg = candidate.segment;

@@ -7,6 +7,12 @@ pub struct BBox {
 	pub max: Point,
 }
 
+impl Default for BBox {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BBox {
 	pub fn new() -> Self {
 		BBox {
