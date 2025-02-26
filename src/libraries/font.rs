@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use ttf_parser::Face;
+use ttf_parser::{Face, PlatformId};
 
 #[derive(Debug)]
 pub struct FaceMetadata {
@@ -50,7 +50,11 @@ pub fn load_font_metadata(face: &Face) -> Result<FaceMetadata> {
 		.tables()
 		.cmap
 		.ok_or(anyhow!("Font has no cmap table"))?;
+
 	for subtable in table.subtables.into_iter() {
+		if subtable.platform_id != PlatformId::Unicode {
+			continue;
+		}
 		subtable.codepoints(|cp| codepoints.push(cp));
 	}
 

@@ -15,8 +15,6 @@ pub struct Subcommand {
 const GROUP_SIZE: u32 = 256;
 
 pub fn run(arguments: &Subcommand) -> Result<()> {
-	println!("Hello, world! This is a pure-Rust skeleton port of glyphs.cpp.");
-
 	let directory = std::path::Path::new(&arguments.output_directory);
 	if !directory.exists() {
 		std::fs::create_dir_all(directory)?;
@@ -51,6 +49,7 @@ pub fn run(arguments: &Subcommand) -> Result<()> {
 
 	let progress = indicatif::ProgressBar::new(metadata.codepoints.len() as u64);
 	progress.set_position(0);
+
 	for (group, count) in groups.iter() {
 		let start_index = group * GROUP_SIZE;
 		let end_index = (group + 1) * GROUP_SIZE - 1;
