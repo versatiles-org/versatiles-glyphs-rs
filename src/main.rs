@@ -1,38 +1,39 @@
+mod commands;
 mod libraries;
 
 use anyhow::Result;
-use libraries::{composite, load_font, range_glyphs};
+use clap::{Parser, Subcommand};
+
+/// Command-line interface for VersaTiles
+#[derive(Parser, Debug)]
+#[command(
+	author, // Set the author
+	version, // Set the version
+	about, // Set a short description
+	long_about = None, // Disable long description
+	propagate_version = false, // Enable version flag for subcommands
+	disable_help_subcommand = true, // Disable help subcommand
+)]
+struct Cli {
+	#[command(subcommand)]
+	command: Commands, // Set subcommands
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+	#[clap(alias = "converter")]
+	/// Convert between different tile containers
+	Convert(commands::convert::Subcommand),
+}
 
 // ---------------------------------------------------------
 // Demo entry point
 // ---------------------------------------------------------
 
 fn main() -> Result<()> {
-	println!("Hello, world! This is a pure-Rust skeleton port of glyphs.cpp.");
+	let cli = Cli::parse();
 
-	// Suppose you have font bytes in memory:
-	let fake_font_data: &[u8] = include_bytes!("../testdata/Fira Sans - Regular.ttf");
-
-	// 1) LOAD
-	let faces = load_font(fake_font_data)?;
-	for face in faces {
-		println!(
-			"Loaded face: {} / style: {:?}; codepoints={}",
-			face.family_name,
-			face.style_name,
-			face.points.len()
-		);
+	match &cli.command {
+		Commands::Convert(arguments) => commands::convert::run(arguments),
 	}
-
-	// 2) RANGE
-	let start_code = 32 as char;
-	let end_code = 128 as char;
-	let pbf_data = range_glyphs(fake_font_data, start_code, end_code)?;
-	println!("Generated PBF of length: {}", pbf_data.len());
-
-	// 3) COMPOSITE multiple buffers
-	let composite_data = composite(&[pbf_data])?;
-	println!("Composite PBF of length: {}", composite_data.len());
-
-	Ok(())
 }

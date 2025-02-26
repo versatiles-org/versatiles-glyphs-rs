@@ -2,18 +2,15 @@ use super::{
 	protobuf::{PbfFontstack, PbfGlyph},
 	sdf::render_sdf,
 };
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use prost::Message;
 use ttf_parser::Face;
 
 /// Generate a PBF buffer of glyphs in [start..=end].
-pub fn range_glyphs(data: &[u8], start: char, end: char) -> Result<Vec<u8>> {
+pub fn range_glyphs(face: &Face, start: char, end: char) -> Result<Vec<u8>> {
 	if end < start {
 		return Err(anyhow!("start must be <= end"));
 	}
-
-	// Parse the font (single-face example)
-	let face = Face::parse(data, 0).context("Could not parse font data")?;
 
 	// Build a `FontStack` message from your .proto structures.
 	// (The exact struct depends on your actual .proto definitions.)

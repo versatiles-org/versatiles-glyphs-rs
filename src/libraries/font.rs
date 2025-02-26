@@ -1,21 +1,11 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use ttf_parser::Face;
 
 #[derive(Debug)]
 pub struct FaceMetadata {
 	pub family_name: String,
 	pub style_name: Option<String>,
-	pub points: Vec<u32>,
-}
-
-impl FaceMetadata {
-	pub fn new(family: String, style: Option<String>, points: Vec<u32>) -> Self {
-		Self {
-			family_name: family,
-			style_name: style,
-			points,
-		}
-	}
+	pub codepoints: Vec<u32>,
 }
 
 // ---------------------------------------------------------
@@ -23,12 +13,7 @@ impl FaceMetadata {
 //    Pure Rust version using ttf-parser
 // ---------------------------------------------------------
 
-pub fn load_font(data: &[u8]) -> Result<Vec<FaceMetadata>> {
-	// ttf-parser doesn’t automatically parse multi-face fonts
-	// (like a TrueType Collection).
-	// For single-face fonts, do:
-	let face = Face::parse(data, 0).context("Could not parse font data")?;
-
+pub fn load_font_metadata(face: &Face) -> Result<FaceMetadata> {
 	// Try to gather a "family_name" from the name table
 	let family_name = face
 		.names()
@@ -66,6 +51,10 @@ pub fn load_font(data: &[u8]) -> Result<Vec<FaceMetadata>> {
 	}
 
 	// Build FaceMetadata
-	let meta = FaceMetadata::new(family_name, style_name, codepoints);
-	Ok(vec![meta])
+	let meta = FaceMetadata {
+		family_name,
+		style_name,
+		codepoints,
+	};
+	Ok(meta)
 }

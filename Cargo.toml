@@ -7,8 +7,14 @@ edition = "2021"
 name = "sdf_glyphs"
 path = "src/lib.rs"
 
+[[bin]]
+name = "sdf_glyphs"
+path = "src/main.rs"
+required-features = ["cli"]
+
 [dependencies]
 anyhow = "1.0.96"
+clap = { version = "4.5.31", features = ["derive"] }
 flate2 = "1.1.0"
 prost = "0.13.5"
 rstar = "0.12.2"

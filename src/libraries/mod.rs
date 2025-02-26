@@ -7,5 +7,5 @@ mod sdf;
 
 pub mod geometry;
 pub use composite::composite;
-pub use font::load_font;
+pub use font::load_font_metadata;
 pub use glyphs::range_glyphs;
