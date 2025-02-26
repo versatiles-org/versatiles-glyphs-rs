@@ -1,5 +1,6 @@
+use sdf_glyphs::font::load_font_metadata;
 use anyhow::{Context, Result};
-use sdf_glyphs::{load_font_metadata, range_glyphs};
+use sdf_glyphs::glyph::render_glyph_range;
 use ttf_parser::Face;
 
 #[derive(clap::Args, Debug)]
@@ -53,7 +54,7 @@ pub fn run(arguments: &Subcommand) -> Result<()> {
 	for (group, count) in groups.iter() {
 		let start_index = group * GROUP_SIZE;
 		let end_index = (group + 1) * GROUP_SIZE - 1;
-		let pbf_data = range_glyphs(&face, start_index, end_index)?;
+		let pbf_data = render_glyph_range(&face, start_index, end_index)?;
 
 		let filename = format!("{}-{}.pbf", start_index, end_index);
 		std::fs::write(directory.join(filename), pbf_data)?;

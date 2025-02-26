@@ -1,6 +1,5 @@
-mod protobuf {
-	include!(concat!(env!("OUT_DIR"), "/llmr.glyphs.rs"));
-}
+mod protobuf;
+mod composite;
 
 pub use protobuf::Fontstack as PbfFontstack;
 pub use protobuf::Glyph as PbfGlyph;

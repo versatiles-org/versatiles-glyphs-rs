@@ -1,5 +1,4 @@
 mod commands;
-mod libraries;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -22,7 +21,6 @@ struct Cli {
 #[derive(Subcommand, Debug)]
 enum Commands {
 	Convert(commands::convert::Subcommand),
-	
 	//Debug(commands::convert::Subcommand),
 }
 

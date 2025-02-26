@@ -1,4 +1,5 @@
-use super::{
+use crate::{
+	glyph::build_glyph_outline,
 	protobuf::{PbfFontstack, PbfGlyph},
 	sdf::render_sdf,
 };
@@ -7,7 +8,7 @@ use prost::Message;
 use ttf_parser::Face;
 
 /// Generate a PBF buffer of glyphs in [start..=end].
-pub fn range_glyphs(face: &Face, start: u32, end: u32) -> Result<Vec<u8>> {
+pub fn render_glyph_range(face: &Face, start: u32, end: u32) -> Result<Vec<u8>> {
 	if end < start {
 		return Err(anyhow!("start must be <= end"));
 	}
@@ -31,14 +32,22 @@ pub fn range_glyphs(face: &Face, start: u32, end: u32) -> Result<Vec<u8>> {
 		let cp = char::from_u32(index).unwrap();
 
 		// Check if face has a glyph for this codepoint
-		if face.glyph_index(cp).is_none() {
+		let glyph_id = face.glyph_index(cp);
+		if glyph_id.is_none() {
 			continue;
 		}
+		let glyph_id = glyph_id.unwrap();
 
 		ensure!(cp as u32 == index, "Invalid codepoint: {}", index);
-		
+
+		let rings = build_glyph_outline(cp, face, 24.0);
+		if rings.is_none() {
+			continue;
+		}
+		let rings = rings.unwrap();
+
 		// Render the SDF
-		if let Some(g) = render_sdf(cp, &face, 3, 0.25,24) {
+		if let Some(g) = render_sdf(rings, 3, 0.25) {
 			// Convert to your proto::Glyph
 			let glyph = PbfGlyph {
 				id: index,
@@ -47,7 +56,7 @@ pub fn range_glyphs(face: &Face, start: u32, end: u32) -> Result<Vec<u8>> {
 				height: g.height,
 				left: g.left,
 				top: g.top,
-				advance: g.advance as u32,
+				advance: face.glyph_hor_advance(glyph_id).unwrap() as u32,
 			};
 			fontstack.glyphs.push(glyph);
 		}

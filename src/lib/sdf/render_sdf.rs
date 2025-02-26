@@ -1,32 +1,27 @@
 use super::{
-	super::{
-		geometry::Point,
-		glyph::{build_glyph_outline, GlyphInfo},
-	},
-	rtree::{min_distance_to_line_segment, SegmentValue},
+	super::geometry::Point,
+	rtree_segments::{min_distance_to_line_segment, SegmentValue},
 };
+use crate::geometry::Rings;
 use rstar::RTree;
-use ttf_parser::Face;
+
+#[derive(Debug, Default)]
+pub struct SdfGlyph {
+	pub left: i32,
+	pub top: i32,
+
+	pub width: u32,
+	pub height: u32,
+
+	pub bitmap: Vec<u8>,
+}
 
 // https://github.com/mapbox/sdf-glyph-foundry/blob/6ed4f2099009fc8a1a324626345ceb29dcd5277c/include/mapbox/glyph_foundry_impl.hpp
-pub fn render_sdf(
-	code_point: char,
-	face: &Face,
-	buffer: i32,
-	cutoff: f32,
-	size: u32,
-) -> Option<GlyphInfo> {
-	let glyph_id = face.glyph_index(code_point)?;
-
-	let mut rings = build_glyph_outline(glyph_id, face);
-
-	let scale = size as f32 / face.height() as f32;
-	rings.scale(scale);
-
+pub fn render_sdf(mut rings: Rings, buffer: usize, cutoff: f32) -> Option<SdfGlyph> {
 	// Calculate the real glyph bbox.
 	let bbox = rings.get_bbox();
 
-	if bbox.width() == 0.0 || bbox.height() == 0.0 {
+	if bbox.is_empty() {
 		return None;
 	}
 
@@ -49,20 +44,20 @@ pub fn render_sdf(
 	let rtree = RTree::bulk_load(segments);
 
 	// 5) For each pixel, compute distance, check inside-ness, etc.
-	let buffered_width = bbox.width() as usize + 2 * buffer as usize;
-	let buffered_height = bbox.height() as usize + 2 * buffer as usize;
+	let width = bbox.width() as usize + 2 * buffer;
+	let height = bbox.height() as usize + 2 * buffer;
 
 	let mut bitmap = Vec::new();
-	bitmap.resize(buffered_width * buffered_height, 0);
+	bitmap.resize(width * height, 0);
 
 	let offset = 0.5f32;
 	let radius = 8.0;
 	let radius_by_256 = 256.0 / radius;
 
-	for y in 0..buffered_height {
-		for x in 0..buffered_width {
+	for y in 0..height {
+		for x in 0..width {
 			// We'll invert Y to match typical image coordinate systems
-			let i = (buffered_height - 1 - y) * (buffered_width) + x;
+			let i = (height - 1 - y) * (width) + x;
 
 			// The sample point is the center of the pixel
 			let sample_pt = Point::new((x as f32) + offset, (y as f32) + offset);
@@ -90,16 +85,11 @@ pub fn render_sdf(
 		}
 	}
 
-	Some(GlyphInfo {
-		advance: face.glyph_hor_advance(glyph_id).unwrap() as f64 / 64.0,
-		//ascender: face.ascender() as f64 / 64.0,
-		//descender: face.descender() as f64 / 64.0,
-		//line_height: (face.height() + face.line_gap()) as f64 / 64.0,
-		//code_point,
+	Some(SdfGlyph {
 		left: bbox.min.x as i32,
 		top: bbox.min.y as i32,
-		width: bbox.width().ceil() as u32,
-		height: bbox.height().ceil() as u32,
+		width: width as u32,
+		height: height as u32,
 		bitmap,
 	})
 }

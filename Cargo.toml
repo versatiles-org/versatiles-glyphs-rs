@@ -5,20 +5,36 @@ edition = "2021"
 
 [lib]
 name = "sdf_glyphs"
-path = "src/lib.rs"
+path = "src/lib/mod.rs"
 
 [[bin]]
 name = "sdf_glyphs"
 path = "src/main.rs"
 
+[profile.release]
+opt-level = 3
+debug = true
+rpath = false
+lto = true
+debug-assertions = true
+codegen-units = 1
+panic = "unwind"
+incremental = false
+overflow-checks = false
+strip = true
+
 [dependencies]
-anyhow = "1.0.96"
-clap = { version = "4.5.31", features = ["derive"] }
-flate2 = "1.1.0"
-indicatif = "0.17.11"
-prost = "0.13.5"
-rstar = "0.12.2"
-ttf-parser = "0.25.1"
+anyhow = { version = "1.0.96", default-features = false }
+clap = { version = "4.5.31", default-features = false, features = [
+	"derive",
+	"std",
+] }
+indicatif = { version = "0.17.11", default-features = false }
+prost = { version = "0.13.5" }
+rstar = { version = "0.12.2", default-features = false }
+ttf-parser = { version = "0.25.1", default-features = false, features = [
+	"std",
+] }
 
 [build-dependencies]
-prost-build = "0.13.5"
+prost-build = { version = "0.13.5", default-features = false }

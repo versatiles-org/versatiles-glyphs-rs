@@ -1,4 +1,4 @@
-use super::super::geometry::{Point, Ring, Rings};
+use crate::geometry::{Point, Ring, Rings};
 use std::mem::swap;
 use ttf_parser::OutlineBuilder;
 
