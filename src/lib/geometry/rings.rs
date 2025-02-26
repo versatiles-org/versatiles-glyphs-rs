@@ -95,10 +95,8 @@ mod tests {
 		let bbox = rings.get_bbox();
 		// The combined bounding box should be from min(0, -1) => (0, -1)
 		// to max(5, 2) => (5, 2)
-		assert_eq!(bbox.min.x, 0.0);
-		assert_eq!(bbox.min.y, -1.0);
-		assert_eq!(bbox.max.x, 5.0);
-		assert_eq!(bbox.max.y, 2.0);
+		assert_eq!(bbox.min.as_tuple(), (0.0, -1.0));
+		assert_eq!(bbox.max.as_tuple(), (5.0, 2.0));
 	}
 
 	#[test]
@@ -110,20 +108,29 @@ mod tests {
 		ring.close();
 
 		rings.add_ring(ring);
-		// Now translate everything by (2, 3)
 		rings.translate(Point::new(2.0, 3.0));
 
-		// The ring's points should each be offset
 		let translated_ring = &rings.rings[0];
-		// Original points: (0,0), (1,1), (0,0) again
-		// After translation: (2,3), (3,4), (2,3)
-		assert_eq!(translated_ring.points[0].x, 2.0);
-		assert_eq!(translated_ring.points[0].y, 3.0);
-		assert_eq!(translated_ring.points[1].x, 3.0);
-		assert_eq!(translated_ring.points[1].y, 4.0);
-		// The last point is the closed ring's first point repeated
-		assert_eq!(translated_ring.points[2].x, 2.0);
-		assert_eq!(translated_ring.points[2].y, 3.0);
+		assert_eq!(translated_ring.points[0].as_tuple(), (2.0, 3.0));
+		assert_eq!(translated_ring.points[1].as_tuple(), (3.0, 4.0));
+		assert_eq!(translated_ring.points[2].as_tuple(), (2.0, 3.0));
+	}
+
+	#[test]
+	fn test_scale() {
+		let mut rings = Rings::new();
+		let mut ring = Ring::new();
+		ring.add_point(Point::new(0.0, 1.0));
+		ring.add_point(Point::new(2.0, 3.0));
+		ring.close();
+
+		rings.add_ring(ring);
+		rings.scale(0.1);
+
+		let scaled_ring = &rings.rings[0];
+		assert_eq!(scaled_ring.points[0].as_tuple(), (0.0, 0.1));
+		assert_eq!(scaled_ring.points[1].as_tuple(), (0.2, 0.3));
+		assert_eq!(scaled_ring.points[2].as_tuple(), (0.0, 0.1));
 	}
 
 	#[test]
@@ -152,17 +159,13 @@ mod tests {
 
 		// Just verify a few
 		// The first ring's first segment: (0,0)->(1,0)
-		assert_eq!(segments[0].start.x, 0.0);
-		assert_eq!(segments[0].start.y, 0.0);
-		assert_eq!(segments[0].end.x, 1.0);
-		assert_eq!(segments[0].end.y, 0.0);
+		assert_eq!(segments[0].start.as_tuple(), (0.0, 0.0));
+		assert_eq!(segments[0].end.as_tuple(), (1.0, 0.0));
 
 		// The second ring's last segment: (3,3)->(2,3)
 		let last_seg = &segments[4];
-		assert_eq!(last_seg.start.x, 3.0);
-		assert_eq!(last_seg.start.y, 3.0);
-		assert_eq!(last_seg.end.x, 2.0);
-		assert_eq!(last_seg.end.y, 3.0);
+		assert_eq!(last_seg.start.as_tuple(), (3.0, 3.0));
+		assert_eq!(last_seg.end.as_tuple(), (2.0, 3.0));
 	}
 
 	#[test]

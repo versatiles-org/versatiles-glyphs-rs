@@ -57,17 +57,6 @@ mod tests {
 	}
 
 	#[test]
-	fn test_width_height_empty() {
-		// A newly created BBox should have 'inverted' bounds
-		let bbox = BBox::new();
-		// width/height would be negative infinity if used directly.
-		// This checks it doesn't panic but clarifies the 'default' state.
-		// One can interpret this test as a sanity check.
-		assert!(bbox.width().is_infinite());
-		assert!(bbox.height().is_infinite());
-	}
-
-	#[test]
 	fn test_bbox_include_point() {
 		let mut bbox = BBox::new();
 
@@ -144,5 +133,20 @@ mod tests {
 		assert_eq!(bbox.min.y, 3.0);
 		assert_eq!(bbox.max.x, 4.0);
 		assert_eq!(bbox.max.y, -1.0);
+	}
+
+	#[test]
+	fn test_new_bbox_is_empty() {
+		let mut bbox = BBox::new();
+		assert!(bbox.is_empty());
+
+		bbox.include_point(&Point::new(2.0, 3.0));
+		assert!(bbox.is_empty());
+
+		bbox.include_point(&Point::new(2.0, 5.0));
+		assert!(bbox.is_empty());
+
+		bbox.include_point(&Point::new(1.0, 5.0));
+		assert!(!bbox.is_empty());
 	}
 }

@@ -189,8 +189,7 @@ mod tests {
 		assert_eq!(ring.points.len(), 1);
 
 		let p = ring.last().unwrap();
-		assert_eq!(p.x, 1.0);
-		assert_eq!(p.y, 2.0);
+		assert_eq!(p.as_tuple(), (1.0, 2.0));
 	}
 
 	#[test]
@@ -203,8 +202,7 @@ mod tests {
 		ring.close();
 		// Closing the ring should add the first point again if not already present
 		assert_eq!(ring.points.len(), 3);
-		assert_eq!(ring.points[0].x, ring.points[2].x);
-		assert_eq!(ring.points[0].y, ring.points[2].y);
+		assert_eq!(ring.points[0], ring.points[2]);
 	}
 
 	#[test]
@@ -228,10 +226,8 @@ mod tests {
 		ring.add_point(Point::new(5.0, -4.0));
 
 		let bbox = ring.get_bbox();
-		assert_eq!(bbox.min.x, -1.0);
-		assert_eq!(bbox.min.y, -4.0);
-		assert_eq!(bbox.max.x, 5.0);
-		assert_eq!(bbox.max.y, 10.0);
+		assert_eq!(bbox.min.as_tuple(), (-1.0, -4.0));
+		assert_eq!(bbox.max.as_tuple(), (5.0, 10.0));
 	}
 
 	#[test]
@@ -241,11 +237,19 @@ mod tests {
 		ring.add_point(Point::new(1.0, 2.0));
 
 		ring.translate(Point::new(3.0, 4.0));
-		// Now ring points should have each coordinate offset by (3,4)
-		assert_eq!(ring.points[0].x, 3.0);
-		assert_eq!(ring.points[0].y, 4.0);
-		assert_eq!(ring.points[1].x, 4.0);
-		assert_eq!(ring.points[1].y, 6.0);
+		assert_eq!(ring.points[0].as_tuple(), (3.0, 4.0));
+		assert_eq!(ring.points[1].as_tuple(), (4.0, 6.0));
+	}
+
+	#[test]
+	fn test_ring_scale() {
+		let mut ring = Ring::new();
+		ring.add_point(Point::new(0.0, 0.0));
+		ring.add_point(Point::new(1.0, 2.0));
+
+		ring.scale(0.3);
+		assert_eq!(ring.points[0].as_tuple(), (0.0, 0.0));
+		assert_eq!(ring.points[1].as_tuple(), (3.0, 6.0));
 	}
 
 	#[test]
@@ -255,8 +259,7 @@ mod tests {
 
 		ring.add_point(Point::new(1.0, 2.0));
 		let p = ring.last().unwrap();
-		assert_eq!(p.x, 1.0);
-		assert_eq!(p.y, 2.0);
+		assert_eq!(p.as_tuple(), (1.0, 2.0));
 	}
 
 	#[test]
@@ -270,14 +273,10 @@ mod tests {
 		// 2) (10,0) -> (10,5)
 		let segments = ring.get_segments();
 		assert_eq!(segments.len(), 2);
-		assert_eq!(segments[0].start.x, 0.0);
-		assert_eq!(segments[0].start.y, 0.0);
-		assert_eq!(segments[0].end.x, 10.0);
-		assert_eq!(segments[0].end.y, 0.0);
-		assert_eq!(segments[1].start.x, 10.0);
-		assert_eq!(segments[1].start.y, 0.0);
-		assert_eq!(segments[1].end.x, 10.0);
-		assert_eq!(segments[1].end.y, 5.0);
+		assert_eq!(segments[0].start.as_tuple(), (0.0, 0.0));
+		assert_eq!(segments[0].end.as_tuple(), (10.0, 0.0));
+		assert_eq!(segments[1].start.as_tuple(), (10.0, 0.0));
+		assert_eq!(segments[1].end.as_tuple(), (10.0, 5.0));
 	}
 
 	#[test]
@@ -294,10 +293,8 @@ mod tests {
 		// Because it's basically a flat line, it should add just end point
 		// ring.points: [start, end]
 		assert_eq!(ring.points.len(), 2);
-		assert_eq!(ring.points[0].x, 0.0);
-		assert_eq!(ring.points[0].y, 0.0);
-		assert_eq!(ring.points[1].x, 2.0);
-		assert_eq!(ring.points[1].y, 0.0);
+		assert_eq!(ring.points[0].as_tuple(), (0.0, 0.0));
+		assert_eq!(ring.points[1].as_tuple(), (2.0, 0.0));
 	}
 
 	#[test]
