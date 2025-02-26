@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
+use ttf_parser::Face;
 use versatiles_glyphs::font::load_font_metadata;
 use versatiles_glyphs::glyph::render_glyph_range;
-use ttf_parser::Face;
 
 #[derive(clap::Args, Debug)]
 #[command(arg_required_else_help = true, disable_version_flag = true)]
