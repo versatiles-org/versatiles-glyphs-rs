@@ -26,13 +26,6 @@ jobs:
       - name: Check out
         uses: actions/checkout@v4
 
-      - name: Determine crate version
-        run: |
-          VERSION=$(cargo metadata --format-version=1 --no-deps \
-            | sed -n 's/.*"version":"\([^"]*\)".*/\1/p' \
-            | head -n1)
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-
       - name: Download cross
         run: |
           curl -L https://github.com/cross-rs/cross/releases/latest/download/cross-x86_64-unknown-linux-gnu.tar.gz \
@@ -48,7 +41,9 @@ jobs:
         run: tar -czf ${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release versatiles_glyphs
 
       - name: Upload
-        run: gh release upload "v${{ env.VERSION }}" ${{ matrix.target }}.tar.gz --clobber
+        run: |
+          VERSION=$(scripts/get_version.sh)
+          gh release upload "v${VERSION}" ${{ matrix.target }}.tar.gz --clobber
 
   release-mac:
     name: release ${{ matrix.target }}
@@ -74,4 +69,6 @@ jobs:
         run: tar -czf ${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release versatiles_glyphs
 
       - name: Upload
-        run: gh release upload "v${{ env.VERSION }}" ${{ matrix.target }}.tar.gz --clobber
+        run: |
+          VERSION=$(scripts/get_version.sh)
+          gh release upload "v${VERSION}" ${{ matrix.target }}.tar.gz --clobber
