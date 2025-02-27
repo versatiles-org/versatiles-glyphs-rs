@@ -40,7 +40,6 @@ RELEASE_NAME="Release ${RELEASE_TAG}"
 echo -e "${GRE}Creating GitHub release '${RELEASE_TAG}'...${END}"
 
 # You can customize the release notes here, or load them from a file (e.g. CHANGELOG.md).
-gh release create "${RELEASE_TAG}" \
-	--title "${RELEASE_NAME}"
+gh release create "${RELEASE_TAG}" --generate-notes --latest
 
 echo -e "${GRE}Successfully released version ${RELEASE_TAG}!${END}"
