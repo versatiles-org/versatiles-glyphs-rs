@@ -37,11 +37,16 @@ jobs:
             | head -n1)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
-      - name: Add Target
-        run: rustup target add ${{ matrix.target }}
+      - name: Download cross
+        run: |
+          curl -L https://github.com/cross-rs/cross/releases/latest/download/cross-x86_64-unknown-linux-gnu.tar.gz \
+            -o cross-x86_64-unknown-linux-gnu.tar.gz
+          tar -xzf cross-x86_64-unknown-linux-gnu.tar.gz
+          sudo mv cross /usr/local/bin/cross
+          sudo chmod +x /usr/local/bin/cross
 
-      - name: Compile
-        run: cargo build --release --bins --features="cli" --target ${{ matrix.target }}
+      - name: Build with Cross
+        run: cross build --release --bins --features="cli" --target ${{ matrix.target }}
 
       - name: Archive
         run: tar -czf ${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release versatiles_glyphs
