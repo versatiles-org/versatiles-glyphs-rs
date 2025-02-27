@@ -41,9 +41,7 @@ jobs:
         run: tar -czf ${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release versatiles_glyphs
 
       - name: Upload
-        run: |
-          VERSION=$(scripts/get_version.sh)
-          gh release upload "v${VERSION}" ${{ matrix.target }}.tar.gz --clobber
+        run: gh release upload "v$(scripts/get_version.sh)" ${{ matrix.target }}.tar.gz --clobber
 
   release-mac:
     name: release ${{ matrix.target }}
@@ -69,9 +67,7 @@ jobs:
         run: tar -czf ${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release versatiles_glyphs
 
       - name: Upload
-        run: |
-          VERSION=$(scripts/get_version.sh)
-          gh release upload "v${VERSION}" ${{ matrix.target }}.tar.gz --clobber
+        run: gh release upload "v$(scripts/get_version.sh)" ${{ matrix.target }}.tar.gz --clobber
 
   finish-release:
     name: Finish release # The end is but the start of a new journey.
@@ -84,7 +80,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Finalize the release # The final stroke of the brush completes the masterpiece.
-        run: gh release edit "v${VERSION}" --draft=false --latest --prerelease=false
-        
+        run: gh release edit "v$(scripts/get_version.sh)" --draft=false --latest --prerelease=false
 #      - name: Trigger Homebrew formula update
 #        run: curl -XPOST -u "michaelkreil:${{ secrets.PAT_TOKEN }}" https://api.github.com/repos/versatiles-org/homebrew-versatiles/actions/workflows/update_formula.yml/dispatches --data '{"ref":"main"}'
