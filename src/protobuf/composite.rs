@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::{PbfFontstack, PbfGlyph};
 use anyhow::{anyhow, Result};
 use prost::Message;

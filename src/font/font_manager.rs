@@ -2,13 +2,15 @@ use super::{load_font_metadata, metadata::FaceMetadata};
 use crate::{glyph::render_glyph, protobuf::PbfFontstack};
 use anyhow::{Context, Result};
 use prost::Message;
-use std::{collections::HashMap, path::Path, pin::Pin, slice};
+use std::{collections::HashMap, marker::PhantomPinned, path::Path, pin::Pin, slice};
 use ttf_parser::Face;
 
 struct FontEntry<'a> {
+	#[allow(dead_code)]
 	data: Pin<Vec<u8>>,
 	face: Face<'a>,
 	metadata: FaceMetadata,
+	_pin: PhantomPinned,
 }
 
 impl<'a> FontEntry<'a> {
@@ -22,6 +24,7 @@ impl<'a> FontEntry<'a> {
 				data,
 				face,
 				metadata,
+				_pin: PhantomPinned,
 			})
 		}
 	}
