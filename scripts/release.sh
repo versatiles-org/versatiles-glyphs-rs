@@ -35,6 +35,6 @@ RELEASE_NAME="Release ${RELEASE_TAG}"
 
 echo -e "${GRE}Creating GitHub release '${RELEASE_TAG}'...${END}"
 
-gh release create "${RELEASE_TAG}" --generate-notes --latest
+gh release create "${RELEASE_TAG}" --generate-notes --draft
 
 echo -e "${GRE}Successfully released version ${RELEASE_TAG}!${END}"
