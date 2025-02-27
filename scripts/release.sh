@@ -28,10 +28,6 @@ if [ $? -ne 0 ]; then
 fi
 
 # 2) Perform the release.
-#    --execute: actually do it (instead of a dry run)
-#    --no-verify: skip cargo test
-#    --sign-commit: if you want signed commits/tags
-#    --workspace: if you're using a workspace
 cargo release "$BUMP_TYPE" --execute --sign --no-verify
 
 RELEASE_TAG=$(cargo get package.version --pretty)
@@ -39,7 +35,6 @@ RELEASE_NAME="Release ${RELEASE_TAG}"
 
 echo -e "${GRE}Creating GitHub release '${RELEASE_TAG}'...${END}"
 
-# You can customize the release notes here, or load them from a file (e.g. CHANGELOG.md).
 gh release create "${RELEASE_TAG}" --generate-notes --latest
 
 echo -e "${GRE}Successfully released version ${RELEASE_TAG}!${END}"

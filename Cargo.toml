@@ -5,13 +5,14 @@ edition = "2021"
 description = "A tool for generating SDF glyphs from fonts."
 license = "MIT"
 repository = "https://github.com/versatiles-org/versatiles-glyphs-rs"
-include = [
-	"build.rs",
-	"src/**/*",
-	"Cargo.toml",
-	"Cargo.lock",
-	"LICENSE",
-	"README.md",
+exclude = [
+	".github",
+	".gitignore",
+	"codecov.yml",
+	"rust-toolchain.toml",
+	"rustfmt.toml",
+	"scripts",
+	"testdata",
 ]
 
 [lib]
