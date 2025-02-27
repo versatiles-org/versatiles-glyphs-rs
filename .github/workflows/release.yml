@@ -10,19 +10,15 @@ env:
   GH_TOKEN: ${{ github.token }}
 
 jobs:
-  release:
+  release-linux:
     name: release ${{ matrix.target }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: aarch64-apple-darwin
-          - target: aarch64-pc-windows-gnullvm
           - target: aarch64-unknown-linux-gnu
           - target: aarch64-unknown-linux-musl
-          - target: x86_64-apple-darwin
-          - target: x86_64-pc-windows-gnullvm
           - target: x86_64-unknown-linux-gnu
           - target: x86_64-unknown-linux-musl
 
@@ -47,6 +43,32 @@ jobs:
 
       - name: Build with Cross
         run: cross build --release --bins --features="cli" --target ${{ matrix.target }}
+
+      - name: Archive
+        run: tar -czf ${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release versatiles_glyphs
+
+      - name: Upload
+        run: gh release upload "v${{ env.VERSION }}" ${{ matrix.target }}.tar.gz --clobber
+
+  release-mac:
+    name: release ${{ matrix.target }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+          - target: x86_64-apple-darwin
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Add Target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --bins --features="cli" --target ${{ matrix.target }}
 
       - name: Archive
         run: tar -czf ${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release versatiles_glyphs
