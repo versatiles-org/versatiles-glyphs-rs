@@ -1,4 +1,4 @@
-name: Build and release binaries
+name: Release Binaries
 
 on:
   release:
@@ -30,6 +30,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          EXTRA_COMMAND_FLAGS: '--features="cli"'
+          EXTRA_COMMAND_FLAGS: '--features=cli'
           RUSTTARGET: ${{ matrix.target }}
           ARCHIVE_TYPES: ${{ matrix.archive }}

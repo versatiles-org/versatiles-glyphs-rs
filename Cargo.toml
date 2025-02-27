@@ -58,4 +58,4 @@ prost-build = "0.13.5"
 
 [features]
 default = []
-cli = ["clap"]
+cli = ["dep:clap"]
