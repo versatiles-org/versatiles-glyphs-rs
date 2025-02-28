@@ -12,7 +12,7 @@ pub fn render_glyph(face: &Face, index: u32) -> Option<PbfGlyph> {
 
 	let mut rings = build_glyph_outline(cp, face)?;
 
-	let scale = 24.0 / face.height() as f32;
+	let scale = 24.0 / face.units_per_em() as f32;
 	rings.scale(scale);
 
 	// Render the SDF
