@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use ttf_parser::{Face, PlatformId};
+use ttf_parser::{name_id, Face, PlatformId};
 
 #[derive(Debug)]
 pub struct FaceMetadata {
@@ -8,22 +8,12 @@ pub struct FaceMetadata {
 	pub codepoints: Vec<u32>,
 }
 
-// ---------------------------------------------------------
-// 1) LOAD: analogous to AsyncLoad / Load(...)
-//    Pure Rust version using ttf-parser
-// ---------------------------------------------------------
-
 pub fn load_font_metadata(face: &Face) -> Result<FaceMetadata> {
-	// Try to gather a "family_name" from the name table
 	let family_name = face
 		.names()
 		.into_iter()
 		.find_map(|name| {
-			// This tries to find the "Full Name" or "Family Name".
-			// Adjust name_id as needed
-			if name.name_id == ttf_parser::name_id::FULL_NAME
-				|| name.name_id == ttf_parser::name_id::FAMILY
-			{
+			if name.name_id == name_id::FULL_NAME || name.name_id == name_id::FAMILY {
 				name.to_string()
 			} else {
 				None
@@ -31,12 +21,11 @@ pub fn load_font_metadata(face: &Face) -> Result<FaceMetadata> {
 		})
 		.unwrap_or_else(|| "UnknownFamily".to_string());
 
-	// Style name, e.g. Subfamily
 	let style_name = face
 		.names()
 		.into_iter()
 		.find_map(|n| {
-			if n.name_id == ttf_parser::name_id::SUBFAMILY {
+			if n.name_id == name_id::SUBFAMILY {
 				n.to_string()
 			} else {
 				None
@@ -44,7 +33,6 @@ pub fn load_font_metadata(face: &Face) -> Result<FaceMetadata> {
 		})
 		.unwrap_or(String::from("unknown"));
 
-	// Enumerate all codepoints in the font’s cmap:
 	let mut codepoints = Vec::new();
 	let table = face
 		.tables()
@@ -58,11 +46,36 @@ pub fn load_font_metadata(face: &Face) -> Result<FaceMetadata> {
 		subtable.codepoints(|cp| codepoints.push(cp));
 	}
 
-	// Build FaceMetadata
 	let meta = FaceMetadata {
 		family_name,
 		style_name,
 		codepoints,
 	};
 	Ok(meta)
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use ttf_parser::Face;
+
+	#[test]
+	fn test_load_fira() {
+		const FIRA: &[u8] = include_bytes!("../../testdata/Fira Sans - Regular.ttf");
+		let face = Face::parse(FIRA, 0).unwrap();
+		let metadata = load_font_metadata(&face).unwrap();
+		assert_eq!(metadata.family_name, "Fira Sans");
+		assert_eq!(metadata.style_name, "Regular");
+		assert_eq!(metadata.codepoints.len(), 1686);
+	}
+
+	#[test]
+	fn test_load_noto() {
+		const NOTO: &[u8] = include_bytes!("../../testdata/Noto Sans - Regular.ttf");
+		let face = Face::parse(NOTO, 0).unwrap();
+		let metadata = load_font_metadata(&face).unwrap();
+		assert_eq!(metadata.family_name, "Noto Sans");
+		assert_eq!(metadata.style_name, "Regular");
+		assert_eq!(metadata.codepoints.len(), 6100);
+	}
 }
