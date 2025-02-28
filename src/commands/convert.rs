@@ -5,6 +5,7 @@ use versatiles_glyphs::font::FontManager;
 #[derive(clap::Args, Debug)]
 #[command(arg_required_else_help = true, disable_version_flag = true)]
 pub struct Subcommand {
+	/// Font files to convert
 	#[arg()]
 	input_files: Vec<String>,
 

@@ -32,7 +32,7 @@ pub struct PbfFontstack {
 }
 
 #[derive(Clone, PartialEq, Message)]
-pub struct PbFGlyphs {
+pub struct PbfGlyphs {
 	#[prost(message, repeated, tag = "1")]
 	pub stacks: alloc::vec::Vec<PbfFontstack>,
 }

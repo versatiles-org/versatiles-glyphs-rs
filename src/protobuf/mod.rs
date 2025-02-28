@@ -1,3 +1,3 @@
 mod proto;
 
-pub use proto::{PbfFontstack, PbfGlyph};
+pub use proto::{PbfFontstack, PbfGlyph, PbfGlyphs};
