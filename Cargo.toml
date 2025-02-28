@@ -9,6 +9,7 @@ exclude = [
 	".github",
 	".gitignore",
 	"codecov.yml",
+	"pages",
 	"rust-toolchain.toml",
 	"rustfmt.toml",
 	"scripts",

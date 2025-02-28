@@ -1,3 +1,4 @@
 .DS_Store
-/target
-/temp
+target
+temp
+pages/web/assets/glyphs/

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="/assets/lib/maplibre-gl/maplibre-gl-dev.js"></script>
+    <script src="/assets/lib/versatiles-style/versatiles-style.js"></script>
+    <link href="/assets/lib/maplibre-gl/maplibre-gl.css" rel="stylesheet" />
+  </head>
+  <body>
+    <h1>Test Glyphs</h1>
+    <div id="map" style="width: 600px; height: 600px; margin: auto"></div>
+    <script>
+      const style = {
+        version: 8,
+        glyphs: "/assets/glyphs/{fontstack}/{range}.pbf",
+        //glyphs: "https://tiles.versatiles.org/assets/glyphs/{fontstack}/{range}.pbf",
+        sources: {
+          labels: {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: [
+                "AaBbCcDdEeFfGgHhIiJjKkLl",
+                "_—‾",
+                "București",
+                "İstanbul Boğazı",
+              ].map((text, i) => ({
+                type: "Feature",
+                geometry: { type: "Point", coordinates: [0, -i] },
+                properties: { text },
+              })),
+            },
+          },
+        },
+        layers: [
+          {
+            id: "background",
+            type: "background",
+            paint: { "background-color": "#ccc" },
+          },
+          {
+            id: "text",
+            type: "symbol",
+            source: "labels",
+            layout: {
+              "text-field": "{text}",
+              "text-size": 48,
+              "text-overlap": "always",
+              "text-font": ["noto_sans_regular"],
+              "text-anchor": "bottom-left",
+            },
+            paint: {
+              "text-color": "#000",
+              "text-halo-color": "rgba(255,255,255,0.7)",
+              "text-halo-width": 4,
+            },
+          },
+          {
+            type: "circle",
+            id: "circle",
+            source: "labels",
+            paint: { "circle-radius": 2, "circle-color": "#F00" },
+          },
+        ],
+      };
+      new maplibregl.Map({
+        container: "map",
+        style,
+        bounds: [
+          [-1, -10],
+          [10, 1],
+        ],
+      }).addControl(new maplibregl.NavigationControl());
+    </script>
+  </body>
+</html>
