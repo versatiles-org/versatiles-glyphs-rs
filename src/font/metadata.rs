@@ -70,7 +70,7 @@ mod tests {
 
 	#[test]
 	fn test_load_noto() {
-		const NOTO: &[u8] = include_bytes!("../../testdata/Noto Sans - Regular.ttf");
+		const NOTO: &[u8] = include_bytes!("../../testdata/Noto Sans/Noto Sans - Regular.ttf");
 		let face = Face::parse(NOTO, 0).unwrap();
 		let metadata = load_font_metadata(&face).unwrap();
 		assert_eq!(metadata.family_name, "Noto Sans");
