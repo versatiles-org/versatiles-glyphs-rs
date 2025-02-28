@@ -1,5 +1,7 @@
-mod font_manager;
+mod entry;
+mod glyph_chunk;
+mod manager;
 mod metadata;
 
-pub use font_manager::FontManager;
+pub use manager::FontManager;
 pub use metadata::load_font_metadata;
