@@ -57,7 +57,6 @@ pub fn load_font_metadata(face: &Face) -> Result<FaceMetadata> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use ttf_parser::Face;
 
 	#[test]
 	fn test_load_fira() {
