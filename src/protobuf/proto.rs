@@ -1,3 +1,4 @@
+use crate::sdf::SdfGlyph;
 use prost::{alloc, Message};
 
 #[derive(Clone, PartialEq, Message)]
@@ -18,6 +19,31 @@ pub struct PbfGlyph {
 	pub top: i32,
 	#[prost(uint32, required, tag = "7")]
 	pub advance: u32,
+}
+
+impl PbfGlyph {
+	pub fn from_sdf(sdf: SdfGlyph, id: u32, advance: u32) -> Self {
+		PbfGlyph {
+			id,
+			bitmap: Some(sdf.bitmap),
+			width: sdf.width - 6,
+			height: sdf.height - 6,
+			left: sdf.left,
+			top: sdf.top,
+			advance,
+		}
+	}
+	pub fn empty(id: u32, advance: u32) -> Self {
+		PbfGlyph {
+			id,
+			bitmap: None,
+			width: 0,
+			height: 0,
+			left: 0,
+			top: 0,
+			advance,
+		}
+	}
 }
 
 /// Stores fontstack information and a list of faces.

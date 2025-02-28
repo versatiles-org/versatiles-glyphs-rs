@@ -46,17 +46,6 @@ impl SdfGlyph {
 			})
 		})
 	}
-	pub fn into_pbf(self, id: u32, advance: u32) -> PbfGlyph {
-		PbfGlyph {
-			id,
-			bitmap: Some(self.bitmap), // raw bytes
-			width: self.width - 6,
-			height: self.height - 6,
-			left: self.left,
-			top: self.top,
-			advance,
-		}
-	}
 	pub fn from_pbf(pbf: PbfGlyph) -> Self {
 		SdfGlyph {
 			left: pbf.left,
@@ -130,7 +119,7 @@ impl SdfGlyph {
 
 		Some(SdfGlyph {
 			left: bbox.min.x as i32,
-			top: bbox.min.y as i32,
+			top: (bbox.max.y - 24.0) as i32,
 			width: width as u32,
 			height: height as u32,
 			bitmap,

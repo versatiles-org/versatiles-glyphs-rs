@@ -15,14 +15,16 @@ pub fn render_glyph(face: &Face, index: u32) -> Option<PbfGlyph> {
 	let scale = 24.0 / face.units_per_em() as f32;
 	rings.scale(scale);
 
+	let advance = (face.glyph_hor_advance(glyph_id).unwrap() as f32 * scale).round() as u32;
+	
 	// Render the SDF
-	if let Some(g) = SdfGlyph::from_rings(rings, 3, 0.25) {
-		// Convert to your proto::Glyph
-		let advance = face.glyph_hor_advance(glyph_id).unwrap() as f32 * scale;
-		Some(g.into_pbf(index, advance.round() as u32))
+	let sdf_option = SdfGlyph::from_rings(rings, 3, 0.25);
+	let glyph = if let Some(sdf) = sdf_option {
+		PbfGlyph::from_sdf(sdf, index, advance)
 	} else {
-		None
-	}
+		PbfGlyph::empty(index, advance)
+	};
+	return Some(glyph);
 }
 
 #[cfg(test)]
@@ -39,6 +41,41 @@ mod tests {
 			glyph.bitmap.as_ref().unwrap().len() as u32
 		);
 		glyph
+	}
+
+	#[test]
+	fn test_render_glyph_32() {
+		let glyph = get_glyph(32);
+
+		assert_eq!(glyph.width, 11);
+		assert_eq!(glyph.height, 13);
+		assert_eq!(glyph.left, 0);
+		assert_eq!(glyph.top, 0);
+		assert_eq!(glyph.advance, 11);
+		assert_eq!(
+			SdfGlyph::from_pbf(glyph).as_emoji_art(),
+			vec![
+				"        ░ ░ ▒ ▒ ▒ ▒ ▒ ░ ░ ░      ",
+				"      ░ ░ ▒ ▒ ▒ ▒ ▒ ▒ ▒ ░ ░      ",
+				"      ░ ░ ▒ ▒ ▓ ▓ ▓ ▒ ▒ ░ ░      ",
+				"      ░ ░ ▒ ▒ ▓ ▓ ▓ ▓ ▒ ▒ ░ ░    ",
+				"    ░ ░ ▒ ▒ ▓ ▓ ▓ ▓ ▓ ▒ ▒ ░ ░    ",
+				"    ░ ░ ▒ ▒ ▓ ▓ ▒ ▓ ▓ ▒ ▒ ░ ░    ",
+				"    ░ ░ ▒ ▒ ▓ ▓ ▒ ▓ ▓ ▓ ▒ ░ ░    ",
+				"  ░ ░ ▒ ▒ ▓ ▓ ▓ ▒ ▓ ▓ ▓ ▒ ▒ ░ ░  ",
+				"  ░ ░ ▒ ▒ ▓ ▓ ▓ ▒ ▒ ▓ ▓ ▒ ▒ ░ ░  ",
+				"  ░ ░ ▒ ▒ ▓ ▓ ▒ ▒ ▒ ▓ ▓ ▒ ▒ ░ ░  ",
+				"░ ░ ▒ ▒ ▓ ▓ ▓ ▒ ▒ ▒ ▓ ▓ ▓ ▒ ▒ ░ ░",
+				"░ ░ ▒ ▒ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ▒ ▒ ░ ░",
+				"░ ░ ▒ ▒ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ▓ ▒ ▒ ░ ░",
+				"░ ▒ ▒ ▓ ▓ ▓ ▒ ▒ ▒ ▒ ▒ ▓ ▓ ▓ ▒ ▒ ░",
+				"░ ▒ ▒ ▓ ▓ ▓ ▒ ▒ ▒ ▒ ▒ ▓ ▓ ▓ ▒ ▒ ░",
+				"░ ▒ ▒ ▓ ▓ ▒ ▒ ░ ░ ░ ▒ ▒ ▓ ▓ ▒ ▒ ░",
+				"░ ▒ ▒ ▒ ▒ ▒ ▒ ░ ░ ░ ▒ ▒ ▒ ▒ ▒ ▒ ░",
+				"░ ▒ ▒ ▒ ▒ ▒ ▒ ░ ░ ░ ░ ▒ ▒ ▒ ▒ ▒ ░",
+				"░ ░ ░ ░ ░ ░ ░ ░   ░ ░ ░ ░ ░ ░ ░ ░"
+			]
+		);
 	}
 
 	#[test]
