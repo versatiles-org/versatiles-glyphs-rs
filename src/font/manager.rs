@@ -41,6 +41,7 @@ impl<'a> FontManager<'a> {
 
 		for chunk in chunks.iter() {
 			chunk.render(directory)?;
+			progress.inc(chunk.glyphs.len() as u64);
 		}
 		progress.finish();
 
