@@ -16,6 +16,25 @@ pub struct SdfGlyph {
 	pub bitmap: Vec<u8>,
 }
 
+impl SdfGlyph {
+	pub fn as_ascii_art(&self) -> Vec<String> {
+		self
+			.bitmap
+			.chunks(self.width as usize)
+			.map(|row| {
+				row.iter()
+					.map(|&x| {
+						let v = 100.0 + (x as f32) / 2.56;
+						let s = v.to_string();
+						String::from(&s[1..3])
+					})
+					.collect::<Vec<String>>()
+					.join(" ")
+			})
+			.collect()
+	}
+}
+
 // https://github.com/mapbox/sdf-glyph-foundry/blob/6ed4f2099009fc8a1a324626345ceb29dcd5277c/include/mapbox/glyph_foundry_impl.hpp
 pub fn render_sdf(mut rings: Rings, buffer: usize, cutoff: f32) -> Option<SdfGlyph> {
 	// Calculate the real glyph bbox.
@@ -48,27 +67,27 @@ pub fn render_sdf(mut rings: Rings, buffer: usize, cutoff: f32) -> Option<SdfGly
 
 	let mut bitmap = vec![0; width * height];
 
-	let offset = 0.5f32;
-	let radius = 8.0;
-	let radius_by_256 = 256.0 / radius;
+	let max_radius = 8.0;
+	let radius_by_256 = 256.0 / max_radius;
+	println!("radius_by_256: {radius_by_256}");
 
 	for y in 0..height {
 		for x in 0..width {
 			// We'll invert Y to match typical image coordinate systems
-			let i = (height - 1 - y) * (width) + x;
+			let i = (height - 1 - y) * width + x;
 
 			// The sample point is the center of the pixel
-			let sample_pt = Point::new((x as f32) + offset, (y as f32) + offset);
+			let sample_pt = Point::new((x as f32) + 0.5, (y as f32) + 0.5);
 
 			// Distance from the outline
-			let mut d = min_distance_to_line_segment(&rtree, sample_pt, radius) * radius_by_256;
+			let mut d = min_distance_to_line_segment(&rtree, sample_pt, max_radius);
 
 			// If the point is inside, invert
 			if rings.contains_point(&sample_pt) {
 				d = -d;
 			}
 
-			d += cutoff * 256.0;
+			d = d * radius_by_256 + cutoff * 256.0;
 
 			let n = (255.0 - d).clamp(0.0, 255.0);
 
@@ -85,4 +104,52 @@ pub fn render_sdf(mut rings: Rings, buffer: usize, cutoff: f32) -> Option<SdfGly
 		height: height as u32,
 		bitmap,
 	})
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	fn make_square_rings() -> Rings {
+		Rings::from(vec![vec![(1, 2), (5, 2), (5, 6), (1, 6), (1, 2)]])
+	}
+
+	fn make_empty_rings() -> Rings {
+		Rings::default()
+	}
+
+	#[test]
+	fn test_render_sdf_empty_bbox() {
+		let rings = make_empty_rings();
+		let glyph = render_sdf(rings, 3, 0.25);
+		assert!(glyph.is_none(), "Expected None for empty geometry");
+	}
+
+	#[test]
+	fn test_render_sdf_simple_square() {
+		let rings = make_square_rings();
+		let glyph = render_sdf(rings, 3, 0.25).unwrap();
+
+		assert_eq!(glyph.width, 10);
+		assert_eq!(glyph.height, 10);
+		assert_eq!(glyph.left, 1,);
+		assert_eq!(glyph.top, 2,);
+		assert_eq!(glyph.bitmap.len(), (glyph.width * glyph.height) as usize);
+
+		assert_eq!(
+			glyph.as_ascii_art(),
+			vec![
+				"30 38 42 43 43 43 43 42 38 30",
+				"38 48 54 55 55 55 55 54 48 38",
+				"42 54 65 68 68 68 68 65 54 42",
+				"43 55 68 80 80 80 80 68 55 43",
+				"43 55 68 80 93 93 80 68 55 43",
+				"43 55 68 80 93 93 80 68 55 43",
+				"43 55 68 80 80 80 80 68 55 43",
+				"42 54 65 68 68 68 68 65 54 42",
+				"38 48 54 55 55 55 55 54 48 38",
+				"30 38 42 43 43 43 43 42 38 30"
+			]
+		);
+	}
 }

@@ -48,6 +48,18 @@ impl Point {
 	}
 }
 
+impl From<(f32, f32)> for Point {
+	fn from(t: (f32, f32)) -> Self {
+		Point::new(t.0, t.1)
+	}
+}
+
+impl From<(i32, i32)> for Point {
+	fn from(t: (i32, i32)) -> Self {
+		Point::new(t.0 as f32, t.1 as f32)
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;

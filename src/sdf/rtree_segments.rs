@@ -1,7 +1,7 @@
 use super::super::geometry::{Point, Segment};
 use rstar::{RTree, RTreeObject, AABB};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SegmentValue {
 	segment: Segment,
 }
@@ -24,17 +24,19 @@ impl RTreeObject for SegmentValue {
 	}
 }
 
-pub fn min_distance_to_line_segment(rtree: &RTree<SegmentValue>, p: Point, radius: f32) -> f32 {
+pub fn min_distance_to_line_segment(rtree: &RTree<SegmentValue>, p: Point, max_radius: f32) -> f32 {
 	// We'll do a bounding box query
-	let query_env = AABB::from_corners([p.x - radius, p.y - radius], [p.x + radius, p.y + radius]);
+	let query_env = AABB::from_corners(
+		[p.x - max_radius, p.y - max_radius],
+		[p.x + max_radius, p.y + max_radius],
+	);
 	let candidates = rtree.locate_in_envelope_intersecting(&query_env);
 
 	let mut best_sq = f32::INFINITY;
-	let squared_rad = radius * radius;
 	for candidate in candidates {
 		let seg = candidate.segment;
 		let dist_sq = seg.squared_distance_to_point(&p);
-		if dist_sq < best_sq && dist_sq < squared_rad {
+		if dist_sq < best_sq {
 			best_sq = dist_sq;
 		}
 	}

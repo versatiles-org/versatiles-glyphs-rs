@@ -2,6 +2,7 @@
 
 use super::{BBox, Point, Segment};
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct Ring {
 	pub points: Vec<Point>,
 }
@@ -166,6 +167,17 @@ fn is_left(p0: &Point, p1: &Point, p2: &Point) -> i32 {
 		-1
 	} else {
 		0
+	}
+}
+
+impl<T> From<Vec<T>> for Ring
+where
+	Point: From<T>,
+{
+	fn from(points: Vec<T>) -> Self {
+		Ring {
+			points: points.into_iter().map(|p| p.into()).collect(),
+		}
 	}
 }
 

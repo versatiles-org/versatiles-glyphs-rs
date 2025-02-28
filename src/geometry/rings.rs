@@ -2,6 +2,7 @@
 
 use super::{BBox, Point, Ring, Segment};
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct Rings {
 	pub rings: Vec<Ring>,
 }
@@ -63,6 +64,17 @@ impl Rings {
 			winding_number += ring.winding_number(pt);
 		}
 		winding_number != 0
+	}
+}
+
+impl<T> From<Vec<T>> for Rings
+where
+	Ring: From<T>,
+{
+	fn from(rings: Vec<T>) -> Self {
+		Rings {
+			rings: rings.into_iter().map(|p| p.into()).collect(),
+		}
 	}
 }
 
