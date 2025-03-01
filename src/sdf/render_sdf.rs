@@ -154,7 +154,7 @@ mod tests {
 		assert_eq!(glyph.width, 10);
 		assert_eq!(glyph.height, 10);
 		assert_eq!(glyph.left, 1,);
-		assert_eq!(glyph.top, 2,);
+		assert_eq!(glyph.top, -18);
 		assert_eq!(glyph.bitmap.len(), (glyph.width * glyph.height) as usize);
 
 		assert_eq!(

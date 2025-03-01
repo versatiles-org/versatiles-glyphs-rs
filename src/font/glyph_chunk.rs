@@ -1,5 +1,8 @@
 use super::entry::FontEntry;
-use crate::{glyph::render_glyph, protobuf::{PbfFontstack, PbfGlyphs}};
+use crate::{
+	glyph::render_glyph,
+	protobuf::{PbfFontstack, PbfGlyphs},
+};
 use anyhow::Result;
 use prost::Message;
 use std::{collections::HashMap, path::Path};
