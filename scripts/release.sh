@@ -34,7 +34,9 @@ RELEASE_TAG=$(cargo get package.version --pretty)
 RELEASE_NAME="Release ${RELEASE_TAG}"
 
 echo -e "${GRE}Creating GitHub release '${RELEASE_TAG}'...${END}"
-
 gh release create "${RELEASE_TAG}" --generate-notes --draft
 
-echo -e "${GRE}Successfully released version ${RELEASE_TAG}!${END}"
+echo -e "${GRE}Trigger release build...${END}"
+gh workflow run release.yml -r main
+
+echo -e "${GRE}Done!${END}"
