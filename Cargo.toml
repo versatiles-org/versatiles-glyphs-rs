@@ -3,7 +3,7 @@ name = "versatiles_glyphs"
 version = "0.2.0"
 edition = "2021"
 description = "A tool for generating SDF glyphs from fonts."
-license = "MIT"
+license = "Unlicense"
 repository = "https://github.com/versatiles-org/versatiles-glyphs-rs"
 exclude = [
 	".github",

@@ -2,56 +2,63 @@
 [![Crates.io](https://img.shields.io/crates/d/versatiles_glyphs?label=downloads)](https://crates.io/crates/versatiles_glyphs)
 [![Code Coverage](https://codecov.io/gh/versatiles-org/versatiles-glyphs-rs/branch/main/graph/badge.svg?token=2eUtj8ick2)](https://codecov.io/gh/versatiles-org/versatiles-glyphs-rs)
 [![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/versatiles-org/versatiles-glyphs-rs/ci.yml)](https://github.com/versatiles-org/versatiles-glyphs-rs/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![License](https://img.shields.io/badge/license-Unlicense-green)](https://unlicense.org/)
 
 ---
 
 # VersaTiles Glyphs
 
-A Rust-based tool (and library) for generating SDF glyphs from TrueType fonts.
+**VersaTiles Glyphs** is a Rust-based tool and library for generating SDF (Signed Distance Field) glyphs from TrueType fonts. It enables smooth rendering of text at multiple scales.
 
-You can see and test the results for "Noto Sans" in several languages here:
-https://versatiles.org/versatiles-glyphs-rs/
+You can **see and test** the results for _Noto Sans_ (in several languages) here:  
+[versatiles.org/versatiles-glyphs-rs](https://versatiles.org/versatiles-glyphs-rs/)
 
-# Install
 
-## via script
+## Installation
 
-Download and install the latest precompiled binary via script:
+### Via Script
 
-```shell
+Download and install the latest precompiled binary in one step:
+
+```bash
 curl -Ls "https://github.com/versatiles-org/versatiles-glyphs-rs/raw/refs/heads/main/scripts/install.sh" | sh
 ```
 
-## `cargo install`
+### Via Cargo Install
 
-Compile and install latest release using `cargo install`.
+To compile and install from crates.io, ensure you have Rust installed, then run:
 
-```shell
+```bash
 cargo install versatiles_glyphs --features="cli"
 ```
 
-## Building from Source
+### Building from Source
 
-Clone the repository and build it.
+If you want to build the latest (potentially unreleased) version directly from GitHub:
 
-```shell
+```bash
 git clone https://github.com/versatiles-org/versatiles-glyphs-rs.git
 cd versatiles-glyphs-rs
 cargo build --release
 ```
 
-# Develop
 
-If you want to improve the tested languages/characters you can add new string [here](https://github.com/versatiles-org/versatiles-glyphs-rs/blob/main/pages/web/index.html#L26).
+The compiled binary will be located at target/release/versatiles_glyphs.
 
-To build and test it locally, run `./pages/build.sh`, serve the folder `./pages/web/` and open it in a browser.
+## Develop
 
-# Contributing
+If you want to improve or expand the languages/characters being tested, you can add new strings [here](https://github.com/versatiles-org/versatiles-glyphs-rs/blob/main/pages/web/index.html#L26).
+
+### Local Testing (Web Pages)
+1.	Run the build script: `./pages/build.sh`
+2.	Serve the folder `./pages/web/` locally (for example, using `npx http-server -sc0`, `python3 -m http.server` or `cargo install basic-http-server`)
+3.	Open the served page in your browser to see the changes.
+
+## Contributing
 
 Contributions, issues, and feature requests are very welcome!
-Feel free to check the issues page if you’d like to contribute or report a bug.
+Feel free to open an issue or pull request if you’d like to contribute, report a bug, or suggest new features.
 
-# License
+## License
 
-This project is distributed under the MIT License, unless otherwise noted. See the LICENSE file for more information.
+This project is distributed under the [Unlicense](https://unlicense.org/). Essentially, you can do whatever you want with the code—no attribution required.
