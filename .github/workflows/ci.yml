@@ -64,10 +64,11 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Build pPages
+      - name: Build Pages
+        if: github.ref == 'refs/heads/main'
         run: ./pages/build.sh
 
-      - name: Upload pPages Artifact
+      - name: Upload Pages Artifact
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
