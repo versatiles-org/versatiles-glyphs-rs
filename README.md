@@ -8,12 +8,27 @@
 
 # VersaTiles Glyphs
 
-A Rust-based tool (and library) for generating SDF glyphs from TrueType fonts
+A Rust-based tool (and library) for generating SDF glyphs from TrueType fonts.
 
-## Install precompiled binaries via script
+You can see and test the results for "Noto Sans" in several languages here:
+https://versatiles.org/versatiles-glyphs-rs/
+
+# Install
+
+## via script
+
+Download and install the latest precompiled binary via script:
 
 ```shell
 curl -Ls "https://github.com/versatiles-org/versatiles-glyphs-rs/raw/refs/heads/main/scripts/install.sh" | sh
+```
+
+## `cargo install`
+
+Compile and install latest release using `cargo install`.
+
+```shell
+cargo install versatiles_glyphs --features="cli"
 ```
 
 ## Building from Source
@@ -25,6 +40,12 @@ git clone https://github.com/versatiles-org/versatiles-glyphs-rs.git
 cd versatiles-glyphs-rs
 cargo build --release
 ```
+
+# Develop
+
+If you want to improve the tested languages/characters you can add new string [here](https://github.com/versatiles-org/versatiles-glyphs-rs/blob/main/pages/web/index.html#L26).
+
+To build and test it locally, run `./pages/build.sh`, serve the folder `./pages/web/` and open it in a browser.
 
 # Contributing
 
