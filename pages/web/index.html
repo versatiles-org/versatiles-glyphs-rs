@@ -10,67 +10,92 @@
 		<h1>Test Glyphs</h1>
 		<div id="map" style="width: 800px; height: 800px; margin: auto"></div>
 		<script>
-			const style = {
-				version: 8,
-				glyphs: './assets/glyphs/{fontstack}/{range}.pbf',
-				//glyphs: "https://tiles.versatiles.org/assets/glyphs/{fontstack}/{range}.pbf",
-				sources: {
-					labels: {
-						type: 'geojson',
-						data: {
-							type: 'FeatureCollection',
-							features: [
-								'AaBbCcDdEeFfGgHhIiJjKkLl',
-								'_–‾',
-								'București',
-								'İstanbul Boğazı',
-								'IĨĪĬĮİ',
-							].map((text, i) => ({
-								type: 'Feature',
-								geometry: { type: 'Point', coordinates: [0, -i] },
-								properties: { text },
-							})),
+			const style = VersaTilesStyle.colorful({
+				baseUrl: 'https://tiles.versatiles.org',
+			})
+
+			style.glyphs = '/assets/glyphs/{fontstack}/{range}.pbf'
+
+			style.sources.testdata = {
+				type: 'geojson',
+				data: {
+					type: 'FeatureCollection',
+					// You can add texts to test in the following array:
+					features: [
+						'abcdefghijklmnopqrstuvwxyz',
+						'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+						'_–‾ IĨĪĬĮİĲĴ',
+						'București',
+						'İstanbul Boğazı',
+						'جمهوريّة مصر العربيّة',
+						'מדינת ישראל',
+						'中华人民共和国',
+						'ราชอาณาจักรไทย',
+					].map((text, i) => ({
+						type: 'Feature',
+						geometry: {
+							type: 'Point',
+							coordinates: [0, -i * 0.2],
 						},
-					},
+						properties: { text },
+					})),
 				},
-				layers: [
-					{
-						id: 'background',
-						type: 'background',
-						paint: { 'background-color': '#ddd' },
-					},
-					{
-						id: 'text',
-						type: 'symbol',
-						source: 'labels',
-						layout: {
-							'text-field': '{text}',
-							'text-size': 48,
-							'text-overlap': 'always',
-							'text-font': ['noto_sans_regular'],
-							'text-anchor': 'bottom-left',
-						},
-						paint: {
-							'text-color': '#000',
-							'text-halo-color': 'rgba(255,255,255,0.7)',
-							'text-halo-width': 4,
-						},
-					},
-					{
-						type: 'circle',
-						id: 'circle',
-						source: 'labels',
-						paint: { 'circle-radius': 2, 'circle-color': '#c00' },
-					},
-				],
 			}
-			new maplibregl.Map({
+
+			function getExp(v) {
+				return [
+					'interpolate',
+					['exponential', 2],
+					['zoom'],
+					6,
+					v,
+					14,
+					v * 256,
+				]
+			}
+
+			style.layers.push({
+				id: 'testdata-labels',
+				type: 'symbol',
+				source: 'testdata',
+				minzoom: 6,
+				layout: {
+					'text-field': '{text}',
+					'text-size': getExp(12),
+					'text-overlap': 'always',
+					'text-font': ['noto_sans_regular'],
+					'text-anchor': 'bottom-left',
+				},
+				paint: {
+					'text-color': '#000',
+					'text-halo-color': '#FFF',
+					'text-halo-width': getExp(1),
+				},
+			})
+
+			style.layers.push({
+				type: 'circle',
+				id: 'testdata-points',
+				source: 'testdata',
+				minzoom: 6,
+				paint: { 'circle-radius': 2, 'circle-color': '#C00' },
+			})
+
+			console.log(style)
+
+			maplibregl.setRTLTextPlugin(
+				'./assets/lib/mapbox-gl-rtl-text/mapbox-gl-rtl-text.js',
+				true
+			)
+
+			const map = new maplibregl.Map({
 				container: 'map',
 				style,
-				cooperativeGestures: true,
+				hash: true,
+				maxzoom: 16,
 				bounds: [
-					[-0.1, -9],
-					[10, 1],
+					[-0.1, -2.5],
+					[2.5, 0.2],
 				],
 			})
 		</script>
