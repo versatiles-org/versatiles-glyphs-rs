@@ -3,6 +3,7 @@ use super::{
 	glyph_chunk::{GlyphChunk, CHUNK_SIZE},
 };
 use anyhow::{Ok, Result};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{collections::HashMap, path::Path};
 
 #[derive(Default)]
@@ -38,10 +39,11 @@ impl<'a> FontManager<'a> {
 		let progress = indicatif::ProgressBar::new(sum);
 		progress.set_position(0);
 
-		for chunk in chunks.iter() {
-			chunk.render(directory)?;
+		chunks.par_iter().for_each(|chunk| {
+			chunk.render(directory).unwrap();
 			progress.inc(chunk.glyphs.len() as u64);
-		}
+		});
+
 		progress.finish();
 
 		Ok(())

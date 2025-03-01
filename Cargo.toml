@@ -52,6 +52,7 @@ anyhow = "1.0.96"
 clap = { version = "4.5.31", features = ["derive", "std"], optional = true }
 indicatif = "0.17.11"
 prost = "0.13.5"
+rayon = "1.10.0"
 rstar = "0.12.2"
 ttf-parser = { version = "0.25.1", features = ["std"] }
 
