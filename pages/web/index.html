@@ -14,7 +14,9 @@
 				baseUrl: 'https://tiles.versatiles.org',
 			})
 
-			style.glyphs = '/assets/glyphs/{fontstack}/{range}.pbf'
+			const url = new URL('./assets/glyphs', document.URL);
+			url.hash = '';
+			style.glyphs = url.href + '/{fontstack}/{range}.pbf';
 
 			style.sources.testdata = {
 				type: 'geojson',
