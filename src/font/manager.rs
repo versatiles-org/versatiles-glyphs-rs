@@ -21,12 +21,11 @@ impl<'a> FontManager<'a> {
 		for font in self.fonts.iter() {
 			for codepoint in &font.metadata.codepoints {
 				let chunk = codepoint / CHUNK_SIZE;
-				let index = codepoint % CHUNK_SIZE;
 				let entry = chunks.entry(chunk).or_insert(GlyphChunk {
 					start_index: chunk * CHUNK_SIZE,
 					glyphs: HashMap::new(),
 				});
-				entry.glyphs.entry(index).or_insert(font);
+				entry.glyphs.entry(*codepoint).or_insert(font);
 			}
 		}
 		chunks.into_values().collect()
