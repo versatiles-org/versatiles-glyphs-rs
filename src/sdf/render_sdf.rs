@@ -17,47 +17,8 @@ pub struct SdfGlyph {
 }
 
 impl SdfGlyph {
-	fn as_strings<F>(&self, func: F) -> Vec<String>
-	where
-		F: Fn(&u8) -> String,
-		F: Copy,
-	{
-		self
-			.bitmap
-			.chunks(self.width as usize)
-			.map(|row| row.iter().map(func).collect::<Vec<String>>().join(" "))
-			.collect()
-	}
-	pub fn as_ascii_art(&self) -> Vec<String> {
-		self.as_strings(|&x| {
-			let v = 100.0 + (x as f32) / 2.56;
-			let s = v.to_string();
-			String::from(&s[1..3])
-		})
-	}
-	pub fn as_emoji_art(&self) -> Vec<String> {
-		self.as_strings(|&x| {
-			String::from(match x {
-				0..=60 => " ",
-				61..=120 => "░",
-				121..=180 => "▒",
-				181..=240 => "▓",
-				_ => "█",
-			})
-		})
-	}
-	pub fn from_pbf(pbf: PbfGlyph) -> Self {
-		SdfGlyph {
-			left: pbf.left,
-			top: pbf.top,
-			width: pbf.width + 6,
-			height: pbf.height + 6,
-			bitmap: pbf.bitmap.unwrap(),
-		}
-	}
-
 	// https://github.com/mapbox/sdf-glyph-foundry/blob/6ed4f2099009fc8a1a324626345ceb29dcd5277c/include/mapbox/glyph_foundry_impl.hpp
-	pub fn from_rings(mut rings: Rings, buffer: usize, cutoff: f32) -> Option<SdfGlyph> {
+	pub fn from_rings(mut rings: Rings, buffer: i32, cutoff: f32) -> Option<SdfGlyph> {
 		// Calculate the real glyph bbox.
 		let bbox = rings.get_bbox();
 
@@ -65,11 +26,16 @@ impl SdfGlyph {
 			return None;
 		}
 
+		let left = bbox.min.x.round() as i32;
+		let top = bbox.max.y.round() as i32;
+		let width = bbox.width().ceil() as usize + 2 * buffer as usize;
+		let height = bbox.height().ceil() as usize + 2 * buffer as usize;
+
 		// Offset so that glyph outlines are in the bounding box.
-		let offset = bbox
-			.min
-			.inverted()
-			.translated(Point::new(buffer as f32, buffer as f32));
+		let offset = Point {
+			x: (buffer - left) as f32,
+			y: (-buffer - top) as f32 + height as f32,
+		};
 
 		rings.translate(offset);
 
@@ -83,8 +49,6 @@ impl SdfGlyph {
 		let rtree = RTree::bulk_load(segments);
 
 		// 5) For each pixel, compute distance, check inside-ness, etc.
-		let width = bbox.width() as usize + 2 * buffer;
-		let height = bbox.height() as usize + 2 * buffer;
 
 		let mut bitmap = vec![0; width * height];
 
@@ -118,11 +82,51 @@ impl SdfGlyph {
 		}
 
 		Some(SdfGlyph {
-			left: bbox.min.x as i32,
-			top: (bbox.max.y - 24.0) as i32,
+			left,
+			top: top - 2 * buffer,
 			width: width as u32,
 			height: height as u32,
 			bitmap,
+		})
+	}
+
+	pub fn from_pbf(pbf: PbfGlyph) -> Self {
+		SdfGlyph {
+			left: pbf.left,
+			top: pbf.top,
+			width: pbf.width + 6,
+			height: pbf.height + 6,
+			bitmap: pbf.bitmap.unwrap(),
+		}
+	}
+
+	fn as_strings<F>(&self, func: F) -> Vec<String>
+	where
+		F: Fn(&u8) -> String,
+		F: Copy,
+	{
+		self
+			.bitmap
+			.chunks(self.width as usize)
+			.map(|row| row.iter().map(func).collect::<Vec<String>>().join(" "))
+			.collect()
+	}
+	pub fn as_digit_art(&self) -> Vec<String> {
+		self.as_strings(|&x| {
+			let v = 100.0 + (x as f32) / 2.56;
+			let s = v.to_string();
+			String::from(&s[1..3])
+		})
+	}
+	pub fn as_ascii_art(&self) -> Vec<String> {
+		self.as_strings(|&x| {
+			String::from(match x {
+				0..=60 => " ",
+				61..=120 => "░",
+				121..=180 => "▒",
+				181..=240 => "▓",
+				_ => "█",
+			})
 		})
 	}
 }
@@ -153,12 +157,12 @@ mod tests {
 
 		assert_eq!(glyph.width, 10);
 		assert_eq!(glyph.height, 10);
-		assert_eq!(glyph.left, 1,);
-		assert_eq!(glyph.top, -18);
+		assert_eq!(glyph.left, 1);
+		assert_eq!(glyph.top, 0);
 		assert_eq!(glyph.bitmap.len(), (glyph.width * glyph.height) as usize);
 
 		assert_eq!(
-			glyph.as_ascii_art(),
+			glyph.as_digit_art(),
 			vec![
 				"30 38 42 43 43 43 43 42 38 30",
 				"38 48 54 55 55 55 55 54 48 38",
