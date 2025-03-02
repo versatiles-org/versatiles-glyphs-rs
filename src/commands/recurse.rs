@@ -2,11 +2,9 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::{
 	fs,
-	path::{self, Path, PathBuf},
+	path::{self, Path},
 };
-use versatiles_glyphs::font::FontRenderer;
-// use std::{fs, path};
-// use versatiles_glyphs::font::FontManager;
+use versatiles_glyphs::font::FontManager;
 
 #[derive(clap::Args, Debug)]
 #[command(arg_required_else_help = true)]
@@ -33,25 +31,24 @@ struct FontConfig {
 }
 
 pub fn run(arguments: &Subcommand) -> Result<()> {
-	let input_directory = path::absolute(&arguments.input_directory)?;
-	let output_directory = path::absolute(&arguments.output_directory)?;
+	let mut font_manager = FontManager::new()?;
 
+	let input_directory = path::absolute(&arguments.input_directory)?.canonicalize()?;
+	println!("Scanning directory: {:?}", input_directory);
+	scan(&input_directory, &mut font_manager)?;
+
+	let output_directory = path::absolute(&arguments.output_directory)?.canonicalize()?;
+	println!("Rendering glyphs to directory: {:?}", output_directory);
 	if output_directory.exists() {
 		fs::remove_dir_all(&output_directory)
 			.with_context(|| format!("removing directory \"{output_directory:?}\""))?;
 	}
-	fs::create_dir_all(&output_directory)
-		.with_context(|| format!("creating directory \"{output_directory:?}\""))?;
-
-	scan(&input_directory, &output_directory)?;
+	font_manager.render_glyphs(&output_directory)?;
 
 	Ok(())
 }
 
-fn scan(input_directory: &Path, output_directory: &Path) -> Result<()> {
-	let name_to_path =
-		|name: &str| -> PathBuf { output_directory.join(name.to_lowercase().replace(" ", "_")) };
-
+fn scan(input_directory: &Path, font_manager: &mut FontManager) -> Result<()> {
 	let font_file = input_directory.join("fonts.json");
 	if font_file.exists() {
 		let data =
@@ -60,11 +57,14 @@ fn scan(input_directory: &Path, output_directory: &Path) -> Result<()> {
 		let font_configs = serde_json::from_slice::<Vec<FontConfig>>(&data)?;
 
 		for font_config in font_configs {
-			let mut renderer = FontRenderer::default();
-			for source in font_config.sources {
-				renderer.add_font_file(&input_directory.join(&source))?;
-			}
-			renderer.render_glyphs(&name_to_path(&font_config.name))?;
+			font_manager.add_font(
+				&font_config.name,
+				font_config
+					.sources
+					.iter()
+					.map(|source| input_directory.join(&source))
+					.collect(),
+			);
 		}
 	} else {
 		for entry in fs::read_dir(&input_directory)? {
@@ -72,13 +72,11 @@ fn scan(input_directory: &Path, output_directory: &Path) -> Result<()> {
 			if path.is_file() {
 				let extension = path.extension().unwrap_or_default().to_str().unwrap();
 				if extension == "ttf" || extension == "otf" {
-					let mut renderer = FontRenderer::default();
-					renderer.add_font_file(&path)?;
-					renderer
-						.render_glyphs(&name_to_path(&path.file_stem().unwrap().to_str().unwrap()))?;
+					let name = path.file_stem().unwrap().to_str().unwrap().to_string();
+					font_manager.add_font(&name, vec![path]);
 				}
 			} else if path.is_dir() {
-				scan(&path, output_directory)?;
+				scan(&path, font_manager)?;
 			}
 		}
 	}

@@ -3,8 +3,13 @@ use super::{
 	font_file_entry::FontFileEntry,
 };
 use anyhow::{Context, Ok, Result};
+use indicatif::ProgressStyle;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use std::{collections::HashMap, fs::create_dir_all, path::Path};
+use std::{
+	collections::HashMap,
+	fs::create_dir_all,
+	path::{Path, PathBuf},
+};
 
 #[derive(Default)]
 pub struct FontRenderer<'a> {
@@ -20,6 +25,14 @@ impl<'a> FontRenderer<'a> {
 		Ok(font)
 	}
 
+	pub fn from_paths(paths: Vec<PathBuf>) -> Result<Self> {
+		let mut font = FontRenderer::default();
+		for path in paths {
+			font.add_font_file(&path)?;
+		}
+		Ok(font)
+	}
+
 	pub fn add_font_data(&mut self, data: Vec<u8>) -> Result<()> {
 		self.fonts.push(FontFileEntry::new(data)?);
 		Ok(())
@@ -31,7 +44,7 @@ impl<'a> FontRenderer<'a> {
 		)
 	}
 
-	fn get_chunks(&'a self) -> Vec<CharacterBlock<'a>> {
+	pub fn get_chunks(&'a self) -> Vec<CharacterBlock<'a>> {
 		let mut blocks = HashMap::<u32, CharacterBlock<'a>>::new();
 		for font in self.fonts.iter() {
 			for codepoint in &font.metadata.codepoints {
@@ -53,9 +66,11 @@ impl<'a> FontRenderer<'a> {
 		let chunks = self.get_chunks();
 
 		let sum = chunks.iter().map(|chunk| chunk.len() as u64).sum();
-		let progress = indicatif::ProgressBar::new(sum);
-		progress.set_message(format!("Rendering glyphs {directory:?}"));
-		progress.set_position(0);
+		let progress = indicatif::ProgressBar::new(sum).with_style(
+			ProgressStyle::with_template(
+				"[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
+			)?,
+		).with_position(0);
 
 		chunks.par_iter().for_each(|chunk| {
 			chunk.render_to_file(directory).unwrap();
