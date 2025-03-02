@@ -6,12 +6,12 @@ use clap::{Parser, Subcommand};
 /// Command-line interface for VersaTiles
 #[derive(Parser, Debug)]
 #[command(
-	author, // Set the author
-	version, // Set the version
-	about, // Set a short description
-	long_about = None, // Disable long description
-	propagate_version = false, // Enable version flag for subcommands
-	disable_help_subcommand = true, // Disable help subcommand
+	author,
+	version,
+	about,
+	long_about,
+	propagate_version = true, // Enable version flag for subcommands
+	//disable_help_subcommand = true, // Disable help subcommand
 )]
 struct Cli {
 	#[command(subcommand)]
@@ -20,8 +20,8 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-	Convert(commands::convert::Subcommand),
-	//Debug(commands::convert::Subcommand),
+	Merge(commands::merge::Subcommand),
+	Recurse(commands::recurse::Subcommand),
 }
 
 // ---------------------------------------------------------
@@ -32,7 +32,7 @@ fn main() -> Result<()> {
 	let cli = Cli::parse();
 
 	match &cli.command {
-		Commands::Convert(arguments) => commands::convert::run(arguments),
-		//Commands::Debug(arguments) => commands::debug::run(arguments),
+		Commands::Merge(arguments) => commands::merge::run(arguments),
+		Commands::Recurse(arguments) => commands::recurse::run(arguments),
 	}
 }

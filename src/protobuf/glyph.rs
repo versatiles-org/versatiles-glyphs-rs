@@ -2,7 +2,7 @@ use crate::sdf::SdfGlyph;
 use prost::{alloc, Message};
 
 #[derive(Clone, PartialEq, Message)]
-pub struct PbfGlyph {
+pub struct Glyph {
 	#[prost(uint32, required, tag = "1")]
 	pub id: u32,
 	/// A signed distance field of the glyph with a border of 3 pixels.
@@ -21,9 +21,9 @@ pub struct PbfGlyph {
 	pub advance: u32,
 }
 
-impl PbfGlyph {
+impl Glyph {
 	pub fn from_sdf(sdf: SdfGlyph, id: u32, advance: u32) -> Self {
-		PbfGlyph {
+		Glyph {
 			id,
 			bitmap: Some(sdf.bitmap),
 			width: sdf.width - 6,
@@ -34,7 +34,7 @@ impl PbfGlyph {
 		}
 	}
 	pub fn empty(id: u32, advance: u32) -> Self {
-		PbfGlyph {
+		Glyph {
 			id,
 			bitmap: None,
 			width: 0,
@@ -44,21 +44,4 @@ impl PbfGlyph {
 			advance,
 		}
 	}
-}
-
-/// Stores fontstack information and a list of faces.
-#[derive(Clone, PartialEq, Message)]
-pub struct PbfFontstack {
-	#[prost(string, required, tag = "1")]
-	pub name: alloc::string::String,
-	#[prost(string, required, tag = "2")]
-	pub range: alloc::string::String,
-	#[prost(message, repeated, tag = "3")]
-	pub glyphs: alloc::vec::Vec<PbfGlyph>,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct PbfGlyphs {
-	#[prost(message, repeated, tag = "1")]
-	pub stacks: alloc::vec::Vec<PbfFontstack>,
 }

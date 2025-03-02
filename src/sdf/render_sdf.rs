@@ -1,8 +1,5 @@
 use super::rtree_segments::{min_distance_to_line_segment, SegmentValue};
-use crate::{
-	geometry::{Point, Rings},
-	protobuf::PbfGlyph,
-};
+use crate::geometry::{Point, Rings};
 use rstar::RTree;
 
 #[derive(Debug, Default)]
@@ -89,51 +86,12 @@ impl SdfGlyph {
 			bitmap,
 		})
 	}
-
-	pub fn from_pbf(pbf: PbfGlyph) -> Self {
-		SdfGlyph {
-			left: pbf.left,
-			top: pbf.top,
-			width: pbf.width + 6,
-			height: pbf.height + 6,
-			bitmap: pbf.bitmap.unwrap(),
-		}
-	}
-
-	fn as_strings<F>(&self, func: F) -> Vec<String>
-	where
-		F: Fn(&u8) -> String,
-		F: Copy,
-	{
-		self
-			.bitmap
-			.chunks(self.width as usize)
-			.map(|row| row.iter().map(func).collect::<Vec<String>>().join(" "))
-			.collect()
-	}
-	pub fn as_digit_art(&self) -> Vec<String> {
-		self.as_strings(|&x| {
-			let v = 100.0 + (x as f32) / 2.56;
-			let s = v.to_string();
-			String::from(&s[1..3])
-		})
-	}
-	pub fn as_ascii_art(&self) -> Vec<String> {
-		self.as_strings(|&x| {
-			String::from(match x {
-				0..=60 => " ",
-				61..=120 => "░",
-				121..=180 => "▒",
-				181..=240 => "▓",
-				_ => "█",
-			})
-		})
-	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::utils::bitmap_as_digit_art;
 
 	fn make_square_rings() -> Rings {
 		Rings::from(vec![vec![(1, 2), (5, 2), (5, 6), (1, 6), (1, 2)]])
@@ -162,7 +120,7 @@ mod tests {
 		assert_eq!(glyph.bitmap.len(), (glyph.width * glyph.height) as usize);
 
 		assert_eq!(
-			glyph.as_digit_art(),
+			bitmap_as_digit_art(&glyph.bitmap, glyph.width as usize),
 			vec![
 				"30 38 42 43 43 43 43 42 38 30",
 				"38 48 54 55 55 55 55 54 48 38",

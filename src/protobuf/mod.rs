@@ -1,3 +1,7 @@
-mod proto;
+mod fontstack;
+mod glyph;
+mod glyphs;
+mod pbf_glyphs;
 
-pub use proto::{PbfFontstack, PbfGlyph, PbfGlyphs};
+pub use glyph::Glyph as PbfGlyph;
+pub use pbf_glyphs::PbfGlyphs;

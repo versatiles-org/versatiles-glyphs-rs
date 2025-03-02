@@ -30,6 +30,7 @@ pub fn render_glyph(face: &Face, index: u32) -> Option<PbfGlyph> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::utils::bitmap_as_ascii_art;
 
 	const TEST_FONT: &[u8] = include_bytes!("../../testdata/Fira Sans - Regular.ttf");
 
@@ -42,6 +43,10 @@ mod tests {
 		}
 
 		glyph
+	}
+
+	fn as_art(glyph: &PbfGlyph) -> Vec<String> {
+		bitmap_as_ascii_art(glyph.bitmap.as_ref().unwrap(), glyph.width as usize + 6)
 	}
 
 	#[test]
@@ -66,7 +71,7 @@ mod tests {
 		assert_eq!(glyph.top, -13);
 		assert_eq!(glyph.advance, 14);
 		assert_eq!(
-			SdfGlyph::from_pbf(glyph).as_ascii_art(),
+			as_art(&glyph),
 			vec![
 				"            ░ ░ ░ ░ ░ ░ ░ ░            ",
 				"          ░ ░ ▒ ▒ ▒ ▒ ▒ ░ ░ ░          ",
@@ -105,7 +110,7 @@ mod tests {
 		assert_eq!(glyph.top, -17);
 		assert_eq!(glyph.advance, 20);
 		assert_eq!(
-			SdfGlyph::from_pbf(glyph).as_ascii_art(),
+			as_art(&glyph),
 			vec![
 				"    ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░        ",
 				"  ░ ░ ░ ▒ ▒ ▒ ▒ ▒ ▒ ▒ ▒ ░ ▒ ▒ ▒ ▒ ▒ ▒ ░ ░ ░      ",
@@ -140,7 +145,7 @@ mod tests {
 		assert_eq!(glyph.top, -11);
 		assert_eq!(glyph.advance, 7);
 		assert_eq!(
-			SdfGlyph::from_pbf(glyph).as_ascii_art(),
+			as_art(&glyph),
 			vec![
 				"░ ░ ░ ░ ░ ░ ░ ░        ",
 				"░ ░ ▒ ▒ ▒ ▒ ░ ░ ░ ░    ",
