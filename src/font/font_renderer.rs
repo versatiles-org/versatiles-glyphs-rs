@@ -4,7 +4,7 @@ use super::{
 };
 use anyhow::{Context, Ok, Result};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, fs::create_dir_all, path::Path};
 
 #[derive(Default)]
 pub struct FontRenderer<'a> {
@@ -47,10 +47,14 @@ impl<'a> FontRenderer<'a> {
 	}
 
 	pub fn render_glyphs(&self, directory: &Path) -> Result<()> {
+		create_dir_all(&directory)
+			.with_context(|| format!("creating directory \"{directory:?}\""))?;
+
 		let chunks = self.get_chunks();
 
 		let sum = chunks.iter().map(|chunk| chunk.len() as u64).sum();
 		let progress = indicatif::ProgressBar::new(sum);
+		progress.set_message(format!("Rendering glyphs {directory:?}"));
 		progress.set_position(0);
 
 		chunks.par_iter().for_each(|chunk| {

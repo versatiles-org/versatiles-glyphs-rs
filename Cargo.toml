@@ -54,8 +54,10 @@ indicatif = "0.17.11"
 prost = "0.13.5"
 rayon = "1.10.0"
 rstar = "0.12.2"
+serde = { version = "1.0.218", features = ["derive"], optional = true }
+serde_json = { version = "1.0.139", optional = true }
 ttf-parser = { version = "0.25.1", features = ["std"] }
 
 [features]
 default = ["cli"]
-cli = ["dep:clap"]
+cli = ["dep:clap", "dep:serde_json", "dep:serde"]

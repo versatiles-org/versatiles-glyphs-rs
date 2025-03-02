@@ -1,4 +1,5 @@
 .DS_Store
+output
+pages/web/assets/glyphs/
 target
 temp
-pages/web/assets/glyphs/
