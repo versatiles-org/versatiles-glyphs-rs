@@ -2,6 +2,7 @@ use anyhow::Result;
 use ttf_parser::{name_id, Face, PlatformId};
 
 #[derive(Debug)]
+#[allow(unused)]
 pub struct FontMetadata {
 	pub family_name: String,
 	pub style_name: String,

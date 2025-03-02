@@ -1,7 +1,6 @@
 mod character_block;
-mod font;
 mod font_file_entry;
 mod font_metadata;
+mod font_renderer;
 
-pub use font::Font;
-pub use font_metadata::FontMetadata;
+pub use font_renderer::FontRenderer;

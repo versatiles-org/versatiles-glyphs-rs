@@ -23,6 +23,6 @@ impl PbfGlyphs {
 		};
 		let mut out_buf = Vec::new();
 		glyphs.encode(&mut out_buf)?;
-		return Ok(out_buf);
+		Ok(out_buf)
 	}
 }

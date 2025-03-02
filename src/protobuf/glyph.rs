@@ -1,4 +1,3 @@
-use crate::sdf::SdfGlyph;
 use prost::{alloc, Message};
 
 #[derive(Clone, PartialEq, Message)]
@@ -22,17 +21,6 @@ pub struct Glyph {
 }
 
 impl Glyph {
-	pub fn from_sdf(sdf: SdfGlyph, id: u32, advance: u32) -> Self {
-		Glyph {
-			id,
-			bitmap: Some(sdf.bitmap),
-			width: sdf.width - 6,
-			height: sdf.height - 6,
-			left: sdf.left,
-			top: sdf.top,
-			advance,
-		}
-	}
 	pub fn empty(id: u32, advance: u32) -> Self {
 		Glyph {
 			id,

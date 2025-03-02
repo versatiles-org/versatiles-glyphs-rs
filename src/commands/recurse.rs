@@ -7,9 +7,9 @@ use anyhow::Result;
 /// Scans a directory for font files and convert them into multiple directories of glyphs.
 ///
 /// If a directory contains a "fonts.json" file, it will be used to configure the conversion.
-/// A "fonts.json" has the structure: 	{ name: string, sources: string[] }[] where:
-/// 	- name: the name of the font.
-/// 	- sources: the list of font files to merge, relative to the directory.
+/// A "fonts.json" has the structure: { name: string, sources: string[] }[] where:
+///   - name: the name of the font.
+///   - sources: the list of font files to merge, relative to the directory.
 pub struct Subcommand {
 	/// directory to scan for font files.
 	#[arg(num_args=1..)]

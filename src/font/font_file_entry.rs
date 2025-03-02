@@ -6,7 +6,6 @@ use ttf_parser::Face;
 #[derive(Debug)]
 /// A font file entry contains the raw bytes of a font file, its parsed face and the metadata of the font.
 /// It is used as a wrapper to handle multiple references to the same font file in memory.
-
 pub struct FontFileEntry<'a> {
 	#[allow(dead_code)]
 	data: Pin<Vec<u8>>,

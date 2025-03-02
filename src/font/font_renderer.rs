@@ -7,13 +7,13 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{collections::HashMap, path::Path};
 
 #[derive(Default)]
-pub struct Font<'a> {
+pub struct FontRenderer<'a> {
 	fonts: Vec<FontFileEntry<'a>>,
 }
 
-impl<'a> Font<'a> {
+impl<'a> FontRenderer<'a> {
 	pub fn from_filenames(filenames: Vec<&str>) -> Result<Self> {
-		let mut font = Font::default();
+		let mut font = FontRenderer::default();
 		for filename in filenames {
 			font.add_font_file(Path::new(filename))?;
 		}

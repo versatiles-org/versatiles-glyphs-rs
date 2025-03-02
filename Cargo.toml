@@ -57,5 +57,5 @@ rstar = "0.12.2"
 ttf-parser = { version = "0.25.1", features = ["std"] }
 
 [features]
-default = []
+default = ["cli"]
 cli = ["dep:clap"]

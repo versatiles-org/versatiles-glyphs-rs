@@ -1,5 +1,8 @@
 use super::rtree_segments::{min_distance_to_line_segment, SegmentValue};
-use crate::geometry::{Point, Rings};
+use crate::{
+	geometry::{Point, Rings},
+	protobuf::PbfGlyph,
+};
 use rstar::RTree;
 
 #[derive(Debug, Default)]
@@ -85,6 +88,17 @@ impl SdfGlyph {
 			height: height as u32,
 			bitmap,
 		})
+	}
+	pub fn into_pbf_glyph(self, id: u32, advance: u32) -> PbfGlyph {
+		PbfGlyph {
+			id,
+			bitmap: Some(self.bitmap),
+			width: self.width - 6,
+			height: self.height - 6,
+			left: self.left,
+			top: self.top,
+			advance,
+		}
 	}
 }
 

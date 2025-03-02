@@ -21,7 +21,7 @@ pub fn render_glyph(face: &Face, index: u32) -> Option<PbfGlyph> {
 	let sdf_option = SdfGlyph::from_rings(rings, 3, 0.25);
 	Some(if let Some(mut sdf) = sdf_option {
 		sdf.top -= 24;
-		PbfGlyph::from_sdf(sdf, index, advance)
+		sdf.into_pbf_glyph(index, advance)
 	} else {
 		PbfGlyph::empty(index, advance)
 	})

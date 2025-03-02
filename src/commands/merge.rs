@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use std::{fs, path};
-use versatiles_glyphs::font::Font;
+use versatiles_glyphs::font::FontRenderer;
 
 #[derive(clap::Args, Debug)]
 #[command(arg_required_else_help = true, disable_version_flag = true)]
@@ -32,7 +32,7 @@ pub fn run(arguments: &Subcommand) -> Result<()> {
 	}
 
 	let input_files: Vec<&str> = arguments.input_files.iter().map(|s| s.as_str()).collect();
-	let font = Font::from_filenames(input_files)?;
+	let font = FontRenderer::from_filenames(input_files)?;
 
 	font.render_glyphs(&directory).context("rendering glyphs")?;
 
