@@ -2,6 +2,7 @@ use super::{character_block::CharacterBlock, FontRenderer};
 use anyhow::{Context, Result};
 use indicatif::ProgressStyle;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use regex_lite::Regex;
 use std::{
 	fs::create_dir_all,
 	path::{Path, PathBuf},
@@ -28,9 +29,13 @@ impl<'a> FontManager<'a> {
 			.with_context(|| format!("creating directory \"{directory:?}\""))?;
 
 		let mut todos: Vec<(PathBuf, CharacterBlock<'a>)> = vec![];
+		let re = Regex::new(r"[-_\s]+")?;
 
 		for (name, renderer) in &self.renderers {
-			let path = directory.join(name.to_lowercase().replace(" ", "_"));
+			let mut name = name.to_lowercase();
+			name = re.replace_all(&name, " ").to_string().trim().to_string();
+			name = name.replace(" ", "_");
+			let path = directory.join(name);
 			create_dir_all(&path)?;
 
 			let blocks = renderer.get_chunks();

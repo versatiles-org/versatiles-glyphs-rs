@@ -53,6 +53,7 @@ clap = { version = "4.5.31", features = ["derive", "std"], optional = true }
 indicatif = "0.17.11"
 prost = "0.13.5"
 rayon = "1.10.0"
+regex-lite = "0.1.6"
 rstar = "0.12.2"
 serde = { version = "1.0.218", features = ["derive"], optional = true }
 serde_json = { version = "1.0.139", optional = true }

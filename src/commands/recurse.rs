@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::{
-	fs,
+	fs::{self, create_dir_all},
 	path::{self, Path},
 };
 use versatiles_glyphs::font::FontManager;
@@ -37,12 +37,16 @@ pub fn run(arguments: &Subcommand) -> Result<()> {
 	println!("Scanning directory: {:?}", input_directory);
 	scan(&input_directory, &mut font_manager)?;
 
-	let output_directory = path::absolute(&arguments.output_directory)?.canonicalize()?;
-	println!("Rendering glyphs to directory: {:?}", output_directory);
+	let mut output_directory = path::absolute(&arguments.output_directory)?;
 	if output_directory.exists() {
 		fs::remove_dir_all(&output_directory)
 			.with_context(|| format!("removing directory \"{output_directory:?}\""))?;
 	}
+	create_dir_all(&output_directory)
+		.with_context(|| format!("creating directory \"{output_directory:?}\""))?;
+	output_directory = output_directory.canonicalize()?;
+	
+	println!("Rendering glyphs to directory: {:?}", output_directory);
 	font_manager.render_glyphs(&output_directory)?;
 
 	Ok(())
