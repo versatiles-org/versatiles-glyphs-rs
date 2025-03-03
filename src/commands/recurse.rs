@@ -4,7 +4,7 @@ use std::{
 	fs::{self, create_dir_all},
 	path::{self, Path},
 };
-use versatiles_glyphs::font::FontManager;
+use versatiles_glyphs::{font::FontManager, utils::TarWriter};
 
 #[derive(clap::Args, Debug)]
 #[command(arg_required_else_help = true)]
@@ -20,8 +20,12 @@ pub struct Subcommand {
 	input_directory: String,
 
 	/// the output directory where the glyph folders will be saved.
-	#[arg(long, short = 'o', default_value = "output")]
-	output_directory: String,
+	#[arg(long, short = 'o', conflicts_with = "tar")]
+	output_directory: Option<String>,
+
+	/// the output directory where the glyph folders will be saved.
+	#[arg(long, short = 't', conflicts_with = "output_directory")]
+	tar: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -34,10 +38,24 @@ pub fn run(arguments: &Subcommand) -> Result<()> {
 	let mut font_manager = FontManager::new()?;
 
 	let input_directory = path::absolute(&arguments.input_directory)?.canonicalize()?;
-	println!("Scanning directory: {:?}", input_directory);
+	eprintln!("Scanning directory: {:?}", input_directory);
 	scan(&input_directory, &mut font_manager)?;
 
-	let mut output_directory = path::absolute(&arguments.output_directory)?;
+	if arguments.tar {
+		let mut tar = TarWriter::new(std::io::stdout());
+		eprintln!("Rendering glyphs as tar to stdout");
+		font_manager.render_glyphs_to_tar(&mut tar)?;
+		tar.finish()?;
+		return Ok(());
+	}
+
+	let output_directory = if let Some(d) = &arguments.output_directory {
+		d.clone()
+	} else {
+		String::from("output")
+	};
+
+	let mut output_directory = path::absolute(output_directory)?;
 	if output_directory.exists() {
 		fs::remove_dir_all(&output_directory)
 			.with_context(|| format!("removing directory \"{output_directory:?}\""))?;
@@ -45,11 +63,11 @@ pub fn run(arguments: &Subcommand) -> Result<()> {
 	create_dir_all(&output_directory)
 		.with_context(|| format!("creating directory \"{output_directory:?}\""))?;
 	output_directory = output_directory.canonicalize()?;
-	
-	println!("Rendering glyphs to directory: {:?}", output_directory);
-	font_manager.render_glyphs(&output_directory)?;
 
-	Ok(())
+	eprintln!("Rendering glyphs to directory: {:?}", output_directory);
+	font_manager.render_glyphs_to_dir(&output_directory)?;
+
+Ok(())
 }
 
 fn scan(input_directory: &Path, font_manager: &mut FontManager) -> Result<()> {
@@ -66,12 +84,12 @@ fn scan(input_directory: &Path, font_manager: &mut FontManager) -> Result<()> {
 				font_config
 					.sources
 					.iter()
-					.map(|source| input_directory.join(&source))
+					.map(|source| input_directory.join(source))
 					.collect(),
 			);
 		}
 	} else {
-		for entry in fs::read_dir(&input_directory)? {
+		for entry in fs::read_dir(input_directory)? {
 			let path = entry?.path();
 			if path.is_file() {
 				let extension = path.extension().unwrap_or_default().to_str().unwrap();

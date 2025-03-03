@@ -1,11 +1,15 @@
+use crate::utils::TarWriter;
+
 use super::{character_block::CharacterBlock, FontRenderer};
 use anyhow::{Context, Result};
-use indicatif::ProgressStyle;
+use indicatif::{ProgressDrawTarget, ProgressStyle};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex_lite::Regex;
 use std::{
 	fs::create_dir_all,
+	io::Write,
 	path::{Path, PathBuf},
+	sync::Mutex,
 };
 
 pub struct FontManager<'a> {
@@ -24,9 +28,8 @@ impl<'a> FontManager<'a> {
 		self.renderers.push((name.to_string(), renderer));
 	}
 
-	pub fn render_glyphs(&'a self, directory: &Path) -> Result<()> {
-		create_dir_all(&directory)
-			.with_context(|| format!("creating directory \"{directory:?}\""))?;
+	pub fn render_glyphs_to_dir(&'a self, directory: &Path) -> Result<()> {
+		create_dir_all(directory).with_context(|| format!("creating directory \"{directory:?}\""))?;
 
 		let mut todos: Vec<(PathBuf, CharacterBlock<'a>)> = vec![];
 		let re = Regex::new(r"[-_\s]+")?;
@@ -45,14 +48,60 @@ impl<'a> FontManager<'a> {
 		}
 
 		let sum = todos.iter().map(|todo| todo.1.len() as u64).sum();
-		let progress = indicatif::ProgressBar::new(sum)
-			.with_position(0)
-			.with_style(ProgressStyle::with_template(
-				"{wide_bar} {pos:>8}/{len:8} {eta_precise:8}",
-			)?);
+		let progress =
+			indicatif::ProgressBar::with_draw_target(Some(sum), ProgressDrawTarget::stderr())
+				.with_position(0)
+				.with_style(ProgressStyle::with_template(
+					"{wide_bar} {pos:>8}/{len:8} {eta_precise:8}",
+				)?);
 
 		todos.par_iter().for_each(|todo| {
 			todo.1.render_to_file(&todo.0).unwrap();
+			progress.inc(todo.1.len() as u64);
+		});
+
+		progress.finish();
+
+		Ok(())
+	}
+
+	pub fn render_glyphs_to_tar<W: Write + Sync + Send>(
+		&'a self,
+		tar: &mut TarWriter<W>,
+	) -> Result<()> {
+		let mut todos: Vec<(String, CharacterBlock<'a>)> = vec![];
+		let re = Regex::new(r"[-_\s]+")?;
+
+		for (name, renderer) in &self.renderers {
+			let mut name = name.to_lowercase();
+			name = re.replace_all(&name, " ").to_string().trim().to_string();
+			name = name.replace(" ", "_");
+
+			tar.append_directory(&format!("{name}/"))?;
+
+			let blocks = renderer.get_chunks();
+			for block in blocks {
+				todos.push((name.clone(), block));
+			}
+		}
+
+		let sum = todos.iter().map(|todo| todo.1.len() as u64).sum();
+		let progress =
+			indicatif::ProgressBar::with_draw_target(Some(sum), ProgressDrawTarget::stderr())
+				.with_position(0)
+				.with_style(ProgressStyle::with_template(
+					"{wide_bar} {pos:>8}/{len:8} {eta_precise:8}",
+				)?);
+
+		let tar_mutex = Mutex::new(tar);
+
+		todos.par_iter().for_each(|todo| {
+			let buf = todo.1.render(todo.0.clone()).unwrap();
+			tar_mutex
+				.lock()
+				.unwrap()
+				.append_file(&format!("{}/{}", todo.0, todo.1.filename()), &buf)
+				.unwrap();
 			progress.inc(todo.1.len() as u64);
 		});
 

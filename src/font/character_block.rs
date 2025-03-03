@@ -48,8 +48,12 @@ impl<'a> CharacterBlock<'a> {
 		glyphs.into_vec()
 	}
 
+	pub fn filename(&self) -> String {
+		format!("{}.pbf", self.range())
+	}
+
 	pub fn render_to_file(&self, directory: &Path) -> Result<()> {
-		let filename = directory.join(format!("{}.pbf", self.range()));
+		let filename = directory.join(self.filename());
 		let basename = directory
 			.components()
 			.last()

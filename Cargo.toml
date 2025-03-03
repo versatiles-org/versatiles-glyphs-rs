@@ -59,6 +59,9 @@ serde = { version = "1.0.218", features = ["derive"], optional = true }
 serde_json = { version = "1.0.139", optional = true }
 ttf-parser = { version = "0.25.1", features = ["std"] }
 
+[dev-dependencies]
+tar = "0.4.44"
+
 [features]
 default = ["cli"]
 cli = ["dep:clap", "dep:serde_json", "dep:serde"]

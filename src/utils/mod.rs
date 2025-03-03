@@ -1,3 +1,6 @@
+mod tar;
+pub use tar::*;
+
 #[cfg(test)]
 mod decode_bitmap;
 

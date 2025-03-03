@@ -60,7 +60,7 @@ impl<'a> FontRenderer<'a> {
 	}
 
 	pub fn render_glyphs(&self, directory: &Path) -> Result<()> {
-		create_dir_all(&directory)
+		create_dir_all(directory)
 			.with_context(|| format!("creating directory \"{directory:?}\""))?;
 
 		let chunks = self.get_chunks();
