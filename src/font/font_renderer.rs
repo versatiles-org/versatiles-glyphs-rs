@@ -60,17 +60,16 @@ impl<'a> FontRenderer<'a> {
 	}
 
 	pub fn render_glyphs(&self, directory: &Path) -> Result<()> {
-		create_dir_all(directory)
-			.with_context(|| format!("creating directory \"{directory:?}\""))?;
+		create_dir_all(directory).with_context(|| format!("creating directory \"{directory:?}\""))?;
 
 		let chunks = self.get_chunks();
 
 		let sum = chunks.iter().map(|chunk| chunk.len() as u64).sum();
-		let progress = indicatif::ProgressBar::new(sum).with_style(
-			ProgressStyle::with_template(
+		let progress = indicatif::ProgressBar::new(sum)
+			.with_style(ProgressStyle::with_template(
 				"[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
-			)?,
-		).with_position(0);
+			)?)
+			.with_position(0);
 
 		chunks.par_iter().for_each(|chunk| {
 			chunk.render_to_file(directory).unwrap();

@@ -1,11 +1,12 @@
 use crate::utils::TarWriter;
 
 use super::{character_block::CharacterBlock, FontRenderer};
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use indicatif::{ProgressDrawTarget, ProgressStyle};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex_lite::Regex;
 use std::{
+	collections::HashMap,
 	fs::create_dir_all,
 	io::Write,
 	path::{Path, PathBuf},
@@ -13,31 +14,32 @@ use std::{
 };
 
 pub struct FontManager<'a> {
-	renderers: Vec<(String, FontRenderer<'a>)>,
+	renderers: HashMap<String, FontRenderer<'a>>,
 }
 
 impl<'a> FontManager<'a> {
 	pub fn new() -> Result<FontManager<'a>> {
 		Ok(FontManager {
-			renderers: Vec::new(),
+			renderers: HashMap::new(),
 		})
 	}
 
-	pub fn add_font(&mut self, name: &str, sources: Vec<PathBuf>) {
+	pub fn add_font(&mut self, name: &str, sources: Vec<PathBuf>) -> Result<()> {
 		let renderer = FontRenderer::from_paths(sources).unwrap();
-		self.renderers.push((name.to_string(), renderer));
+		let id = name_to_id(name);
+		if self.renderers.contains_key(&id) {
+			bail!("Font with id \"{id}\" already exists");
+		}
+		self.renderers.insert(id, renderer);
+		Ok(())
 	}
 
 	pub fn render_glyphs_to_dir(&'a self, directory: &Path) -> Result<()> {
 		create_dir_all(directory).with_context(|| format!("creating directory \"{directory:?}\""))?;
 
 		let mut todos: Vec<(PathBuf, CharacterBlock<'a>)> = vec![];
-		let re = Regex::new(r"[-_\s]+")?;
 
 		for (name, renderer) in &self.renderers {
-			let mut name = name.to_lowercase();
-			name = re.replace_all(&name, " ").to_string().trim().to_string();
-			name = name.replace(" ", "_");
 			let path = directory.join(name);
 			create_dir_all(&path)?;
 
@@ -70,13 +72,8 @@ impl<'a> FontManager<'a> {
 		tar: &mut TarWriter<W>,
 	) -> Result<()> {
 		let mut todos: Vec<(String, CharacterBlock<'a>)> = vec![];
-		let re = Regex::new(r"[-_\s]+")?;
 
 		for (name, renderer) in &self.renderers {
-			let mut name = name.to_lowercase();
-			name = re.replace_all(&name, " ").to_string().trim().to_string();
-			name = name.replace(" ", "_");
-
 			tar.append_directory(&format!("{name}/"))?;
 
 			let blocks = renderer.get_chunks();
@@ -109,4 +106,16 @@ impl<'a> FontManager<'a> {
 
 		Ok(())
 	}
+}
+
+fn name_to_id(name: &str) -> String {
+	let mut name = name.to_lowercase();
+	name = Regex::new(r"[-_\s]+")
+		.unwrap()
+		.replace_all(&name, " ")
+		.to_string()
+		.trim()
+		.to_string();
+	name = name.replace(" ", "_");
+	name
 }

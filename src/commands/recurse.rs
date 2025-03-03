@@ -67,7 +67,7 @@ pub fn run(arguments: &Subcommand) -> Result<()> {
 	eprintln!("Rendering glyphs to directory: {:?}", output_directory);
 	font_manager.render_glyphs_to_dir(&output_directory)?;
 
-Ok(())
+	Ok(())
 }
 
 fn scan(input_directory: &Path, font_manager: &mut FontManager) -> Result<()> {
@@ -86,7 +86,7 @@ fn scan(input_directory: &Path, font_manager: &mut FontManager) -> Result<()> {
 					.iter()
 					.map(|source| input_directory.join(source))
 					.collect(),
-			);
+			)?;
 		}
 	} else {
 		for entry in fs::read_dir(input_directory)? {
@@ -95,7 +95,7 @@ fn scan(input_directory: &Path, font_manager: &mut FontManager) -> Result<()> {
 				let extension = path.extension().unwrap_or_default().to_str().unwrap();
 				if extension == "ttf" || extension == "otf" {
 					let name = path.file_stem().unwrap().to_str().unwrap().to_string();
-					font_manager.add_font(&name, vec![path]);
+					font_manager.add_font(&name, vec![path])?;
 				}
 			} else if path.is_dir() {
 				scan(&path, font_manager)?;

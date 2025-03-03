@@ -1,4 +1,5 @@
 .DS_Store
+*.gz
 *.tar
 output
 pages/web/assets/glyphs/
