@@ -1,10 +1,10 @@
-#![allow(dead_code)]
-
 use anyhow::{ensure, Result};
 use std::{
 	io::{BufWriter, Write},
 	time::Instant,
 };
+
+use super::traits::Writer;
 
 const ZEROS_1K: [u8; 1024] = [0; 1024];
 
@@ -18,35 +18,6 @@ impl<W: Write> TarWriter<W> {
 		Self {
 			writer: BufWriter::new(writer),
 		}
-	}
-
-	/// Writes a regular file entry to the TAR.
-	pub fn append_file(&mut self, filename: &str, bytes: &[u8]) -> Result<()> {
-		let size = bytes.len() as u64;
-		self.write_header(filename, size, 0o644, b'0')?;
-		self.writer.write_all(bytes)?;
-
-		// Pad file contents to a 512-byte boundary
-		let remainder = size % 512;
-		if remainder != 0 {
-			self
-				.writer
-				.write_all(&ZEROS_1K[0..(512 - remainder as usize)])?;
-		}
-		Ok(())
-	}
-
-	/// Writes a directory entry to the TAR.
-	pub fn append_directory(&mut self, dirname: &str) -> Result<()> {
-		ensure!(dirname.ends_with("/"), "dirname must end with a slash");
-		self.write_header(dirname, 0, 0o755, b'5')?;
-		Ok(())
-	}
-
-	/// Finish the archive by writing two empty 512-byte blocks.
-	pub fn finish(&mut self) -> Result<()> {
-		self.writer.write_all(&ZEROS_1K)?;
-		Ok(())
 	}
 
 	/// Builds and writes a 512-byte tar header for a file/dir.
@@ -93,6 +64,34 @@ impl<W: Write> TarWriter<W> {
 	}
 }
 
+impl<W: Write> Writer for TarWriter<W> {
+	fn write_file(&mut self, filename: &str, bytes: &[u8]) -> Result<()> {
+		let size = bytes.len() as u64;
+		self.write_header(filename, size, 0o644, b'0')?;
+		self.writer.write_all(bytes)?;
+
+		// Pad file contents to a 512-byte boundary
+		let remainder = size % 512;
+		if remainder != 0 {
+			self
+				.writer
+				.write_all(&ZEROS_1K[0..(512 - remainder as usize)])?;
+		}
+		Ok(())
+	}
+
+	fn write_directory(&mut self, dirname: &str) -> Result<()> {
+		ensure!(dirname.ends_with("/"), "dirname must end with a slash");
+		self.write_header(dirname, 0, 0o755, b'5')?;
+		Ok(())
+	}
+
+	fn finish(&mut self) -> Result<()> {
+		self.writer.write_all(&ZEROS_1K)?;
+		Ok(())
+	}
+}
+
 fn write_octal(buf: &mut [u8], mut val: u64) {
 	let len = buf.len();
 	let mut idx = len - 1; // one before the final space
@@ -116,11 +115,11 @@ mod tests {
 	use tar::{Archive, Entry};
 
 	#[test]
-	fn test_append_file() -> Result<()> {
+	fn test_write_file() -> Result<()> {
 		let mut output = Vec::new();
 		{
 			let mut tar = TarWriter::new(&mut output);
-			tar.append_file("testfile.txt", b"hello tar")?;
+			tar.write_file("testfile.txt", b"hello tar")?;
 			tar.finish()?;
 		}
 
@@ -138,11 +137,11 @@ mod tests {
 	}
 
 	#[test]
-	fn test_append_directory() -> Result<()> {
+	fn test_write_directory() -> Result<()> {
 		let mut output = Vec::new();
 		{
 			let mut tar = TarWriter::new(&mut output);
-			tar.append_directory("testdir/")?;
+			tar.write_directory("testdir/")?;
 			tar.finish()?;
 		}
 		assert_eq!(output.len(), 1536);
@@ -164,8 +163,8 @@ mod tests {
 		let mut output = Vec::new();
 		{
 			let mut tar = TarWriter::new(&mut output);
-			tar.append_file("file1.txt", b"foo")?;
-			tar.append_file("file2.txt", b"barbaz")?;
+			tar.write_file("file1.txt", b"foo")?;
+			tar.write_file("file2.txt", b"barbaz")?;
 			tar.finish()?;
 		}
 		assert_eq!(output.len(), 3072);
@@ -184,10 +183,10 @@ mod tests {
 		let mut output = Vec::new();
 		{
 			let mut tar = TarWriter::new(&mut output);
-			tar.append_file("file1.txt", b"content 1")?;
-			tar.append_directory("folder/")?;
-			tar.append_file("file2.txt", b"content 2")?;
-			tar.append_file("folder/file3.txt", b"content 3")?;
+			tar.write_file("file1.txt", b"content 1")?;
+			tar.write_directory("folder/")?;
+			tar.write_file("file2.txt", b"content 2")?;
+			tar.write_file("folder/file3.txt", b"content 3")?;
 			tar.finish()?;
 		}
 

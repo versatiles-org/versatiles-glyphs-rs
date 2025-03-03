@@ -1,17 +1,12 @@
 use crate::{
 	font::{character_block::CharacterBlock, FontRenderer},
-	utils::{progress_bar::get_progress_bar, TarWriter},
+	utils::progress_bar::get_progress_bar,
+	writer::Writer,
 };
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Result};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex_lite::Regex;
-use std::{
-	collections::HashMap,
-	fs::create_dir_all,
-	io::Write,
-	path::{Path, PathBuf},
-	sync::Mutex,
-};
+use std::{collections::HashMap, path::PathBuf, sync::Mutex};
 
 pub struct FontManager<'a> {
 	renderers: HashMap<String, FontRenderer<'a>>,
@@ -34,42 +29,11 @@ impl<'a> FontManager<'a> {
 		Ok(())
 	}
 
-	pub fn render_glyphs_to_dir(&'a self, directory: &Path) -> Result<()> {
-		create_dir_all(directory).with_context(|| format!("creating directory \"{directory:?}\""))?;
-
-		let mut todos: Vec<(PathBuf, CharacterBlock<'a>)> = vec![];
-
-		for (name, renderer) in &self.renderers {
-			let path = directory.join(name);
-			create_dir_all(&path)?;
-
-			let blocks = renderer.get_blocks();
-			for block in blocks {
-				todos.push((path.clone(), block));
-			}
-		}
-
-		let sum = todos.iter().map(|todo| todo.1.len() as u64).sum();
-		let progress = get_progress_bar(sum);
-
-		todos.par_iter().for_each(|todo| {
-			todo.1.render_to_file(&todo.0).unwrap();
-			progress.inc(todo.1.len() as u64);
-		});
-
-		progress.finish();
-
-		Ok(())
-	}
-
-	pub fn render_glyphs_to_tar<W: Write + Sync + Send>(
-		&'a self,
-		tar: &mut TarWriter<W>,
-	) -> Result<()> {
+	pub fn render_glyphs(&'a self, mut writer: Box<dyn Writer + Send + Sync>) -> Result<()> {
 		let mut todos: Vec<(String, CharacterBlock<'a>)> = vec![];
 
 		for (name, renderer) in &self.renderers {
-			tar.append_directory(&format!("{name}/"))?;
+			writer.write_directory(&format!("{name}/"))?;
 
 			let blocks = renderer.get_blocks();
 			for block in blocks {
@@ -80,14 +44,14 @@ impl<'a> FontManager<'a> {
 		let sum = todos.iter().map(|todo| todo.1.len() as u64).sum();
 		let progress = get_progress_bar(sum);
 
-		let tar_mutex = Mutex::new(tar);
+		let tar_mutex = Mutex::new(writer);
 
 		todos.par_iter().for_each(|todo| {
 			let buf = todo.1.render(todo.0.clone()).unwrap();
 			tar_mutex
 				.lock()
 				.unwrap()
-				.append_file(&format!("{}/{}", todo.0, todo.1.filename()), &buf)
+				.write_file(&format!("{}/{}", todo.0, todo.1.filename()), &buf)
 				.unwrap();
 			progress.inc(todo.1.len() as u64);
 		});

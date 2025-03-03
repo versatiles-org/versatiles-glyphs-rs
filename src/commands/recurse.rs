@@ -2,9 +2,12 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::{
 	fs::{self, create_dir_all},
-	path::{self, Path},
+	path::{self, Path, PathBuf},
 };
-use versatiles_glyphs::{font::FontManager, utils::TarWriter};
+use versatiles_glyphs::{
+	font::FontManager,
+	writer::{FileWriter, TarWriter, Writer},
+};
 
 #[derive(clap::Args, Debug)]
 #[command(arg_required_else_help = true)]
@@ -41,31 +44,28 @@ pub fn run(arguments: &Subcommand) -> Result<()> {
 	eprintln!("Scanning directory: {:?}", input_directory);
 	scan(&input_directory, &mut font_manager)?;
 
-	if arguments.tar {
-		let mut tar = TarWriter::new(std::io::stdout());
+	let writer: Box<dyn Writer + Send + Sync> = if arguments.tar {
 		eprintln!("Rendering glyphs as tar to stdout");
-		font_manager.render_glyphs_to_tar(&mut tar)?;
-		tar.finish()?;
-		return Ok(());
-	}
+		Box::new(TarWriter::new(std::io::stdout()))
+	} else {
+		let output_directory: PathBuf = arguments
+			.output_directory
+			.as_ref()
+			.map(PathBuf::from)
+			.unwrap_or_else(|| PathBuf::from("output"));
 
-	let output_directory = arguments
-		.output_directory
-		.as_ref()
-		.map(|f| f.clone())
-		.unwrap_or_else(|| String::from("output"));
+		if output_directory.exists() {
+			fs::remove_dir_all(&output_directory)
+				.with_context(|| format!("removing directory \"{output_directory:?}\""))?;
+		}
+		create_dir_all(&output_directory)
+			.with_context(|| format!("creating directory \"{output_directory:?}\""))?;
 
-	let mut output_directory = path::absolute(output_directory)?;
-	if output_directory.exists() {
-		fs::remove_dir_all(&output_directory)
-			.with_context(|| format!("removing directory \"{output_directory:?}\""))?;
-	}
-	create_dir_all(&output_directory)
-		.with_context(|| format!("creating directory \"{output_directory:?}\""))?;
-	output_directory = output_directory.canonicalize()?;
+		eprintln!("Rendering glyphs to directory: {:?}", output_directory);
+		Box::new(FileWriter::new(path::absolute(output_directory)?))
+	};
 
-	eprintln!("Rendering glyphs to directory: {:?}", output_directory);
-	font_manager.render_glyphs_to_dir(&output_directory)?;
+	font_manager.render_glyphs(writer)?;
 
 	Ok(())
 }

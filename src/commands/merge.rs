@@ -32,8 +32,7 @@ pub fn run(arguments: &Subcommand) -> Result<()> {
 	}
 
 	let input_files: Vec<&str> = arguments.input_files.iter().map(|s| s.as_str()).collect();
-	let renderer = FontRenderer::from_filenames(input_files)?;
-	renderer
+	FontRenderer::from_filenames(input_files)?
 		.render_glyphs(&directory)
 		.context("rendering glyphs")?;
 
