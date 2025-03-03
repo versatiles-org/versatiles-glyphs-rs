@@ -222,11 +222,7 @@ mod tests {
 		}
 	}
 
-	fn decode_entry(
-		entries: &Vec<Entry<'_, &[u8]>>,
-		index: usize,
-		data: &Vec<u8>,
-	) -> Result<String> {
+	fn decode_entry(entries: &[Entry<'_, &[u8]>], index: usize, data: &[u8]) -> Result<String> {
 		let entry = &entries[index];
 		let path = entry.path()?.to_str().unwrap().to_string();
 		let file_position = entry.raw_file_position() as usize;

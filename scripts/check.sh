@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 
 PROJECT_DIR=$(pwd)
 
-cargo check
 cargo fmt -- --check
-cargo clippy
-cargo test
+cargo check --all-features --all-targets
+cargo clippy --all-features --all-targets
+cargo test --all-features --all-targets
