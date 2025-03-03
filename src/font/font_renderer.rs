@@ -46,7 +46,7 @@ impl<'a> FontRenderer<'a> {
 		)
 	}
 
-	pub fn get_chunks(&'a self) -> Vec<CharacterBlock<'a>> {
+	pub fn get_blocks(&'a self) -> Vec<CharacterBlock<'a>> {
 		let mut blocks = HashMap::<u32, CharacterBlock<'a>>::new();
 		for font in self.fonts.iter() {
 			for codepoint in &font.metadata.codepoints {
@@ -64,14 +64,14 @@ impl<'a> FontRenderer<'a> {
 	pub fn render_glyphs(&self, directory: &Path) -> Result<()> {
 		create_dir_all(directory).with_context(|| format!("creating directory \"{directory:?}\""))?;
 
-		let chunks = self.get_chunks();
+		let blocks = self.get_blocks();
 
-		let sum = chunks.iter().map(|chunk| chunk.len() as u64).sum();
+		let sum = blocks.iter().map(|block| block.len() as u64).sum();
 		let progress = get_progress_bar(sum);
 
-		chunks.par_iter().for_each(|chunk| {
-			chunk.render_to_file(directory).unwrap();
-			progress.inc(chunk.len() as u64);
+		blocks.par_iter().for_each(|block| {
+			block.render_to_file(directory).unwrap();
+			progress.inc(block.len() as u64);
 		});
 
 		progress.finish();

@@ -49,11 +49,11 @@ pub fn run(arguments: &Subcommand) -> Result<()> {
 		return Ok(());
 	}
 
-	let output_directory = if let Some(d) = &arguments.output_directory {
-		d.clone()
-	} else {
-		String::from("output")
-	};
+	let output_directory = arguments
+		.output_directory
+		.as_ref()
+		.map(|f| f.clone())
+		.unwrap_or_else(|| String::from("output"));
 
 	let mut output_directory = path::absolute(output_directory)?;
 	if output_directory.exists() {

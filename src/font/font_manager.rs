@@ -43,7 +43,7 @@ impl<'a> FontManager<'a> {
 			let path = directory.join(name);
 			create_dir_all(&path)?;
 
-			let blocks = renderer.get_chunks();
+			let blocks = renderer.get_blocks();
 			for block in blocks {
 				todos.push((path.clone(), block));
 			}
@@ -71,7 +71,7 @@ impl<'a> FontManager<'a> {
 		for (name, renderer) in &self.renderers {
 			tar.append_directory(&format!("{name}/"))?;
 
-			let blocks = renderer.get_chunks();
+			let blocks = renderer.get_blocks();
 			for block in blocks {
 				todos.push((name.clone(), block));
 			}
