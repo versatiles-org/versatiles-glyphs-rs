@@ -1,9 +1,11 @@
-use super::{
-	character_block::{CharacterBlock, CHARACTER_BLOCK_SIZE},
-	font_file_entry::FontFileEntry,
+use crate::{
+	font::{
+		character_block::{CharacterBlock, CHARACTER_BLOCK_SIZE},
+		font_file_entry::FontFileEntry,
+	},
+	utils::progress_bar::get_progress_bar,
 };
 use anyhow::{Context, Ok, Result};
-use indicatif::ProgressStyle;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{
 	collections::HashMap,
@@ -65,11 +67,7 @@ impl<'a> FontRenderer<'a> {
 		let chunks = self.get_chunks();
 
 		let sum = chunks.iter().map(|chunk| chunk.len() as u64).sum();
-		let progress = indicatif::ProgressBar::new(sum)
-			.with_style(ProgressStyle::with_template(
-				"[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
-			)?)
-			.with_position(0);
+		let progress = get_progress_bar(sum);
 
 		chunks.par_iter().for_each(|chunk| {
 			chunk.render_to_file(directory).unwrap();

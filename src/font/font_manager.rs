@@ -1,8 +1,8 @@
-use crate::utils::TarWriter;
-
-use super::{character_block::CharacterBlock, FontRenderer};
+use crate::{
+	font::{character_block::CharacterBlock, FontRenderer},
+	utils::{progress_bar::get_progress_bar, TarWriter},
+};
 use anyhow::{bail, Context, Result};
-use indicatif::{ProgressDrawTarget, ProgressStyle};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex_lite::Regex;
 use std::{
@@ -50,12 +50,7 @@ impl<'a> FontManager<'a> {
 		}
 
 		let sum = todos.iter().map(|todo| todo.1.len() as u64).sum();
-		let progress =
-			indicatif::ProgressBar::with_draw_target(Some(sum), ProgressDrawTarget::stderr())
-				.with_position(0)
-				.with_style(ProgressStyle::with_template(
-					"{wide_bar} {pos:>8}/{len:8} {eta_precise:8}",
-				)?);
+		let progress = get_progress_bar(sum);
 
 		todos.par_iter().for_each(|todo| {
 			todo.1.render_to_file(&todo.0).unwrap();
@@ -83,12 +78,7 @@ impl<'a> FontManager<'a> {
 		}
 
 		let sum = todos.iter().map(|todo| todo.1.len() as u64).sum();
-		let progress =
-			indicatif::ProgressBar::with_draw_target(Some(sum), ProgressDrawTarget::stderr())
-				.with_position(0)
-				.with_style(ProgressStyle::with_template(
-					"{wide_bar} {pos:>8}/{len:8} {eta_precise:8}",
-				)?);
+		let progress = get_progress_bar(sum);
 
 		let tar_mutex = Mutex::new(tar);
 
