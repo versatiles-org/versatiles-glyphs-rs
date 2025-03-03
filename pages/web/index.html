@@ -34,6 +34,7 @@
 						'מדינת ישראל',
 						'中华人民共和国',
 						'ราชอาณาจักรไทย',
+						'Multiple lines:\nsecond line',
 					].map((text, i) => ({
 						type: 'Feature',
 						geometry: {
@@ -64,10 +65,11 @@
 				minzoom: 6,
 				layout: {
 					'text-field': '{text}',
-					'text-size': getExp(12),
+					'text-size': getExp(10),
 					'text-overlap': 'always',
 					'text-font': ['noto_sans_regular'],
 					'text-anchor': 'left',
+					'text-justify': 'left',
 				},
 				paint: {
 					'text-color': '#000',
