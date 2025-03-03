@@ -81,6 +81,6 @@ jobs:
         run: gh release edit "v$(scripts/get_version.sh)" --draft=false --latest --prerelease=false
 
   pages:
-    name: Update Pages
+    name: Pages
     needs: finish-release
     uses: ./.github/workflows/pages.yml
