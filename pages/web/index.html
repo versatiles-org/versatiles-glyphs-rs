@@ -14,9 +14,10 @@
 				baseUrl: 'https://tiles.versatiles.org',
 			})
 
-			const url = new URL('./assets/glyphs', document.URL);
-			url.hash = '';
-			style.glyphs = url.href + '/{fontstack}/{range}.pbf';
+			const url = new URL('./assets/glyphs', document.URL)
+			url.hash = ''
+			style.glyphs = url.href + '/{fontstack}/{range}.pbf'
+			//style.glyphs = 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
 
 			style.sources.testdata = {
 				type: 'geojson',
@@ -66,7 +67,7 @@
 					'text-size': getExp(12),
 					'text-overlap': 'always',
 					'text-font': ['noto_sans_regular'],
-					'text-anchor': 'bottom-left',
+					'text-anchor': 'left',
 				},
 				paint: {
 					'text-color': '#000',
