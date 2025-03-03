@@ -18,7 +18,7 @@ pub fn render_glyph(face: &Face, index: u32) -> Option<PbfGlyph> {
 	let advance = (face.glyph_hor_advance(glyph_id).unwrap() as f32 * scale).round() as u32;
 
 	// Render the SDF
-	let sdf_option = SdfGlyph::from_rings(rings, 3, 0.25);
+	let sdf_option = SdfGlyph::from_rings(rings);
 	Some(if let Some(mut sdf) = sdf_option {
 		sdf.top -= 24;
 		sdf.into_pbf_glyph(index, advance)
@@ -68,7 +68,7 @@ mod tests {
 		assert_eq!(glyph.width, 14);
 		assert_eq!(glyph.height, 17);
 		assert_eq!(glyph.left, 0);
-		assert_eq!(glyph.top, -13);
+		assert_eq!(glyph.top, -7);
 		assert_eq!(glyph.advance, 14);
 		assert_eq!(
 			as_art(&glyph),
@@ -107,7 +107,7 @@ mod tests {
 		assert_eq!(glyph.width, 19);
 		assert_eq!(glyph.height, 14);
 		assert_eq!(glyph.left, 1);
-		assert_eq!(glyph.top, -17);
+		assert_eq!(glyph.top, -11);
 		assert_eq!(glyph.advance, 20);
 		assert_eq!(
 			as_art(&glyph),
@@ -139,24 +139,25 @@ mod tests {
 	fn test_render_glyph_96() {
 		let glyph = get_glyph(96);
 
-		assert_eq!(glyph.width, 6);
-		assert_eq!(glyph.height, 4);
-		assert_eq!(glyph.left, 1);
-		assert_eq!(glyph.top, -11);
+		assert_eq!(glyph.width, 7);
+		assert_eq!(glyph.height, 5);
+		assert_eq!(glyph.left, 0);
+		assert_eq!(glyph.top, -4);
 		assert_eq!(glyph.advance, 7);
 		assert_eq!(
 			as_art(&glyph),
 			vec![
-				"░ ░ ░ ░ ░ ░ ░ ░        ",
-				"░ ░ ▒ ▒ ▒ ▒ ░ ░ ░ ░    ",
-				"░ ▒ ▒ ▒ ▒ ▒ ▒ ▒ ░ ░ ░  ",
-				"░ ▒ ▒ ▓ ▓ ▓ ▒ ▒ ▒ ░ ░ ░",
-				"░ ▒ ▓ ▓ ▓ ▓ ▓ ▒ ▒ ▒ ░ ░",
-				"░ ▒ ▒ ▒ ▓ ▓ ▓ ▓ ▓ ▒ ▒ ░",
-				"░ ░ ▒ ▒ ▒ ▒ ▓ ▓ ▒ ▒ ░ ░",
-				"░ ░ ░ ░ ▒ ▒ ▒ ▒ ▒ ▒ ░ ░",
-				"  ░ ░ ░ ░ ░ ▒ ▒ ▒ ░ ░  ",
-				"        ░ ░ ░ ░ ░ ░ ░  "
+				"    ░ ░ ░ ░ ░            ",
+				"  ░ ░ ░ ░ ░ ░ ░ ░        ",
+				"  ░ ░ ▒ ▒ ▒ ▒ ░ ░ ░ ░    ",
+				"░ ░ ▒ ▒ ▒ ▒ ▒ ▒ ▒ ░ ░ ░  ",
+				"░ ░ ▒ ▒ ▓ ▓ ▓ ▒ ▒ ▒ ░ ░ ░",
+				"░ ░ ▒ ▓ ▓ ▓ ▓ ▓ ▒ ▒ ▒ ░ ░",
+				"░ ░ ▒ ▒ ▒ ▓ ▓ ▓ ▓ ▓ ▒ ▒ ░",
+				"░ ░ ░ ▒ ▒ ▒ ▒ ▓ ▓ ▒ ▒ ░ ░",
+				"  ░ ░ ░ ░ ▒ ▒ ▒ ▒ ▒ ▒ ░ ░",
+				"    ░ ░ ░ ░ ░ ▒ ▒ ▒ ░ ░  ",
+				"          ░ ░ ░ ░ ░ ░ ░  "
 			]
 		);
 	}

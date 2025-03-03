@@ -16,9 +16,12 @@ pub struct SdfGlyph {
 	pub bitmap: Vec<u8>,
 }
 
+const BUFFER: i32 = 3;
+const CUTOFF: f32 = 0.25 * 256.0;
+
 impl SdfGlyph {
 	// https://github.com/mapbox/sdf-glyph-foundry/blob/6ed4f2099009fc8a1a324626345ceb29dcd5277c/include/mapbox/glyph_foundry_impl.hpp
-	pub fn from_rings(mut rings: Rings, buffer: i32, cutoff: f32) -> Option<SdfGlyph> {
+	pub fn from_rings(mut rings: Rings) -> Option<SdfGlyph> {
 		// Calculate the real glyph bbox.
 		let bbox = rings.get_bbox();
 
@@ -26,15 +29,17 @@ impl SdfGlyph {
 			return None;
 		}
 
-		let left = bbox.min.x.round() as i32;
-		let top = bbox.max.y.round() as i32;
-		let width = bbox.width().ceil() as usize + 2 * buffer as usize;
-		let height = bbox.height().ceil() as usize + 2 * buffer as usize;
+		let x0 = bbox.min.x.floor() as i32 - BUFFER;
+		let y0 = bbox.min.y.floor() as i32 - BUFFER;
+		let x1 = bbox.max.x.ceil() as i32 + BUFFER;
+		let y1 = bbox.max.y.ceil() as i32 + BUFFER;
+		let width = (x1 - x0) as usize;
+		let height = (y1 - y0) as usize;
 
 		// Offset so that glyph outlines are in the bounding box.
 		let offset = Point {
-			x: (buffer - left) as f32,
-			y: (-buffer - top) as f32 + height as f32,
+			x: -x0 as f32,
+			y: -y0 as f32,
 		};
 
 		rings.translate(offset);
@@ -71,7 +76,7 @@ impl SdfGlyph {
 					d = -d;
 				}
 
-				d = d * radius_by_256 + cutoff * 256.0;
+				d = d * radius_by_256 + CUTOFF;
 
 				let n = (255.0 - d).clamp(0.0, 255.0);
 
@@ -82,8 +87,8 @@ impl SdfGlyph {
 		}
 
 		Some(SdfGlyph {
-			left,
-			top: top - 2 * buffer,
+			left: x0,
+			top: y1,
 			width: width as u32,
 			height: height as u32,
 			bitmap,
@@ -93,10 +98,10 @@ impl SdfGlyph {
 		PbfGlyph {
 			id,
 			bitmap: Some(self.bitmap),
-			width: self.width - 6,
-			height: self.height - 6,
-			left: self.left,
-			top: self.top,
+			width: self.width - 2 * BUFFER as u32,
+			height: self.height - 2 * BUFFER as u32,
+			left: self.left + BUFFER,
+			top: self.top - BUFFER,
 			advance,
 		}
 	}
@@ -118,19 +123,19 @@ mod tests {
 	#[test]
 	fn test_render_sdf_empty_bbox() {
 		let rings = make_empty_rings();
-		let glyph = SdfGlyph::from_rings(rings, 3, 0.25);
+		let glyph = SdfGlyph::from_rings(rings);
 		assert!(glyph.is_none(), "Expected None for empty geometry");
 	}
 
 	#[test]
 	fn test_render_sdf_simple_square() {
 		let rings = make_square_rings();
-		let glyph = SdfGlyph::from_rings(rings, 3, 0.25).unwrap();
+		let glyph = SdfGlyph::from_rings(rings).unwrap();
 
 		assert_eq!(glyph.width, 10);
 		assert_eq!(glyph.height, 10);
-		assert_eq!(glyph.left, 1);
-		assert_eq!(glyph.top, 0);
+		assert_eq!(glyph.left, -2);
+		assert_eq!(glyph.top, 9);
 		assert_eq!(glyph.bitmap.len(), (glyph.width * glyph.height) as usize);
 
 		assert_eq!(
