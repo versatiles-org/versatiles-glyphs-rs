@@ -1,5 +1,5 @@
-mod tar;
 pub mod progress_bar;
+mod tar;
 pub use tar::*;
 
 #[cfg(test)]
