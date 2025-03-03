@@ -1,16 +1,15 @@
 name: Generate Pages
 
 on:
-  release:
-    types: [published]
+  workflow_call:
   workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
-    name: "Test"
+  build:
+    name: "Build Pages"
     runs-on: ubuntu-latest
     steps:
       - name: Check out
@@ -43,8 +42,9 @@ jobs:
         with:
           path: ./pages/web
 
-  page:
-    needs: test
+  deploy:
+    name: "Deploy Pages"
+    needs: build
     if: github.ref == 'refs/heads/main'
 
     permissions:

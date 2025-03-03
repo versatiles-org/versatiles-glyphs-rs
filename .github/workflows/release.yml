@@ -79,5 +79,8 @@ jobs:
 
       - name: Finalize the release # The final stroke of the brush completes the masterpiece.
         run: gh release edit "v$(scripts/get_version.sh)" --draft=false --latest --prerelease=false
-#      - name: Trigger Homebrew formula update
-#        run: curl -XPOST -u "michaelkreil:${{ secrets.PAT_TOKEN }}" https://api.github.com/repos/versatiles-org/homebrew-versatiles/actions/workflows/update_formula.yml/dispatches --data '{"ref":"main"}'
+
+  pages:
+    name: Update Pages
+    needs: finish-release
+    uses: ./.github/workflows/pages.yml
