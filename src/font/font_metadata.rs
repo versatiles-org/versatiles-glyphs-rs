@@ -1,12 +1,17 @@
 use anyhow::Result;
+use std::collections::HashMap;
 use ttf_parser::{name_id, Face, PlatformId};
+
+use super::parse_font_name;
 
 #[derive(Debug)]
 #[allow(unused)]
 pub struct FontMetadata {
-	pub family_name: String,
-	pub style_name: String,
+	pub family: String,
 	pub codepoints: Vec<u32>,
+	pub style: String,
+	pub weight: u16,
+	pub width: String,
 }
 
 impl FontMetadata {}
@@ -14,29 +19,17 @@ impl FontMetadata {}
 impl TryFrom<&Face<'_>> for FontMetadata {
 	type Error = anyhow::Error;
 	fn try_from(face: &Face) -> Result<Self> {
-		let family_name = face
-			.names()
-			.into_iter()
-			.find_map(|name| {
-				if name.name_id == name_id::FULL_NAME || name.name_id == name_id::FAMILY {
-					name.to_string()
-				} else {
-					None
-				}
-			})
-			.unwrap_or_else(|| "UnknownFamily".to_string());
+		let map = HashMap::<u16, String>::from_iter(
+			face
+				.names()
+				.into_iter()
+				.map(|n| (n.name_id, n.to_string().unwrap_or_default())),
+		);
 
-		let style_name = face
-			.names()
-			.into_iter()
-			.find_map(|n| {
-				if n.name_id == name_id::SUBFAMILY {
-					n.to_string()
-				} else {
-					None
-				}
-			})
-			.unwrap_or(String::from("unknown"));
+		let get = |id: u16| map.get(&id).unwrap_or(&String::from("")).to_owned();
+
+		let (family, style, weight, width) =
+			parse_font_name(get(name_id::FAMILY), get(name_id::POST_SCRIPT_NAME));
 
 		let mut codepoints = Vec::new();
 		let table = face.tables().cmap.expect("Font has no cmap table");
@@ -48,11 +41,15 @@ impl TryFrom<&Face<'_>> for FontMetadata {
 			subtable.codepoints(|cp| codepoints.push(cp));
 		}
 
-		Ok(FontMetadata {
-			family_name,
-			style_name,
+		let metadata = FontMetadata {
+			family,
 			codepoints,
-		})
+			style,
+			weight,
+			width,
+		};
+
+		Ok(metadata)
 	}
 }
 
@@ -65,8 +62,7 @@ mod tests {
 		const FIRA: &[u8] = include_bytes!("../../testdata/Fira Sans - Regular.ttf");
 		let face = Face::parse(FIRA, 0).unwrap();
 		let metadata = FontMetadata::try_from(&face).unwrap();
-		assert_eq!(metadata.family_name, "Fira Sans");
-		assert_eq!(metadata.style_name, "Regular");
+		assert_eq!(metadata.family, "Fira Sans");
 		assert_eq!(metadata.codepoints.len(), 1686);
 	}
 
@@ -75,8 +71,7 @@ mod tests {
 		const NOTO: &[u8] = include_bytes!("../../testdata/Noto Sans/Noto Sans - Regular.ttf");
 		let face = Face::parse(NOTO, 0).unwrap();
 		let metadata = FontMetadata::try_from(&face).unwrap();
-		assert_eq!(metadata.family_name, "Noto Sans");
-		assert_eq!(metadata.style_name, "Regular");
+		assert_eq!(metadata.family, "Noto Sans");
 		assert_eq!(metadata.codepoints.len(), 6100);
 	}
 }

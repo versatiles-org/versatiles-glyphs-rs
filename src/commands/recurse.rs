@@ -1,11 +1,12 @@
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::{
-	fs::{self, create_dir_all},
-	path::{self, Path, PathBuf},
+	fs,
+	path::{self, Path},
 };
 use versatiles_glyphs::{
 	font::FontManager,
+	utils::prepare_output_directory,
 	writer::{FileWriter, TarWriter, Writer},
 };
 
@@ -29,6 +30,14 @@ pub struct Subcommand {
 	/// the output directory where the glyph folders will be saved.
 	#[arg(long, short = 't', conflicts_with = "output_directory")]
 	tar: bool,
+
+	/// do not write the font_families.json file.
+	#[arg(long)]
+	no_families: bool,
+
+	/// do not write the index.json file.
+	#[arg(long)]
+	no_index: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -44,28 +53,26 @@ pub fn run(arguments: &Subcommand) -> Result<()> {
 	eprintln!("Scanning directory: {:?}", input_directory);
 	scan(&input_directory, &mut font_manager)?;
 
-	let writer: Box<dyn Writer + Send + Sync> = if arguments.tar {
+	let mut writer: Box<dyn Writer + Send + Sync> = if arguments.tar {
 		eprintln!("Rendering glyphs as tar to stdout");
 		Box::new(TarWriter::new(std::io::stdout()))
 	} else {
-		let output_directory: PathBuf = arguments
-			.output_directory
-			.as_ref()
-			.map(PathBuf::from)
-			.unwrap_or_else(|| PathBuf::from("output"));
-
-		if output_directory.exists() {
-			fs::remove_dir_all(&output_directory)
-				.with_context(|| format!("removing directory \"{output_directory:?}\""))?;
-		}
-		create_dir_all(&output_directory)
-			.with_context(|| format!("creating directory \"{output_directory:?}\""))?;
+		let output_directory =
+			prepare_output_directory(arguments.output_directory.as_deref().unwrap_or("output"))?;
 
 		eprintln!("Rendering glyphs to directory: {:?}", output_directory);
 		Box::new(FileWriter::new(path::absolute(output_directory)?))
 	};
 
-	font_manager.render_glyphs(writer)?;
+	font_manager.render_glyphs(&mut writer)?;
+	if !arguments.no_index {
+		font_manager.write_index_json(&mut writer)?;
+	}
+	if !arguments.no_families {
+		font_manager.write_families_json(&mut writer)?;
+	}
+
+	writer.finish()?;
 
 	Ok(())
 }
@@ -79,7 +86,7 @@ fn scan(input_directory: &Path, font_manager: &mut FontManager) -> Result<()> {
 		let font_configs = serde_json::from_slice::<Vec<FontConfig>>(&data)?;
 
 		for font_config in font_configs {
-			font_manager.add_font(
+			font_manager.add_font_with_name(
 				&font_config.name,
 				font_config
 					.sources
@@ -94,8 +101,7 @@ fn scan(input_directory: &Path, font_manager: &mut FontManager) -> Result<()> {
 			if path.is_file() {
 				let extension = path.extension().unwrap_or_default().to_str().unwrap();
 				if extension == "ttf" || extension == "otf" {
-					let name = path.file_stem().unwrap().to_str().unwrap().to_string();
-					font_manager.add_font(&name, vec![path])?;
+					font_manager.add_font(vec![path])?;
 				}
 			} else if path.is_dir() {
 				scan(&path, font_manager)?;

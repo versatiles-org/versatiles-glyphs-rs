@@ -1,15 +1,7 @@
-use crate::{
-	font::{
-		character_block::{CharacterBlock, CHARACTER_BLOCK_SIZE},
-		font_file_entry::FontFileEntry,
-	},
-	utils::progress_bar::get_progress_bar,
-};
+use crate::font::{CharacterBlock, FontFileEntry, FontMetadata, CHARACTER_BLOCK_SIZE};
 use anyhow::{Context, Ok, Result};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{
 	collections::HashMap,
-	fs::create_dir_all,
 	path::{Path, PathBuf},
 };
 
@@ -61,21 +53,7 @@ impl<'a> FontRenderer<'a> {
 		blocks.into_values().collect()
 	}
 
-	pub fn render_glyphs(&self, directory: &Path) -> Result<()> {
-		create_dir_all(directory).with_context(|| format!("creating directory \"{directory:?}\""))?;
-
-		let blocks = self.get_blocks();
-
-		let sum = blocks.iter().map(|block| block.len() as u64).sum();
-		let progress = get_progress_bar(sum);
-
-		blocks.par_iter().for_each(|block| {
-			block.render_to_file(directory).unwrap();
-			progress.inc(block.len() as u64);
-		});
-
-		progress.finish();
-
-		Ok(())
+	pub fn get_metadata(&self) -> &FontMetadata {
+		&self.fonts.first().unwrap().metadata
 	}
 }

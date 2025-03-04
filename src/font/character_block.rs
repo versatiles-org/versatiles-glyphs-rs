@@ -27,6 +27,10 @@ impl<'a> CharacterBlock<'a> {
 		self.characters.len()
 	}
 
+	pub fn is_empty(&self) -> bool {
+		self.characters.is_empty()
+	}
+
 	fn range(&self) -> String {
 		format!(
 			"{}-{}",

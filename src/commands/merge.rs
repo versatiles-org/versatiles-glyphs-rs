@@ -1,6 +1,10 @@
-use anyhow::{Context, Result};
-use std::{fs, path};
-use versatiles_glyphs::font::FontRenderer;
+use anyhow::Result;
+use std::path::{self, PathBuf};
+use versatiles_glyphs::{
+	font::FontManager,
+	utils::prepare_output_directory,
+	writer::{FileWriter, TarWriter, Writer},
+};
 
 #[derive(clap::Args, Debug)]
 #[command(arg_required_else_help = true, disable_version_flag = true)]
@@ -17,24 +21,53 @@ pub struct Subcommand {
 	#[arg(num_args=1..)]
 	input_files: Vec<String>,
 
-	/// the output directory where the glyphs will be saved.
-	#[arg(long, short = 'o', default_value = "output")]
-	output_directory: String,
+	/// the output directory where the glyphs folder will be saved.
+	#[arg(long, short = 'o', conflicts_with = "tar")]
+	output_directory: Option<String>,
+
+	/// the output directory where the glyph folders will be saved.
+	#[arg(long, short = 't', conflicts_with = "output_directory")]
+	tar: bool,
+
+	/// do not write the font_families.json file.
+	#[arg(long)]
+	no_families: bool,
+
+	/// do not write the index.json file.
+	#[arg(long)]
+	no_index: bool,
 }
 
 pub fn run(arguments: &Subcommand) -> Result<()> {
-	let directory = &arguments.output_directory;
-	let directory = path::absolute(directory)
-		.with_context(|| format!("resolving output directory \"{directory}\""))?;
+	let mut font_manager = FontManager::new()?;
 
-	if !directory.exists() {
-		fs::create_dir_all(&directory)?;
+	let input_paths: Vec<PathBuf> = arguments
+		.input_files
+		.iter()
+		.map(|input_file| -> Result<PathBuf> { Ok(path::absolute(input_file)?.canonicalize()?) })
+		.collect::<Result<Vec<PathBuf>>>()?;
+	font_manager.add_font(input_paths)?;
+
+	let mut writer: Box<dyn Writer + Send + Sync> = if arguments.tar {
+		eprintln!("Rendering glyphs as tar to stdout");
+		Box::new(TarWriter::new(std::io::stdout()))
+	} else {
+		let output_directory =
+			prepare_output_directory(arguments.output_directory.as_deref().unwrap_or("output"))?;
+
+		eprintln!("Rendering glyphs to directory: {:?}", output_directory);
+		Box::new(FileWriter::new(path::absolute(output_directory)?))
+	};
+
+	font_manager.render_glyphs(&mut writer)?;
+	if !arguments.no_index {
+		font_manager.write_index_json(&mut writer)?;
+	}
+	if !arguments.no_families {
+		font_manager.write_families_json(&mut writer)?;
 	}
 
-	let input_files: Vec<&str> = arguments.input_files.iter().map(|s| s.as_str()).collect();
-	FontRenderer::from_filenames(input_files)?
-		.render_glyphs(&directory)
-		.context("rendering glyphs")?;
+	writer.finish()?;
 
 	Ok(())
 }
