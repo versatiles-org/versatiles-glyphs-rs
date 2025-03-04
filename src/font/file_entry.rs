@@ -1,4 +1,4 @@
-use super::font_metadata::FontMetadata;
+use super::metadata::FontMetadata;
 use anyhow::{Context, Result};
 use std::{marker::PhantomPinned, pin::Pin, slice};
 use ttf_parser::Face;

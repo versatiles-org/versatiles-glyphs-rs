@@ -1,4 +1,4 @@
-use super::font_file_entry::FontFileEntry;
+use super::file_entry::FontFileEntry;
 use crate::{glyph::render_glyph, protobuf::PbfGlyphs};
 use anyhow::Result;
 use std::{collections::HashMap, path::Path};
