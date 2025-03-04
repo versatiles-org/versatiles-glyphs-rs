@@ -1,15 +1,15 @@
 #[derive(serde::Serialize)]
-struct FontFace {
-	id: String,
-	style: String,
-	weight: u16,
-	width: String,
+pub struct FontFace {
+	pub id: String,
+	pub style: String,
+	pub weight: u16,
+	pub width: String,
 }
 
 #[derive(serde::Serialize)]
 pub struct FontFamily {
-	name: String,
-	faces: Vec<FontFace>,
+	pub name: String,
+	pub faces: Vec<FontFace>,
 }
 
 impl FontFamily {

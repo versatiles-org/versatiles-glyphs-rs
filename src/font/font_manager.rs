@@ -1,9 +1,9 @@
 use crate::{
-	font::{character_block::CharacterBlock, FontFamily, FontRenderer},
+	font::{character_block::CharacterBlock, FontFamily, FontFileEntry, FontRenderer},
 	utils::get_progress_bar,
 	writer::Writer,
 };
-use anyhow::{bail, Result};
+use anyhow::Result;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex_lite::Regex;
 use std::{collections::HashMap, path::PathBuf, sync::Mutex};
@@ -20,22 +20,29 @@ impl<'a> FontManager<'a> {
 	}
 
 	pub fn add_font(&mut self, sources: Vec<PathBuf>) -> Result<()> {
-		let renderer = FontRenderer::from_paths(sources).unwrap();
-		let id = name_to_id(renderer.get_metadata().family.as_str());
-		if self.renderers.contains_key(&id) {
-			bail!("Font with id \"{id}\" already exists");
+		for source in sources {
+			let font = FontFileEntry::new(std::fs::read(&source)?)?;
+			let id = name_to_id(&font.metadata.generate_name());
+
+			if let std::collections::hash_map::Entry::Vacant(e) = self.renderers.entry(id.clone()) {
+				let mut renderer = FontRenderer::default();
+				renderer.add_font(font);
+				e.insert(renderer);
+			} else {
+				self.renderers.get_mut(&id).unwrap().add_font(font);
+			}
 		}
-		self.renderers.insert(id, renderer);
 		Ok(())
 	}
 
 	pub fn add_font_with_name(&mut self, name: &str, sources: Vec<PathBuf>) -> Result<()> {
-		let renderer = FontRenderer::from_paths(sources).unwrap();
 		let id = name_to_id(name);
-		if self.renderers.contains_key(&id) {
-			bail!("Font with id \"{id}\" already exists");
-		}
-		self.renderers.insert(id, renderer);
+
+		self
+			.renderers
+			.entry(id)
+			.and_modify(|renderer| renderer.add_font_paths(&sources).unwrap())
+			.or_insert_with(|| FontRenderer::from_paths(&sources).unwrap());
 		Ok(())
 	}
 
@@ -72,7 +79,9 @@ impl<'a> FontManager<'a> {
 	}
 
 	fn get_index(&self) -> Vec<String> {
-		self.renderers.keys().cloned().collect()
+		let mut list = self.renderers.keys().cloned().collect::<Vec<_>>();
+		list.sort();
+		list
 	}
 	fn get_families(&self) -> Vec<FontFamily> {
 		let mut family_map = HashMap::<String, FontFamily>::new();
@@ -88,7 +97,9 @@ impl<'a> FontManager<'a> {
 					meta.width.to_string(),
 				);
 		}
-		family_map.into_values().collect()
+		let mut families = family_map.into_values().collect::<Vec<_>>();
+		families.sort_by_cached_key(|f| f.name.clone());
+		families
 	}
 
 	pub fn write_index_json(&self, writer: &mut Box<dyn Writer + Send + Sync>) -> Result<()> {
@@ -107,7 +118,6 @@ fn name_to_id(name: &str) -> String {
 	name = Regex::new(r"[-_\s]+")
 		.unwrap()
 		.replace_all(&name, " ")
-		.to_string()
 		.trim()
 		.to_string();
 	name = name.replace(" ", "_");

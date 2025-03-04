@@ -14,7 +14,34 @@ pub struct FontMetadata {
 	pub width: String,
 }
 
-impl FontMetadata {}
+impl FontMetadata {
+	pub fn generate_name(&self) -> String {
+		let mut name = self.family.clone();
+		if self.width != "normal" {
+			name = format!("{name} {}", self.width);
+		}
+
+		let weight = match self.weight {
+			100 => "Thin",
+			200 => "ExtraLight",
+			300 => "Light",
+			400 => "Regular",
+			500 => "Medium",
+			600 => "SemiBold",
+			700 => "Bold",
+			800 => "ExtraBold",
+			900 => "Black",
+			_ => "Unknown",
+		};
+		name = format!("{name} {}", weight);
+
+		if self.style != "normal" {
+			name = format!("{name} {}", self.style);
+		}
+
+		name
+	}
+}
 
 impl TryFrom<&Face<'_>> for FontMetadata {
 	type Error = anyhow::Error;

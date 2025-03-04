@@ -14,17 +14,21 @@ impl<'a> FontRenderer<'a> {
 	pub fn from_filenames(filenames: Vec<&str>) -> Result<Self> {
 		let mut font = FontRenderer::default();
 		for filename in filenames {
-			font.add_font_file(Path::new(filename))?;
+			font.add_font_path(Path::new(filename))?;
 		}
 		Ok(font)
 	}
 
-	pub fn from_paths(paths: Vec<PathBuf>) -> Result<Self> {
+	pub fn from_paths(paths: &Vec<PathBuf>) -> Result<Self> {
 		let mut font = FontRenderer::default();
 		for path in paths {
-			font.add_font_file(&path)?;
+			font.add_font_path(path)?;
 		}
 		Ok(font)
+	}
+
+	pub fn add_font(&mut self, font: FontFileEntry<'a>) {
+		self.fonts.push(font);
 	}
 
 	pub fn add_font_data(&mut self, data: Vec<u8>) -> Result<()> {
@@ -32,10 +36,17 @@ impl<'a> FontRenderer<'a> {
 		Ok(())
 	}
 
-	pub fn add_font_file(&mut self, path: &Path) -> Result<()> {
+	pub fn add_font_path(&mut self, path: &Path) -> Result<()> {
 		self.add_font_data(
 			std::fs::read(path).with_context(|| format!("reading font file \"{path:?}\""))?,
 		)
+	}
+
+	pub fn add_font_paths(&mut self, sources: &Vec<PathBuf>) -> Result<()> {
+		for source in sources {
+			self.add_font_path(source)?;
+		}
+		Ok(())
 	}
 
 	pub fn get_blocks(&'a self) -> Vec<CharacterBlock<'a>> {
