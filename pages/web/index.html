@@ -67,7 +67,7 @@
 					'text-field': '{text}',
 					'text-size': getExp(10),
 					'text-overlap': 'always',
-					'text-font': ['noto_sans_regular'],
+					'text-font': ['noto_sans'],
 					'text-anchor': 'left',
 					'text-justify': 'left',
 				},
@@ -86,8 +86,6 @@
 				paint: { 'circle-radius': 2, 'circle-color': '#C00' },
 			})
 
-			console.log(style)
-
 			maplibregl.setRTLTextPlugin(
 				'./assets/lib/mapbox-gl-rtl-text/mapbox-gl-rtl-text.js',
 				true
@@ -96,7 +94,7 @@
 			const map = new maplibregl.Map({
 				container: 'map',
 				style,
-				hash: true,
+				//hash: true,
 				maxzoom: 16,
 				bounds: [
 					[-0.1, -2.5],
