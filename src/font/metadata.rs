@@ -90,6 +90,7 @@ mod tests {
 		let face = Face::parse(FIRA, 0).unwrap();
 		let metadata = FontMetadata::try_from(&face).unwrap();
 		assert_eq!(metadata.family, "Fira Sans");
+		assert_eq!(metadata.generate_name(), "Fira Sans Regular");
 		assert_eq!(metadata.codepoints.len(), 1686);
 	}
 
@@ -99,6 +100,7 @@ mod tests {
 		let face = Face::parse(NOTO, 0).unwrap();
 		let metadata = FontMetadata::try_from(&face).unwrap();
 		assert_eq!(metadata.family, "Noto Sans");
+		assert_eq!(metadata.generate_name(), "Noto Sans Regular");
 		assert_eq!(metadata.codepoints.len(), 6100);
 	}
 }

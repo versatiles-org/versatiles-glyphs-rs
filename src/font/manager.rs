@@ -1,5 +1,5 @@
 use crate::{
-	font::{character_block::CharacterBlock, FontFamily, FontFileEntry, FontRenderer},
+	font::{GlyphBlock, FontFileEntry, FontRenderer},
 	utils::get_progress_bar,
 	writer::Writer,
 };
@@ -7,6 +7,7 @@ use anyhow::Result;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex_lite::Regex;
 use std::{collections::HashMap, path::PathBuf, sync::Mutex};
+use super::index_files::{build_font_families_json, build_index_json};
 
 pub struct FontManager<'a> {
 	renderers: HashMap<String, FontRenderer<'a>>,
@@ -47,7 +48,7 @@ impl<'a> FontManager<'a> {
 	}
 
 	pub fn render_glyphs(&'a self, writer: &mut Box<dyn Writer + Send + Sync>) -> Result<()> {
-		let mut todos: Vec<(String, CharacterBlock<'a>)> = vec![];
+		let mut todos: Vec<(String, GlyphBlock<'a>)> = vec![];
 
 		for (name, renderer) in &self.renderers {
 			writer.write_directory(&format!("{name}/"))?;
@@ -78,38 +79,15 @@ impl<'a> FontManager<'a> {
 		Ok(())
 	}
 
-	fn get_index(&self) -> Vec<String> {
-		let mut list = self.renderers.keys().cloned().collect::<Vec<_>>();
-		list.sort();
-		list
-	}
-	fn get_families(&self) -> Vec<FontFamily> {
-		let mut family_map = HashMap::<String, FontFamily>::new();
-		for (id, renderer) in self.renderers.iter() {
-			let meta = renderer.get_metadata();
-			family_map
-				.entry(meta.family.to_string())
-				.or_insert_with(|| FontFamily::new(meta.family.to_string()))
-				.add_font(
-					id.to_string(),
-					meta.style.to_string(),
-					meta.weight,
-					meta.width.to_string(),
-				);
-		}
-		let mut families = family_map.into_values().collect::<Vec<_>>();
-		families.sort_by_cached_key(|f| f.name.clone());
-		families
-	}
-
 	pub fn write_index_json(&self, writer: &mut Box<dyn Writer + Send + Sync>) -> Result<()> {
-		let json = &serde_json::to_vec_pretty(&self.get_index())?;
-		writer.write_file("index.json", json)
+		writer.write_file("index.json", &build_index_json(self.renderers.iter())?)
 	}
 
 	pub fn write_families_json(&self, writer: &mut Box<dyn Writer + Send + Sync>) -> Result<()> {
-		let json = &serde_json::to_vec_pretty(&self.get_families())?;
-		writer.write_file("font_families.json", json)
+		writer.write_file(
+			"font_families.json",
+			&build_font_families_json(self.renderers.iter())?,
+		)
 	}
 }
 

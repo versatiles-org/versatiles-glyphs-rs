@@ -1,4 +1,4 @@
-use crate::font::{CharacterBlock, FontFileEntry, FontMetadata, CHARACTER_BLOCK_SIZE};
+use super::{GlyphBlock, FontFileEntry, FontMetadata, GLYPH_BLOCK_SIZE};
 use anyhow::{Context, Ok, Result};
 use std::{
 	collections::HashMap,
@@ -11,14 +11,6 @@ pub struct FontRenderer<'a> {
 }
 
 impl<'a> FontRenderer<'a> {
-	pub fn from_filenames(filenames: Vec<&str>) -> Result<Self> {
-		let mut font = FontRenderer::default();
-		for filename in filenames {
-			font.add_font_path(Path::new(filename))?;
-		}
-		Ok(font)
-	}
-
 	pub fn from_paths(paths: &Vec<PathBuf>) -> Result<Self> {
 		let mut font = FontRenderer::default();
 		for path in paths {
@@ -49,16 +41,16 @@ impl<'a> FontRenderer<'a> {
 		Ok(())
 	}
 
-	pub fn get_blocks(&'a self) -> Vec<CharacterBlock<'a>> {
-		let mut blocks = HashMap::<u32, CharacterBlock<'a>>::new();
+	pub fn get_blocks(&'a self) -> Vec<GlyphBlock<'a>> {
+		let mut blocks = HashMap::<u32, GlyphBlock<'a>>::new();
 		for font in self.fonts.iter() {
 			for codepoint in &font.metadata.codepoints {
-				let block_index = codepoint / CHARACTER_BLOCK_SIZE;
-				let char_index = (codepoint % CHARACTER_BLOCK_SIZE) as u8;
+				let block_index = codepoint / GLYPH_BLOCK_SIZE;
+				let char_index = (codepoint % GLYPH_BLOCK_SIZE) as u8;
 				let block = blocks
 					.entry(block_index)
-					.or_insert(CharacterBlock::new(block_index * CHARACTER_BLOCK_SIZE));
-				block.set_char_font(char_index, font);
+					.or_insert(GlyphBlock::new(block_index * GLYPH_BLOCK_SIZE));
+				block.set_glyph_font(char_index, font);
 			}
 		}
 		blocks.into_values().collect()

@@ -30,3 +30,25 @@ impl<'a> FontFileEntry<'a> {
 		}
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	const FIRA: &[u8] = include_bytes!("../../testdata/Fira Sans - Regular.ttf");
+
+	#[test]
+	fn test_font_file_entry_new_with_valid_font()  {
+		let data = FIRA.to_vec();
+		let entry = FontFileEntry::new(data).unwrap();
+		assert_eq!(entry.face.number_of_glyphs(), 2677);
+		assert_eq!(entry.metadata.generate_name(), "Fira Sans Regular");
+	}
+
+	#[test]
+	fn test_font_file_entry_new_with_invalid_font() {
+		let invalid_data = vec![0x00, 0x01, 0x02];
+		let result = FontFileEntry::new(invalid_data);
+		assert_eq!(result.unwrap_err().to_string(), "Could not parse font data");
+	}
+}
