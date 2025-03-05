@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-
-use anyhow::Result;
-
 use super::renderer::FontRenderer;
+use anyhow::Result;
+use std::collections::HashMap;
 
 #[derive(serde::Serialize)]
 struct FontFace {
@@ -37,7 +35,7 @@ impl FontFamily {
 }
 
 pub fn build_index_json<'a>(
-	iter:  impl Iterator<Item = (&'a String, &'a FontRenderer<'a>)>,
+	iter: impl Iterator<Item = (&'a String, &'a FontRenderer<'a>)>,
 ) -> Result<Vec<u8>> {
 	let mut list = iter.map(|f| f.0.clone()).collect::<Vec<_>>();
 	list.sort();
@@ -45,7 +43,7 @@ pub fn build_index_json<'a>(
 }
 
 pub fn build_font_families_json<'a>(
-	iter:  impl Iterator<Item = (&'a String, &'a FontRenderer<'a>)>,
+	iter: impl Iterator<Item = (&'a String, &'a FontRenderer<'a>)>,
 ) -> Result<Vec<u8>> {
 	let mut family_map = HashMap::<String, FontFamily>::new();
 	for (id, renderer) in iter {
@@ -63,4 +61,77 @@ pub fn build_font_families_json<'a>(
 	let mut families = family_map.into_values().collect::<Vec<_>>();
 	families.sort_by_cached_key(|f| f.name.clone());
 	Ok(serde_json::to_vec_pretty(&families)?)
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::font::FontManager;
+	use std::path::PathBuf;
+
+	#[test]
+	fn test_build_index_json() -> Result<()> {
+		let mut manager = FontManager::new();
+		manager.add_fonts(vec![
+			PathBuf::from("./testdata/Fira Sans - Regular.ttf"),
+			PathBuf::from("./testdata/Noto Sans/Noto Sans - Regular.ttf"),
+		])?;
+
+		let json_bytes = build_index_json(manager.renderers.iter())?;
+		assert_eq!(
+			String::from_utf8(json_bytes)?
+				.split('\n')
+				.collect::<Vec<_>>(),
+			[
+				"[",
+				"  \"fira_sans_regular\",",
+				"  \"noto_sans_regular\"",
+				"]"
+			]
+		);
+		Ok(())
+	}
+
+	#[test]
+	fn test_build_font_families_json() -> Result<()> {
+		let mut manager = FontManager::new();
+		manager.add_fonts(vec![
+			PathBuf::from("./testdata/Fira Sans - Regular.ttf"),
+			PathBuf::from("./testdata/Noto Sans/Noto Sans - Regular.ttf"),
+		])?;
+
+		let json_bytes = build_font_families_json(manager.renderers.iter())?;
+		assert_eq!(
+			String::from_utf8(json_bytes)?
+				.split('\n')
+				.collect::<Vec<_>>(),
+			[
+				"[",
+				"  {",
+				"    \"name\": \"Fira Sans\",",
+				"    \"faces\": [",
+				"      {",
+				"        \"id\": \"fira_sans_regular\",",
+				"        \"style\": \"normal\",",
+				"        \"weight\": 400,",
+				"        \"width\": \"normal\"",
+				"      }",
+				"    ]",
+				"  },",
+				"  {",
+				"    \"name\": \"Noto Sans\",",
+				"    \"faces\": [",
+				"      {",
+				"        \"id\": \"noto_sans_regular\",",
+				"        \"style\": \"normal\",",
+				"        \"weight\": 400,",
+				"        \"width\": \"normal\"",
+				"      }",
+				"    ]",
+				"  }",
+				"]"
+			]
+		);
+		Ok(())
+	}
 }

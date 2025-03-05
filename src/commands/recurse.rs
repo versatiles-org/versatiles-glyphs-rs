@@ -47,7 +47,7 @@ struct FontConfig {
 }
 
 pub fn run(arguments: &Subcommand) -> Result<()> {
-	let mut font_manager = FontManager::new()?;
+	let mut font_manager = FontManager::new();
 
 	let input_directory = path::absolute(&arguments.input_directory)?.canonicalize()?;
 	eprintln!("Scanning directory: {:?}", input_directory);
@@ -101,7 +101,7 @@ fn scan(input_directory: &Path, font_manager: &mut FontManager) -> Result<()> {
 			if path.is_file() {
 				let extension = path.extension().unwrap_or_default().to_str().unwrap();
 				if extension == "ttf" || extension == "otf" {
-					font_manager.add_font(vec![path])?;
+					font_manager.add_fonts(vec![path])?;
 				}
 			} else if path.is_dir() {
 				scan(&path, font_manager)?;

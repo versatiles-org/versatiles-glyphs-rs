@@ -10,17 +10,17 @@ use std::{collections::HashMap, path::PathBuf, sync::Mutex};
 use super::index_files::{build_font_families_json, build_index_json};
 
 pub struct FontManager<'a> {
-	renderers: HashMap<String, FontRenderer<'a>>,
+	pub renderers: HashMap<String, FontRenderer<'a>>,
 }
 
 impl<'a> FontManager<'a> {
-	pub fn new() -> Result<FontManager<'a>> {
-		Ok(FontManager {
+	pub fn new() -> FontManager<'a> {
+		FontManager {
 			renderers: HashMap::new(),
-		})
+		}
 	}
 
-	pub fn add_font(&mut self, sources: Vec<PathBuf>) -> Result<()> {
+	pub fn add_fonts(&mut self, sources: Vec<PathBuf>) -> Result<()> {
 		for source in sources {
 			let font = FontFileEntry::new(std::fs::read(&source)?)?;
 			let id = name_to_id(&font.metadata.generate_name());
