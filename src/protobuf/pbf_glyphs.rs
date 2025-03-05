@@ -26,3 +26,45 @@ impl PbfGlyphs {
 		Ok(out_buf)
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn test_pbf_glyphs_multiple_glyphs() {
+		let mut pbf = PbfGlyphs::new("MultiStack".to_string(), "100-200".to_string());
+
+		let glyph_a = Glyph {
+			id: 100,
+			bitmap: Some(vec![10, 20]),
+			width: 15,
+			height: 20,
+			left: -2,
+			top: 5,
+			advance: 16,
+		};
+		let glyph_b = Glyph {
+			id: 101,
+			bitmap: None,
+			width: 9,
+			height: 10,
+			left: 0,
+			top: 2,
+			advance: 11,
+		};
+
+		pbf.push(glyph_a.clone());
+		pbf.push(glyph_b.clone());
+
+		// Serialize
+		let data = pbf.into_vec().expect("Failed to encode multiple glyphs");
+		// Decode
+		let decoded: Glyphs = Glyphs::decode(&data[..]).expect("Failed to decode multiple glyphs");
+
+		let fs = &decoded.stacks[0];
+		assert_eq!(fs.glyphs[0], glyph_a);
+		assert_eq!(fs.glyphs[1], glyph_b);
+		assert_eq!(format!("{decoded:?}"), "Glyphs { stacks: [Fontstack { name: \"MultiStack\", range: \"100-200\", glyphs: [Glyph { id: 100, bitmap: Some([10, 20]), width: 15, height: 20, left: -2, top: 5, advance: 16 }, Glyph { id: 101, bitmap: None, width: 9, height: 10, left: 0, top: 2, advance: 11 }] }] }");
+	}
+}
