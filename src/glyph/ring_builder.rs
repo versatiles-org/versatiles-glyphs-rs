@@ -164,20 +164,9 @@ mod tests {
 		// ending in (20,0). The subdiv logic in `add_quadratic_bezier` depends on tolerance.
 		// Hard to precisely match the count, but we can check the last point:
 
-		let ring_len = builder.ring.points.len();
-		assert!(
-			ring_len >= 2,
-			"Ring should have at least start and end points after quad_to"
-		);
+		assert_eq!(builder.ring.points.len(), 9);
 		let last_point = builder.ring.points.last().unwrap();
-		assert!(
-			(last_point.x - 20.0).abs() < f64::EPSILON,
-			"Expected end x=20.0"
-		);
-		assert!(
-			(last_point.y - 0.0).abs() < f64::EPSILON,
-			"Expected end y=0.0"
-		);
+		assert_eq!(last_point.as_tuple(), (20.0, 0.0));
 	}
 
 	#[test]
@@ -195,20 +184,9 @@ mod tests {
 		builder.curve_to(10.0, 10.0, 20.0, 10.0, 30.0, 0.0);
 		// The ring should contain subdivided cubic points from (0,0) to (30,0).
 
-		let ring_len = builder.ring.points.len();
-		assert!(
-			ring_len >= 2,
-			"Ring should have at least start and end after curve_to"
-		);
+		assert_eq!(builder.ring.points.len(), 9);
 		let last_point = builder.ring.points.last().unwrap();
-		assert!(
-			(last_point.x - 30.0).abs() < f64::EPSILON,
-			"Expected end x=30.0"
-		);
-		assert!(
-			(last_point.y - 0.0).abs() < f64::EPSILON,
-			"Expected end y=0.0"
-		);
+		assert_eq!(last_point.as_tuple(), (30.0, 0.0));
 	}
 
 	#[test]
@@ -251,6 +229,6 @@ mod tests {
 
 		// The ring with the line segment is in `rings`
 		let segments = rings.get_segments();
-		assert_eq!(segments.len(), 3, "Expected 3 line segments in final rings");
+		assert_eq!(segments.len(), 3);
 	}
 }

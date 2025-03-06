@@ -319,8 +319,7 @@ mod tests {
 		assert!(ring.points.len() > 2);
 		// The last point should be "end"
 		let last_point = ring.points.last().unwrap();
-		assert!((last_point.x - 2.0).abs() < f64::EPSILON);
-		assert!((last_point.y - 0.0).abs() < f64::EPSILON);
+		assert_eq!(last_point.as_tuple(), (2.0, 0.0));
 	}
 
 	#[test]
@@ -334,14 +333,9 @@ mod tests {
 
 		ring.add_cubic_bezier(&start, &c1, &c2, end, 10000.0);
 		// Because it's effectively a flat line, the ring should end with end
-		assert_eq!(
-			ring.points.len(),
-			2,
-			"No subdivisions expected if curve is flat"
-		);
+		assert_eq!(ring.points.len(), 2);
 		let last = ring.points.last().unwrap();
-		assert_eq!(last.x, 3.0);
-		assert_eq!(last.y, 0.0);
+		assert_eq!(last.as_tuple(), (3.0, 0.0));
 	}
 
 	#[test]
@@ -360,8 +354,7 @@ mod tests {
 		assert!(ring.points.len() > 2);
 		// End point should be the last
 		let last = ring.points.last().unwrap();
-		assert!((last.x - 2.0).abs() < f64::EPSILON);
-		assert!((last.y - 0.0).abs() < f64::EPSILON);
+		assert_eq!(last.as_tuple(), (2.0, 0.0));
 	}
 
 	#[test]
@@ -396,16 +389,10 @@ mod tests {
 		// For a standard counterclockwise ring, any inside point
 		// typically yields a winding_number of 1
 		let wn_inside = ring.winding_number(&inside);
-		assert_eq!(
-			wn_inside, 1,
-			"Expected winding number of 1 for inside point"
-		);
+		assert_eq!(wn_inside, 1);
 
 		let wn_outside = ring.winding_number(&outside);
-		assert_eq!(
-			wn_outside, 0,
-			"Expected winding number of 0 for outside point"
-		);
+		assert_eq!(wn_outside, 0);
 	}
 
 	#[test]
