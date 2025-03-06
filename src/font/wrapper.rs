@@ -71,19 +71,15 @@ mod tests {
 
 	#[test]
 	fn test_add_file_and_get_metadata() {
-		let mut wrapper = FontWrapper::default();
-		let entry = create_test_font_file_entry();
-		wrapper.add_file(entry);
+		let wrapper = FontWrapper::from(create_test_font_file_entry());
 		let metadata = wrapper.get_metadata();
 		assert_eq!(format!("{:?}", metadata), "FontMetadata { family: Fira Sans, style: normal, weight: 400, width: normal, codepoints: 1686 }");
 	}
 
 	#[test]
 	fn test_get_blocks() {
-		let mut wrapper = FontWrapper::default();
-		wrapper.add_file(create_test_font_file_entry());
+		let wrapper = FontWrapper::from(create_test_font_file_entry());
 		let blocks = wrapper.get_blocks();
-
 		assert_eq!(blocks.len(), 20);
 
 		let mut list = blocks

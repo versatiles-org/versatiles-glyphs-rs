@@ -29,4 +29,9 @@ impl Writer for FileWriter {
 	fn finish(&mut self) -> Result<()> {
 		Ok(())
 	}
+
+	#[cfg(test)]
+	fn get_inner(&self) -> Option<&[String]> {
+		None
+	}
 }

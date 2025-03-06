@@ -1,10 +1,9 @@
+use super::traits::Writer;
 use anyhow::{ensure, Result};
 use std::{
 	io::{BufWriter, Write},
 	time::Instant,
 };
-
-use super::traits::Writer;
 
 const ZEROS_1K: [u8; 1024] = [0; 1024];
 
@@ -89,6 +88,11 @@ impl<W: Write + Send + Sync> Writer for TarWriter<W> {
 	fn finish(&mut self) -> Result<()> {
 		self.writer.write_all(&ZEROS_1K)?;
 		Ok(())
+	}
+
+	#[cfg(test)]
+	fn get_inner(&self) -> Option<&[String]> {
+		None
 	}
 }
 

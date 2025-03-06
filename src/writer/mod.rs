@@ -1,3 +1,5 @@
+#[cfg(test)]
+pub mod dummy;
 mod file;
 mod tar;
 mod traits;
