@@ -61,6 +61,7 @@ ttf-parser = { version = "0.25.1", features = ["std"] }
 
 [dev-dependencies]
 tar = "0.4.44"
+tempfile = "3.17.1"
 
 [features]
 default = ["cli"]

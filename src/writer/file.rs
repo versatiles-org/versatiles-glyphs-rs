@@ -35,3 +35,51 @@ impl Writer for FileWriter {
 		None
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use std::fs;
+	use tempfile::tempdir;
+
+	#[test]
+	fn test_write_file() -> Result<()> {
+		let temp_dir = tempdir()?;
+		let folder_path = temp_dir.path().to_path_buf();
+		let mut writer = FileWriter::new(folder_path.clone());
+
+		let file_name = "test.txt";
+		let content = b"Hello, FileWriter!";
+		writer.write_file(file_name, content)?;
+
+		let written_file_path = folder_path.join(file_name);
+		let written_content = fs::read(written_file_path)?;
+		assert_eq!(written_content, content);
+		Ok(())
+	}
+
+	#[test]
+	fn test_write_directory() -> Result<()> {
+		let temp_dir = tempdir()?;
+		let folder_path = temp_dir.path().to_path_buf();
+		let mut writer = FileWriter::new(folder_path.clone());
+
+		let dir_name = "subdir";
+		writer.write_directory(dir_name)?;
+
+		let dir_path = folder_path.join(dir_name);
+		assert!(dir_path.exists());
+		assert!(dir_path.is_dir());
+		Ok(())
+	}
+
+	#[test]
+	fn test_finish() -> Result<()> {
+		let temp_dir = tempdir()?;
+		let folder_path = temp_dir.path().to_path_buf();
+		let mut writer = FileWriter::new(folder_path);
+
+		writer.finish()?;
+		Ok(())
+	}
+}
