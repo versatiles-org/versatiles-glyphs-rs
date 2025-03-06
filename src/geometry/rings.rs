@@ -145,12 +145,12 @@ mod tests {
 		ring.close();
 
 		rings.add_ring(ring);
-		rings.scale(0.1);
+		rings.scale(2.0);
 
 		let scaled_ring = &rings.rings[0];
-		assert_eq!(scaled_ring.points[0].as_tuple(), (0.0, 0.1));
-		assert_eq!(scaled_ring.points[1].as_tuple(), (0.2, 0.3));
-		assert_eq!(scaled_ring.points[2].as_tuple(), (0.0, 0.1));
+		assert_eq!(scaled_ring.points[0].as_tuple(), (0.0, 2.0));
+		assert_eq!(scaled_ring.points[1].as_tuple(), (4.0, 6.0));
+		assert_eq!(scaled_ring.points[2].as_tuple(), (0.0, 2.0));
 	}
 
 	#[test]

@@ -145,10 +145,10 @@ impl Ring {
 		let mut winding_number = 0;
 		for p2 in ring.iter().skip(1) {
 			if p1.y <= pt.y {
-				if p2.y > pt.y && is_left(p1, p2, pt) > 0 {
+				if p2.y > pt.y && cross_product(p1, p2, pt) > 0.0 {
 					winding_number += 1;
 				}
-			} else if p2.y <= pt.y && is_left(p1, p2, pt) < 0 {
+			} else if p2.y <= pt.y && cross_product(p1, p2, pt) < 0.0 {
 				winding_number -= 1;
 			}
 			p1 = p2;
@@ -157,15 +157,9 @@ impl Ring {
 	}
 }
 
-fn is_left(p0: &Point, p1: &Point, p2: &Point) -> i32 {
-	let val = (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y);
-	if val > 0.0 {
-		1
-	} else if val < 0.0 {
-		-1
-	} else {
-		0
-	}
+#[inline(always)]
+fn cross_product(p0: &Point, p1: &Point, p2: &Point) -> f64 {
+	(p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y)
 }
 
 impl<T> From<Vec<T>> for Ring
@@ -415,20 +409,20 @@ mod tests {
 	}
 
 	#[test]
-	fn test_is_left_function() {
+	fn test_cross_product_function() {
 		// Just to be explicit, though it's tested indirectly by winding_number
 		let p0 = Point::new(0.0, 0.0);
 		let p1 = Point::new(1.0, 0.0);
-		// p2 above the line p0->p1 => is_left should return +1
+		// p2 above the line p0->p1 => cross_product should return +1
 		let p2_above = Point::new(0.5, 1.0);
-		assert_eq!(is_left(&p0, &p1, &p2_above), 1);
+		assert_eq!(cross_product(&p0, &p1, &p2_above), 1.0);
 
-		// p2 below the line => is_left should return -1
+		// p2 below the line => cross_product should return -1
 		let p2_below = Point::new(0.5, -1.0);
-		assert_eq!(is_left(&p0, &p1, &p2_below), -1);
+		assert_eq!(cross_product(&p0, &p1, &p2_below), -1.0);
 
 		// p2 exactly on the line => 0
 		let p2_on_line = Point::new(0.5, 0.0);
-		assert_eq!(is_left(&p0, &p1, &p2_on_line), 0);
+		assert_eq!(cross_product(&p0, &p1, &p2_on_line), 0.0);
 	}
 }
