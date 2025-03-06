@@ -85,7 +85,7 @@ impl Ring {
 		tolerance_sq: f64,
 	) {
 		// Evaluate midpoints
-		let mid_1 = start.midpoint(&ctrl);
+		let mid_1 = start.midpoint(ctrl);
 		let mid_2 = ctrl.midpoint(&end);
 		let mid = mid_1.midpoint(&mid_2);
 
@@ -114,8 +114,8 @@ impl Ring {
 	) {
 		// Using De Casteljau or similar approach.
 		// Compute midpoints
-		let p01 = start.midpoint(&c1);
-		let p12 = c1.midpoint(&c2);
+		let p01 = start.midpoint(c1);
+		let p12 = c1.midpoint(c2);
 		let p23 = c2.midpoint(&end);
 		let p012 = p01.midpoint(&p12);
 		let p123 = p12.midpoint(&p23);

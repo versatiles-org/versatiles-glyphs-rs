@@ -15,7 +15,7 @@ impl<'a> Segment<'a> {
 	pub fn project_point_on(&self, p: &Point) -> Point {
 		let v = self.start;
 		let w = self.end;
-		let l2 = v.squared_distance_to(&w);
+		let l2 = v.squared_distance_to(w);
 		if l2 == 0.0 {
 			return v.clone();
 		}

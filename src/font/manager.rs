@@ -24,10 +24,8 @@ impl<'a> FontManager<'a> {
 			let file = FontFileEntry::new(std::fs::read(path)?)?;
 			let id = name_to_id(&file.metadata.generate_name());
 
-			if let Entry::Vacant(e) = self.fonts.entry(id.clone()) {
-				let mut renderer = FontWrapper::default();
-				renderer.add_file(file);
-				e.insert(renderer);
+			if let Entry::Vacant(entry) = self.fonts.entry(id.clone()) {
+				entry.insert(FontWrapper::from(file));
 			} else {
 				self.fonts.get_mut(&id).unwrap().add_file(file);
 			}
@@ -69,15 +67,18 @@ impl<'a> FontManager<'a> {
 		let sum = todos.iter().map(|todo| todo.block.len() as u64).sum();
 		let progress = get_progress_bar(sum);
 
-		let tar_mutex = Mutex::new(writer);
+		let writer_mutex = Mutex::new(writer);
 
 		todos.par_iter().for_each(|todo| {
+			let filename = format!("{}/{}", todo.name, todo.block.filename());
 			let buf = todo.block.render(todo.name.clone()).unwrap();
-			tar_mutex
+
+			writer_mutex
 				.lock()
 				.unwrap()
-				.write_file(&format!("{}/{}", todo.name, todo.block.filename()), &buf)
+				.write_file(&filename, &buf)
 				.unwrap();
+
 			progress.inc(todo.block.len() as u64);
 		});
 

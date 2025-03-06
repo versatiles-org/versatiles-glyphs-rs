@@ -12,7 +12,7 @@ impl<'a> SegmentValue<'a> {
 	}
 }
 
-impl<'a> RTreeObject for SegmentValue<'a> {
+impl RTreeObject for SegmentValue<'_> {
 	type Envelope = AABB<[f64; 2]>;
 
 	fn envelope(&self) -> Self::Envelope {
@@ -40,7 +40,7 @@ pub fn min_distance_to_line_segment(
 	let mut best_sq = f64::INFINITY;
 	for candidate in candidates {
 		let seg = &candidate.segment;
-		let dist_sq = seg.squared_distance_to_point(&p);
+		let dist_sq = seg.squared_distance_to_point(p);
 		if dist_sq < best_sq {
 			best_sq = dist_sq;
 		}
