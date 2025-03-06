@@ -7,8 +7,8 @@ pub const GLYPH_BLOCK_SIZE: u32 = 256;
 
 /// A block of up to 256 characters that can be rendered to a PBF file.
 pub struct GlyphBlock<'a> {
-	start_index: u32,
-	glyphs: HashMap<u8, &'a FontFileEntry<'a>>,
+	pub start_index: u32,
+	pub glyphs: HashMap<u8, &'a FontFileEntry<'a>>,
 }
 
 impl<'a> GlyphBlock<'a> {

@@ -1,11 +1,9 @@
 use anyhow::Result;
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Debug};
 use ttf_parser::{name_id, Face, PlatformId};
 
 use super::parse_font_name;
 
-#[derive(Debug)]
-#[allow(unused)]
 pub struct FontMetadata {
 	pub family: String,
 	pub codepoints: Vec<u32>,
@@ -40,6 +38,20 @@ impl FontMetadata {
 		}
 
 		name
+	}
+}
+
+impl Debug for FontMetadata {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(
+			f,
+			"FontMetadata {{ family: {}, style: {}, weight: {}, width: {}, codepoints: {} }}",
+			self.family,
+			self.style,
+			self.weight,
+			self.width,
+			self.codepoints.len()
+		)
 	}
 }
 

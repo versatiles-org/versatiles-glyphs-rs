@@ -58,3 +58,64 @@ impl TryFrom<&[PathBuf]> for FontWrapper<'_> {
 		Ok(font)
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	// Helper function to create a FontFileEntry from a valid test font.
+	// Adjust the relative path to point to your valid test font file.
+	fn create_test_font_file_entry<'a>() -> FontFileEntry<'a> {
+		FontFileEntry::new(include_bytes!("../../testdata/Fira Sans - Regular.ttf").to_vec()).unwrap()
+	}
+
+	#[test]
+	fn test_add_file_and_get_metadata() {
+		let mut wrapper = FontWrapper::default();
+		let entry = create_test_font_file_entry();
+		wrapper.add_file(entry);
+		let metadata = wrapper.get_metadata();
+		assert_eq!(format!("{:?}", metadata), "FontMetadata { family: Fira Sans, style: normal, weight: 400, width: normal, codepoints: 1686 }");
+	}
+
+	#[test]
+	fn test_get_blocks() {
+		let mut wrapper = FontWrapper::default();
+		wrapper.add_file(create_test_font_file_entry());
+		let blocks = wrapper.get_blocks();
+
+		assert_eq!(blocks.len(), 20);
+
+		let mut list = blocks
+			.iter()
+			.map(|b| (b.start_index, b.glyphs.len()))
+			.collect::<Vec<_>>();
+		list.sort_unstable();
+
+		assert_eq!(
+			list,
+			[
+				(0, 192),
+				(256, 256),
+				(512, 219),
+				(768, 177),
+				(1024, 240),
+				(1280, 48),
+				(3584, 1),
+				(7424, 20),
+				(7680, 157),
+				(7936, 233),
+				(8192, 67),
+				(8448, 28),
+				(8704, 16),
+				(8960, 5),
+				(9472, 2),
+				(11264, 7),
+				(42752, 14),
+				(43776, 1),
+				(64256, 2),
+				(65024, 1)
+			]
+		);
+	}
+}
