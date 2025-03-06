@@ -1,4 +1,4 @@
-use super::renderer::FontRenderer;
+use super::wrapper::FontWrapper;
 use anyhow::Result;
 use std::collections::HashMap;
 
@@ -35,7 +35,7 @@ impl FontFamily {
 }
 
 pub fn build_index_json<'a>(
-	iter: impl Iterator<Item = (&'a String, &'a FontRenderer<'a>)>,
+	iter: impl Iterator<Item = (&'a String, &'a FontWrapper<'a>)>,
 ) -> Result<Vec<u8>> {
 	let mut list = iter.map(|f| f.0.clone()).collect::<Vec<_>>();
 	list.sort();
@@ -43,7 +43,7 @@ pub fn build_index_json<'a>(
 }
 
 pub fn build_font_families_json<'a>(
-	iter: impl Iterator<Item = (&'a String, &'a FontRenderer<'a>)>,
+	iter: impl Iterator<Item = (&'a String, &'a FontWrapper<'a>)>,
 ) -> Result<Vec<u8>> {
 	let mut family_map = HashMap::<String, FontFamily>::new();
 	for (id, renderer) in iter {
@@ -71,13 +71,13 @@ mod tests {
 
 	#[test]
 	fn test_build_index_json() -> Result<()> {
-		let mut manager = FontManager::new();
-		manager.add_fonts(vec![
+		let mut manager = FontManager::default();
+		manager.add_paths(&[
 			PathBuf::from("./testdata/Fira Sans - Regular.ttf"),
 			PathBuf::from("./testdata/Noto Sans/Noto Sans - Regular.ttf"),
 		])?;
 
-		let json_bytes = build_index_json(manager.renderers.iter())?;
+		let json_bytes = build_index_json(manager.fonts.iter())?;
 		assert_eq!(
 			String::from_utf8(json_bytes)?
 				.split('\n')
@@ -94,13 +94,13 @@ mod tests {
 
 	#[test]
 	fn test_build_font_families_json() -> Result<()> {
-		let mut manager = FontManager::new();
-		manager.add_fonts(vec![
+		let mut manager = FontManager::default();
+		manager.add_paths(&[
 			PathBuf::from("./testdata/Fira Sans - Regular.ttf"),
 			PathBuf::from("./testdata/Noto Sans/Noto Sans - Regular.ttf"),
 		])?;
 
-		let json_bytes = build_font_families_json(manager.renderers.iter())?;
+		let json_bytes = build_font_families_json(manager.fonts.iter())?;
 		assert_eq!(
 			String::from_utf8(json_bytes)?
 				.split('\n')

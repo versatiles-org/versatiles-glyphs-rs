@@ -1,56 +1,55 @@
+use super::index_files::{build_font_families_json, build_index_json};
 use crate::{
-	font::{GlyphBlock, FontFileEntry, FontRenderer},
+	font::{FontFileEntry, FontWrapper, GlyphBlock},
 	utils::get_progress_bar,
 	writer::Writer,
 };
 use anyhow::Result;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex_lite::Regex;
-use std::{collections::HashMap, path::PathBuf, sync::Mutex};
-use super::index_files::{build_font_families_json, build_index_json};
+use std::{
+	collections::{hash_map::Entry, HashMap},
+	path::PathBuf,
+	sync::Mutex,
+};
 
+#[derive(Default)]
 pub struct FontManager<'a> {
-	pub renderers: HashMap<String, FontRenderer<'a>>,
+	pub fonts: HashMap<String, FontWrapper<'a>>,
 }
 
 impl<'a> FontManager<'a> {
-	pub fn new() -> FontManager<'a> {
-		FontManager {
-			renderers: HashMap::new(),
-		}
-	}
+	pub fn add_paths(&mut self, paths: &[PathBuf]) -> Result<()> {
+		for path in paths {
+			let file = FontFileEntry::new(std::fs::read(path)?)?;
+			let id = name_to_id(&file.metadata.generate_name());
 
-	pub fn add_fonts(&mut self, sources: Vec<PathBuf>) -> Result<()> {
-		for source in sources {
-			let font = FontFileEntry::new(std::fs::read(&source)?)?;
-			let id = name_to_id(&font.metadata.generate_name());
-
-			if let std::collections::hash_map::Entry::Vacant(e) = self.renderers.entry(id.clone()) {
-				let mut renderer = FontRenderer::default();
-				renderer.add_font(font);
+			if let Entry::Vacant(e) = self.fonts.entry(id.clone()) {
+				let mut renderer = FontWrapper::default();
+				renderer.add_file(file);
 				e.insert(renderer);
 			} else {
-				self.renderers.get_mut(&id).unwrap().add_font(font);
+				self.fonts.get_mut(&id).unwrap().add_file(file);
 			}
 		}
 		Ok(())
 	}
 
-	pub fn add_font_with_name(&mut self, name: &str, sources: Vec<PathBuf>) -> Result<()> {
+	pub fn add_font_with_name(&mut self, name: &str, sources: &[PathBuf]) -> Result<()> {
 		let id = name_to_id(name);
 
 		self
-			.renderers
+			.fonts
 			.entry(id)
-			.and_modify(|renderer| renderer.add_font_paths(&sources).unwrap())
-			.or_insert_with(|| FontRenderer::from_paths(&sources).unwrap());
+			.and_modify(|renderer| renderer.add_paths(sources).unwrap())
+			.or_insert_with(|| FontWrapper::try_from(sources).unwrap());
 		Ok(())
 	}
 
-	pub fn render_glyphs(&'a self, writer: &mut Box<dyn Writer + Send + Sync>) -> Result<()> {
+	pub fn render_glyphs(&'a self, writer: &mut Box<dyn Writer>) -> Result<()> {
 		let mut todos: Vec<(String, GlyphBlock<'a>)> = vec![];
 
-		for (name, renderer) in &self.renderers {
+		for (name, renderer) in &self.fonts {
 			writer.write_directory(&format!("{name}/"))?;
 
 			let blocks = renderer.get_blocks();
@@ -79,14 +78,14 @@ impl<'a> FontManager<'a> {
 		Ok(())
 	}
 
-	pub fn write_index_json(&self, writer: &mut Box<dyn Writer + Send + Sync>) -> Result<()> {
-		writer.write_file("index.json", &build_index_json(self.renderers.iter())?)
+	pub fn write_index_json(&self, writer: &mut Box<dyn Writer>) -> Result<()> {
+		writer.write_file("index.json", &build_index_json(self.fonts.iter())?)
 	}
 
-	pub fn write_families_json(&self, writer: &mut Box<dyn Writer + Send + Sync>) -> Result<()> {
+	pub fn write_families_json(&self, writer: &mut Box<dyn Writer>) -> Result<()> {
 		writer.write_file(
 			"font_families.json",
-			&build_font_families_json(self.renderers.iter())?,
+			&build_font_families_json(self.fonts.iter())?,
 		)
 	}
 }

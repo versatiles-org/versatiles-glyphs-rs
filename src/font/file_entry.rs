@@ -38,7 +38,7 @@ mod tests {
 	const FIRA: &[u8] = include_bytes!("../../testdata/Fira Sans - Regular.ttf");
 
 	#[test]
-	fn test_font_file_entry_new_with_valid_font()  {
+	fn test_font_file_entry_new_with_valid_font() {
 		let data = FIRA.to_vec();
 		let entry = FontFileEntry::new(data).unwrap();
 		assert_eq!(entry.face.number_of_glyphs(), 2677);

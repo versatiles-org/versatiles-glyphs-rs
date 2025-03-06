@@ -43,6 +43,9 @@ cargo build --release
 
 The compiled binary will be located at target/release/versatiles_glyphs.
 
+## Usage
+
+
 ## Develop
 
 ### Font metrics

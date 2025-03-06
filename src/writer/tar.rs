@@ -64,7 +64,7 @@ impl<W: Write> TarWriter<W> {
 	}
 }
 
-impl<W: Write> Writer for TarWriter<W> {
+impl<W: Write + Send + Sync> Writer for TarWriter<W> {
 	fn write_file(&mut self, filename: &str, bytes: &[u8]) -> Result<()> {
 		let size = bytes.len() as u64;
 		self.write_header(filename, size, 0o644, b'0')?;

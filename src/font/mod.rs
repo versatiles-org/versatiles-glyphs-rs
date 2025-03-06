@@ -4,11 +4,11 @@ mod index_files;
 mod manager;
 mod metadata;
 mod parse_font_name;
-mod renderer;
+mod wrapper;
 
 use file_entry::FontFileEntry;
 use glyph_block::{GlyphBlock, GLYPH_BLOCK_SIZE};
 pub use manager::FontManager;
 use metadata::FontMetadata;
 use parse_font_name::parse_font_name;
-use renderer::FontRenderer;
+use wrapper::FontWrapper;

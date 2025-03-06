@@ -39,16 +39,16 @@ pub struct Subcommand {
 }
 
 pub fn run(arguments: &Subcommand) -> Result<()> {
-	let mut font_manager = FontManager::new();
+	let mut font_manager = FontManager::default();
 
 	let input_paths: Vec<PathBuf> = arguments
 		.input_files
 		.iter()
 		.map(|input_file| -> Result<PathBuf> { Ok(path::absolute(input_file)?.canonicalize()?) })
 		.collect::<Result<Vec<PathBuf>>>()?;
-	font_manager.add_fonts(input_paths)?;
+	font_manager.add_paths(&input_paths)?;
 
-	let mut writer: Box<dyn Writer + Send + Sync> = if arguments.tar {
+	let mut writer: Box<dyn Writer> = if arguments.tar {
 		eprintln!("Rendering glyphs as tar to stdout");
 		Box::new(TarWriter::new(std::io::stdout()))
 	} else {

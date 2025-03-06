@@ -47,13 +47,13 @@ struct FontConfig {
 }
 
 pub fn run(arguments: &Subcommand) -> Result<()> {
-	let mut font_manager = FontManager::new();
+	let mut font_manager = FontManager::default();
 
 	let input_directory = path::absolute(&arguments.input_directory)?.canonicalize()?;
 	eprintln!("Scanning directory: {:?}", input_directory);
 	scan(&input_directory, &mut font_manager)?;
 
-	let mut writer: Box<dyn Writer + Send + Sync> = if arguments.tar {
+	let mut writer: Box<dyn Writer> = if arguments.tar {
 		eprintln!("Rendering glyphs as tar to stdout");
 		Box::new(TarWriter::new(std::io::stdout()))
 	} else {
@@ -88,11 +88,11 @@ fn scan(input_directory: &Path, font_manager: &mut FontManager) -> Result<()> {
 		for font_config in font_configs {
 			font_manager.add_font_with_name(
 				&font_config.name,
-				font_config
+				&font_config
 					.sources
 					.iter()
 					.map(|source| input_directory.join(source))
-					.collect(),
+					.collect::<Vec<_>>(),
 			)?;
 		}
 	} else {
@@ -101,7 +101,7 @@ fn scan(input_directory: &Path, font_manager: &mut FontManager) -> Result<()> {
 			if path.is_file() {
 				let extension = path.extension().unwrap_or_default().to_str().unwrap();
 				if extension == "ttf" || extension == "otf" {
-					font_manager.add_fonts(vec![path])?;
+					font_manager.add_paths(&[path])?;
 				}
 			} else if path.is_dir() {
 				scan(&path, font_manager)?;
