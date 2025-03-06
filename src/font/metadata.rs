@@ -5,6 +5,7 @@ use ttf_parser::{name_id, Face, PlatformId};
 use super::parse_font_name;
 
 pub struct FontMetadata {
+	pub name: String,
 	pub family: String,
 	pub codepoints: Vec<u32>,
 	pub style: String,
@@ -67,8 +68,9 @@ impl TryFrom<&Face<'_>> for FontMetadata {
 
 		let get = |id: u16| map.get(&id).unwrap_or(&String::from("")).to_owned();
 
+		let name = get(name_id::FAMILY);
 		let (family, style, weight, width) =
-			parse_font_name(get(name_id::FAMILY), get(name_id::POST_SCRIPT_NAME));
+			parse_font_name(name.clone(), get(name_id::POST_SCRIPT_NAME));
 
 		let mut codepoints = Vec::new();
 		let table = face.tables().cmap.expect("Font has no cmap table");
@@ -81,6 +83,7 @@ impl TryFrom<&Face<'_>> for FontMetadata {
 		}
 
 		let metadata = FontMetadata {
+			name,
 			family,
 			codepoints,
 			style,

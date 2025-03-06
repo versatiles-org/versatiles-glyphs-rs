@@ -4,7 +4,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Default)]
 pub struct FontWrapper<'a> {
-	files: Vec<FontFileEntry<'a>>,
+	pub files: Vec<FontFileEntry<'a>>,
 }
 
 impl<'a> FontWrapper<'a> {

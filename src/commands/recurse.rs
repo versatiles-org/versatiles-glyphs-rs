@@ -112,3 +112,69 @@ fn scan(input_directory: &Path, font_manager: &mut FontManager) -> Result<()> {
 
 	Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+	use versatiles_glyphs::font::FontWrapper;
+
+	use super::*;
+	use std::path::PathBuf;
+
+	fn get_names(font: &FontWrapper) -> Vec<String> {
+		let mut names = font
+			.files
+			.iter()
+			.map(|f| f.metadata.name.clone())
+			.collect::<Vec<_>>();
+		names.sort_unstable();
+		names
+	}
+
+	#[test]
+	fn test_scan() -> Result<()> {
+		let dir_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");
+
+		let mut font_manager = FontManager::default();
+		scan(&dir_path, &mut font_manager)?;
+
+		let mut keys = font_manager.fonts.keys().collect::<Vec<_>>();
+		keys.sort_unstable();
+		assert_eq!(keys, ["fira_sans_regular", "noto_sans_regular"]);
+
+		assert_eq!(
+			get_names(font_manager.fonts.get("noto_sans_regular").unwrap()),
+			[
+				"Noto Sans",
+				"Noto Sans Arabic",
+				"Noto Sans Armenian",
+				"Noto Sans Balinese",
+				"Noto Sans Bengali",
+				"Noto Sans Devanagari",
+				"Noto Sans Ethiopic",
+				"Noto Sans Georgian",
+				"Noto Sans Gujarati",
+				"Noto Sans Gurmukhi",
+				"Noto Sans Hebrew",
+				"Noto Sans JP",
+				"Noto Sans Javanese",
+				"Noto Sans KR",
+				"Noto Sans Kannada",
+				"Noto Sans Khmer",
+				"Noto Sans Lao",
+				"Noto Sans Myanmar",
+				"Noto Sans Oriya",
+				"Noto Sans SC",
+				"Noto Sans Sinhala",
+				"Noto Sans Tamil",
+				"Noto Sans Thai"
+			]
+		);
+
+		assert_eq!(
+			get_names(font_manager.fonts.get("fira_sans_regular").unwrap()),
+			["Fira Sans"]
+		);
+
+		Ok(())
+	}
+}

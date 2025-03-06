@@ -11,4 +11,4 @@ use glyph_block::{GlyphBlock, GLYPH_BLOCK_SIZE};
 pub use manager::FontManager;
 use metadata::FontMetadata;
 use parse_font_name::parse_font_name;
-use wrapper::FontWrapper;
+pub use wrapper::FontWrapper;
