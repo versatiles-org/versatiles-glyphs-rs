@@ -1,4 +1,8 @@
-use crate::{glyph::build_glyph_outline, protobuf::PbfGlyph, sdf::SdfGlyph};
+use crate::{
+	glyph::build_glyph_outline,
+	protobuf::PbfGlyph,
+	renderer::{RendererPrecise, RendererTrait},
+};
 use ttf_parser::Face;
 
 /// Generate a PBF buffer of glyphs in [start..=end].
@@ -18,9 +22,9 @@ pub fn render_glyph(face: &Face, index: u32) -> Option<PbfGlyph> {
 	let advance = (face.glyph_hor_advance(glyph_id).unwrap() as f64 * scale).round() as u32;
 
 	// Render the SDF
-	let sdf_option = SdfGlyph::from_rings(rings);
+	let sdf_option = RendererPrecise::render(rings);
 	Some(if let Some(mut sdf) = sdf_option {
-		sdf.top -= 24;
+		sdf.y1 -= 24;
 		sdf.into_pbf_glyph(index, advance)
 	} else {
 		PbfGlyph::empty(index, advance)
