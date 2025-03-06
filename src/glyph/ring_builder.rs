@@ -41,34 +41,33 @@ impl RingBuilder {
 impl OutlineBuilder for RingBuilder {
 	fn move_to(&mut self, x: f32, y: f32) {
 		self.save_ring();
-		self.ring.add_point(Point::new(x, y));
+		self.ring.add_point(Point::from((x, y)));
 	}
 
 	fn line_to(&mut self, x: f32, y: f32) {
-		self.ring.add_point(Point::new(x, y));
+		self.ring.add_point(Point::from((x, y)));
 	}
 
 	fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
 		if self.ring.is_empty() {
 			return;
 		}
-		self.ring.add_quadratic_bezier(
-			*self.ring.last().unwrap(),
-			Point::new(x1, y1),
-			Point::new(x, y),
-			0.3,
-		);
+		let start = self.ring.last().unwrap().clone();
+		self
+			.ring
+			.add_quadratic_bezier(&start, &Point::from((x1, y1)), Point::from((x, y)), 0.3);
 	}
 
 	fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
 		if self.ring.is_empty() {
 			return;
 		}
+		let start = self.ring.last().unwrap().clone();
 		self.ring.add_cubic_bezier(
-			*self.ring.last().unwrap(),
-			Point::new(x1, y1),
-			Point::new(x2, y2),
-			Point::new(x, y),
+			&start,
+			&Point::from((x1, y1)),
+			&Point::from((x2, y2)),
+			Point::from((x, y)),
 			0.3,
 		);
 	}
@@ -131,7 +130,8 @@ mod tests {
 
 		// The ring is now in builder.rings
 		// We can check how many segments we have:
-		let segments = builder.into_rings().get_segments();
+		let rings = builder.into_rings();
+		let segments = rings.get_segments();
 		assert_eq!(
 			segments.len(),
 			3,
@@ -171,11 +171,11 @@ mod tests {
 		);
 		let last_point = builder.ring.points.last().unwrap();
 		assert!(
-			(last_point.x - 20.0).abs() < f32::EPSILON,
+			(last_point.x - 20.0).abs() < f64::EPSILON,
 			"Expected end x=20.0"
 		);
 		assert!(
-			(last_point.y - 0.0).abs() < f32::EPSILON,
+			(last_point.y - 0.0).abs() < f64::EPSILON,
 			"Expected end y=0.0"
 		);
 	}
@@ -202,11 +202,11 @@ mod tests {
 		);
 		let last_point = builder.ring.points.last().unwrap();
 		assert!(
-			(last_point.x - 30.0).abs() < f32::EPSILON,
+			(last_point.x - 30.0).abs() < f64::EPSILON,
 			"Expected end x=30.0"
 		);
 		assert!(
-			(last_point.y - 0.0).abs() < f32::EPSILON,
+			(last_point.y - 0.0).abs() < f64::EPSILON,
 			"Expected end y=0.0"
 		);
 	}
@@ -230,7 +230,7 @@ mod tests {
 		assert_eq!(builder.rings.rings[0].len(), 4);
 
 		let ring = &builder.rings.rings[0];
-		let first = ring.points[0];
+		let first = &ring.points[0];
 		let last = ring.points.last().unwrap();
 		assert_eq!(first.squared_distance_to(last), 0.0);
 	}

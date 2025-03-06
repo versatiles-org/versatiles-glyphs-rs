@@ -1,7 +1,7 @@
 use super::Point;
 
 // A bounding box for an R-tree
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct BBox {
 	pub min: Point,
 	pub max: Point,
@@ -16,14 +16,14 @@ impl Default for BBox {
 impl BBox {
 	pub fn new() -> Self {
 		BBox {
-			min: Point::new(f32::INFINITY, f32::INFINITY),
-			max: Point::new(f32::NEG_INFINITY, f32::NEG_INFINITY),
+			min: Point::new(f64::INFINITY, f64::INFINITY),
+			max: Point::new(f64::NEG_INFINITY, f64::NEG_INFINITY),
 		}
 	}
-	pub fn width(&self) -> f32 {
+	pub fn width(&self) -> f64 {
 		(self.max.x - self.min.x).max(0.0)
 	}
-	pub fn height(&self) -> f32 {
+	pub fn height(&self) -> f64 {
 		(self.max.y - self.min.y).max(0.0)
 	}
 	pub fn is_empty(&self) -> bool {
@@ -56,10 +56,10 @@ mod tests {
 	#[test]
 	fn test_new_bbox() {
 		let bbox = BBox::new();
-		assert_eq!(bbox.min.x, f32::INFINITY);
-		assert_eq!(bbox.min.y, f32::INFINITY);
-		assert_eq!(bbox.max.x, f32::NEG_INFINITY);
-		assert_eq!(bbox.max.y, f32::NEG_INFINITY);
+		assert_eq!(bbox.min.x, f64::INFINITY);
+		assert_eq!(bbox.min.y, f64::INFINITY);
+		assert_eq!(bbox.max.x, f64::NEG_INFINITY);
+		assert_eq!(bbox.max.y, f64::NEG_INFINITY);
 	}
 
 	#[test]

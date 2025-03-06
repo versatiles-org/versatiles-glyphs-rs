@@ -2,18 +2,18 @@ use super::super::geometry::{Point, Segment};
 use rstar::{RTree, RTreeObject, AABB};
 
 #[derive(Clone, Debug)]
-pub struct SegmentValue {
-	segment: Segment,
+pub struct SegmentValue<'a> {
+	segment: Segment<'a>,
 }
 
-impl SegmentValue {
-	pub fn new(segment: Segment) -> Self {
+impl<'a> SegmentValue<'a> {
+	pub fn new(segment: Segment<'a>) -> Self {
 		SegmentValue { segment }
 	}
 }
 
-impl RTreeObject for SegmentValue {
-	type Envelope = AABB<[f32; 2]>;
+impl<'a> RTreeObject for SegmentValue<'a> {
+	type Envelope = AABB<[f64; 2]>;
 
 	fn envelope(&self) -> Self::Envelope {
 		let minx = self.segment.start.x.min(self.segment.end.x);
@@ -24,7 +24,12 @@ impl RTreeObject for SegmentValue {
 	}
 }
 
-pub fn min_distance_to_line_segment(rtree: &RTree<SegmentValue>, p: Point, max_radius: f32) -> f32 {
+#[inline]
+pub fn min_distance_to_line_segment(
+	rtree: &RTree<SegmentValue>,
+	p: &Point,
+	max_radius: &f64,
+) -> f64 {
 	// We'll do a bounding box query
 	let query_env = AABB::from_corners(
 		[p.x - max_radius, p.y - max_radius],
@@ -32,9 +37,9 @@ pub fn min_distance_to_line_segment(rtree: &RTree<SegmentValue>, p: Point, max_r
 	);
 	let candidates = rtree.locate_in_envelope_intersecting(&query_env);
 
-	let mut best_sq = f32::INFINITY;
+	let mut best_sq = f64::INFINITY;
 	for candidate in candidates {
-		let seg = candidate.segment;
+		let seg = &candidate.segment;
 		let dist_sq = seg.squared_distance_to_point(&p);
 		if dist_sq < best_sq {
 			best_sq = dist_sq;
@@ -50,9 +55,11 @@ mod tests {
 
 	#[test]
 	fn test_envelope_computation() {
+		let start = Point { x: 1.0, y: 4.0 };
+		let end = Point { x: 3.0, y: 2.0 };
 		let seg = Segment {
-			start: Point { x: 1.0, y: 4.0 },
-			end: Point { x: 3.0, y: 2.0 },
+			start: &start,
+			end: &end,
 		};
 		let value = SegmentValue::new(seg);
 
@@ -67,54 +74,64 @@ mod tests {
 	#[test]
 	fn test_min_distance_single_segment() {
 		// Create one segment
+		let start = Point { x: 0.0, y: 0.0 };
+		let end = Point { x: 4.0, y: 0.0 };
 		let seg = Segment {
-			start: Point { x: 0.0, y: 0.0 },
-			end: Point { x: 4.0, y: 0.0 },
+			start: &start,
+			end: &end,
 		};
 		let rtree = RTree::bulk_load(vec![SegmentValue::new(seg)]);
 
 		// Query near the segment
 		let p = Point { x: 2.0, y: 1.0 };
 		let radius = 5.0;
-		let dist = min_distance_to_line_segment(&rtree, p, radius);
+		let dist = min_distance_to_line_segment(&rtree, &p, &radius);
 		// Distance from (2,1) to segment (0,0)-(4,0) is 1.0
-		assert!((dist - 1.0).abs() < f32::EPSILON);
+		assert!((dist - 1.0).abs() < f64::EPSILON);
 	}
 
 	#[test]
 	fn test_min_distance_out_of_range() {
 		// Single horizontal segment from (0,0) to (4,0)
+		let start = Point { x: 0.0, y: 0.0 };
+		let end = Point { x: 4.0, y: 0.0 };
 		let seg = Segment {
-			start: Point { x: 0.0, y: 0.0 },
-			end: Point { x: 4.0, y: 0.0 },
+			start: &start,
+			end: &end,
 		};
 		let rtree = RTree::bulk_load(vec![SegmentValue::new(seg)]);
 
 		// The query point is far away, with a small radius
 		let p = Point { x: 100.0, y: 100.0 };
 		let radius = 5.0; // bounding box won't intersect the segment
-		let dist = min_distance_to_line_segment(&rtree, p, radius);
+		let dist = min_distance_to_line_segment(&rtree, &p, &radius);
 
 		// The function returns sqrt(INFINITY) if there was no intersection
-		// i.e. no candidate within the bounding box => best_sq remains f32::INFINITY
-		// sqrt(INFINITY) is still f32::INFINITY.
+		// i.e. no candidate within the bounding box => best_sq remains f64::INFINITY
+		// sqrt(INFINITY) is still f64::INFINITY.
 		assert!(dist.is_infinite());
 	}
 
 	#[test]
 	fn test_min_distance_multiple_segments() {
 		// Create multiple segments
+		let start = Point { x: 0.0, y: 0.0 };
+		let end = Point { x: 4.0, y: 0.0 };
 		let seg1 = Segment {
-			start: Point { x: 0.0, y: 0.0 },
-			end: Point { x: 4.0, y: 0.0 },
+			start: &start,
+			end: &end,
 		};
+		let start = Point { x: 2.0, y: 2.0 };
+		let end = Point { x: 2.0, y: 6.0 };
 		let seg2 = Segment {
-			start: Point { x: 2.0, y: 2.0 },
-			end: Point { x: 2.0, y: 6.0 },
+			start: &start,
+			end: &end,
 		};
+		let start = Point { x: -1.0, y: -1.0 };
+		let end = Point { x: -1.0, y: -5.0 };
 		let seg3 = Segment {
-			start: Point { x: -1.0, y: -1.0 },
-			end: Point { x: -1.0, y: -5.0 },
+			start: &start,
+			end: &end,
 		};
 
 		// Build RTree
@@ -128,35 +145,37 @@ mod tests {
 		// Let p = (2,1), a small radius that includes seg1 and seg2 envelopes
 		let p = Point { x: 2.0, y: 1.0 };
 		let radius = 5.0;
-		let dist = min_distance_to_line_segment(&rtree, p, radius);
+		let dist = min_distance_to_line_segment(&rtree, &p, &radius);
 		// The closest distance:
 		// - seg1 is the line from (0,0) to (4,0), distance 1.0
 		// - seg2 is the line from (2,2) to (2,6), distance 1.0
 		// They are both equally 1.0 away
-		assert!((dist - 1.0).abs() < f32::EPSILON);
+		assert!((dist - 1.0).abs() < f64::EPSILON);
 
 		// Now pick a point near seg3
 		let p2 = Point { x: -1.0, y: -3.0 };
-		let dist2 = min_distance_to_line_segment(&rtree, p2, radius);
+		let dist2 = min_distance_to_line_segment(&rtree, &p2, &radius);
 		// p2 is on seg3's line, so distance is zero
-		assert!((dist2 - 0.0).abs() < f32::EPSILON);
+		assert!((dist2 - 0.0).abs() < f64::EPSILON);
 	}
 
 	#[test]
 	fn test_min_distance_exact_on_segment() {
 		// Create a simple segment
+		let start = Point { x: 1.0, y: 1.0 };
+		let end = Point { x: 5.0, y: 1.0 };
 		let seg = Segment {
-			start: Point { x: 1.0, y: 1.0 },
-			end: Point { x: 5.0, y: 1.0 },
+			start: &start,
+			end: &end,
 		};
 		let rtree = RTree::bulk_load(vec![SegmentValue::new(seg)]);
 
 		// Query with a point that lies exactly on the segment
 		let p = Point { x: 3.0, y: 1.0 };
 		let radius = 2.0;
-		let dist = min_distance_to_line_segment(&rtree, p, radius);
+		let dist = min_distance_to_line_segment(&rtree, &p, &radius);
 
 		// Distance should be zero
-		assert!((dist - 0.0).abs() < f32::EPSILON);
+		assert!((dist - 0.0).abs() < f64::EPSILON);
 	}
 }

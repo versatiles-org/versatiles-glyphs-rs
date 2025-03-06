@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::{BBox, Point, Segment};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -41,8 +39,8 @@ impl Ring {
 
 		let first = self.points.first().unwrap();
 		let last = self.points.last().unwrap();
-		if (first.x - last.x).abs() > f32::EPSILON || (first.y - last.y).abs() > f32::EPSILON {
-			self.points.push(*first);
+		if (first.x - last.x).abs() > f64::EPSILON || (first.y - last.y).abs() > f64::EPSILON {
+			self.points.push(first.clone());
 		}
 	}
 
@@ -54,13 +52,13 @@ impl Ring {
 		bbox
 	}
 
-	pub fn translate(&mut self, offset: Point) {
+	pub fn translate(&mut self, offset: &Point) {
 		for point in &mut self.points {
 			point.translate(offset);
 		}
 	}
 
-	pub fn scale(&mut self, scale: f32) {
+	pub fn scale(&mut self, scale: f64) {
 		for point in &mut self.points {
 			point.scale(scale);
 		}
@@ -75,16 +73,16 @@ impl Ring {
 			.points
 			.iter()
 			.zip(self.points.iter().skip(1))
-			.map(|(a, b)| Segment::new(*a, *b))
+			.map(|(a, b)| Segment::new(a, b))
 			.collect()
 	}
 
 	pub fn add_quadratic_bezier(
 		&mut self,
-		start: Point,
-		ctrl: Point,
+		start: &Point,
+		ctrl: &Point,
 		end: Point,
-		tolerance_sq: f32,
+		tolerance_sq: f64,
 	) {
 		// Evaluate midpoints
 		let mid_1 = start.midpoint(&ctrl);
@@ -101,18 +99,18 @@ impl Ring {
 			self.add_point(end);
 		} else {
 			// Subdivide
-			self.add_quadratic_bezier(start, mid_1, mid, tolerance_sq);
-			self.add_quadratic_bezier(mid, mid_2, end, tolerance_sq);
+			self.add_quadratic_bezier(start, &mid_1, mid.clone(), tolerance_sq);
+			self.add_quadratic_bezier(&mid, &mid_2, end, tolerance_sq);
 		}
 	}
 
 	pub fn add_cubic_bezier(
 		&mut self,
-		start: Point,
-		c1: Point,
-		c2: Point,
+		start: &Point,
+		c1: &Point,
+		c2: &Point,
 		end: Point,
-		tolerance_sq: f32,
+		tolerance_sq: f64,
 	) {
 		// Using De Casteljau or similar approach.
 		// Compute midpoints
@@ -133,8 +131,8 @@ impl Ring {
 			self.add_point(end);
 		} else {
 			// Subdivide
-			self.add_cubic_bezier(start, p01, p012, mid, tolerance_sq);
-			self.add_cubic_bezier(mid, p123, p23, end, tolerance_sq);
+			self.add_cubic_bezier(start, &p01, &p012, mid.clone(), tolerance_sq);
+			self.add_cubic_bezier(&mid, &p123, &p23, end, tolerance_sq);
 		}
 	}
 
@@ -248,7 +246,7 @@ mod tests {
 		ring.add_point(Point::new(0.0, 0.0));
 		ring.add_point(Point::new(1.0, 2.0));
 
-		ring.translate(Point::new(3.0, 4.0));
+		ring.translate(&Point::new(3.0, 4.0));
 		assert_eq!(ring.points[0].as_tuple(), (3.0, 4.0));
 		assert_eq!(ring.points[1].as_tuple(), (4.0, 6.0));
 	}
@@ -298,9 +296,9 @@ mod tests {
 		let start = Point::new(0.0, 0.0);
 		let ctrl = Point::new(1.0, 0.0);
 		let end = Point::new(2.0, 0.0);
-		ring.add_point(start);
+		ring.add_point(start.clone());
 		// A very large tolerance should force no recursion
-		ring.add_quadratic_bezier(start, ctrl, end, 10000.0);
+		ring.add_quadratic_bezier(&start, &ctrl, end, 10000.0);
 
 		// Because it's basically a flat line, it should add just end point
 		// ring.points: [start, end]
@@ -317,18 +315,18 @@ mod tests {
 		let start = Point::new(0.0, 0.0);
 		let ctrl = Point::new(1.0, 2.0);
 		let end = Point::new(2.0, 0.0);
-		ring.add_point(start);
+		ring.add_point(start.clone());
 
 		// A small tolerance => more subdivisions
-		ring.add_quadratic_bezier(start, ctrl, end, 0.0001);
+		ring.add_quadratic_bezier(&start, &ctrl, end, 0.0001);
 
 		// We won't test every single point,
 		// but we can confirm we ended up with multiple points
 		assert!(ring.points.len() > 2);
 		// The last point should be "end"
 		let last_point = ring.points.last().unwrap();
-		assert!((last_point.x - 2.0).abs() < f32::EPSILON);
-		assert!((last_point.y - 0.0).abs() < f32::EPSILON);
+		assert!((last_point.x - 2.0).abs() < f64::EPSILON);
+		assert!((last_point.y - 0.0).abs() < f64::EPSILON);
 	}
 
 	#[test]
@@ -338,9 +336,9 @@ mod tests {
 		let c1 = Point::new(1.0, 0.0);
 		let c2 = Point::new(2.0, 0.0);
 		let end = Point::new(3.0, 0.0);
-		ring.add_point(start);
+		ring.add_point(start.clone());
 
-		ring.add_cubic_bezier(start, c1, c2, end, 10000.0);
+		ring.add_cubic_bezier(&start, &c1, &c2, end, 10000.0);
 		// Because it's effectively a flat line, the ring should end with end
 		assert_eq!(
 			ring.points.len(),
@@ -359,17 +357,17 @@ mod tests {
 		let c1 = Point::new(0.0, 2.0);
 		let c2 = Point::new(2.0, 2.0);
 		let end = Point::new(2.0, 0.0);
-		ring.add_point(start);
+		ring.add_point(start.clone());
 
 		// Use a very small tolerance to force subdivisions
-		ring.add_cubic_bezier(start, c1, c2, end, 0.0001);
+		ring.add_cubic_bezier(&start, &c1, &c2, end, 0.0001);
 
 		// We expect more than 2 points in ring
 		assert!(ring.points.len() > 2);
 		// End point should be the last
 		let last = ring.points.last().unwrap();
-		assert!((last.x - 2.0).abs() < f32::EPSILON);
-		assert!((last.y - 0.0).abs() < f32::EPSILON);
+		assert!((last.x - 2.0).abs() < f64::EPSILON);
+		assert!((last.y - 0.0).abs() < f64::EPSILON);
 	}
 
 	#[test]

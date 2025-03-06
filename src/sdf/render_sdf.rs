@@ -17,7 +17,7 @@ pub struct SdfGlyph {
 }
 
 const BUFFER: i32 = 3;
-const CUTOFF: f32 = 0.25 * 256.0;
+const CUTOFF: f64 = 0.25 * 256.0;
 
 impl SdfGlyph {
 	// https://github.com/mapbox/sdf-glyph-foundry/blob/6ed4f2099009fc8a1a324626345ceb29dcd5277c/include/mapbox/glyph_foundry_impl.hpp
@@ -37,12 +37,9 @@ impl SdfGlyph {
 		let height = (y1 - y0) as usize;
 
 		// Offset so that glyph outlines are in the bounding box.
-		let offset = Point {
-			x: -x0 as f32,
-			y: -y0 as f32,
-		};
+		let offset = Point::from((-x0, -y0));
 
-		rings.translate(offset);
+		rings.translate(&offset);
 
 		// Build a R-tree of line segments
 		let segments = rings
@@ -66,10 +63,10 @@ impl SdfGlyph {
 				let i = (height - 1 - y) * width + x;
 
 				// The sample point is the center of the pixel
-				let sample_pt = Point::new((x as f32) + 0.5, (y as f32) + 0.5);
+				let sample_pt = Point::new((x as f64) + 0.5, (y as f64) + 0.5);
 
 				// Distance from the outline
-				let mut d = min_distance_to_line_segment(&rtree, sample_pt, max_radius);
+				let mut d = min_distance_to_line_segment(&rtree, &sample_pt, &max_radius);
 
 				// If the point is inside, invert
 				if rings.contains_point(&sample_pt) {

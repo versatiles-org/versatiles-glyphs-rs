@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::{BBox, Point, Ring, Segment};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -38,13 +36,13 @@ impl Rings {
 		bbox
 	}
 
-	pub fn translate(&mut self, offset: Point) {
+	pub fn translate(&mut self, offset: &Point) {
 		for ring in &mut self.rings {
 			ring.translate(offset);
 		}
 	}
 
-	pub fn scale(&mut self, scale: f32) {
+	pub fn scale(&mut self, scale: f64) {
 		for ring in &mut self.rings {
 			ring.scale(scale);
 		}
@@ -130,7 +128,7 @@ mod tests {
 		ring.close();
 
 		rings.add_ring(ring);
-		rings.translate(Point::new(2.0, 3.0));
+		rings.translate(&Point::new(2.0, 3.0));
 
 		let translated_ring = &rings.rings[0];
 		assert_eq!(translated_ring.points[0].as_tuple(), (2.0, 3.0));

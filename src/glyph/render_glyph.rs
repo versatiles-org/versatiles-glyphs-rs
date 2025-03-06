@@ -12,10 +12,10 @@ pub fn render_glyph(face: &Face, index: u32) -> Option<PbfGlyph> {
 
 	let mut rings = build_glyph_outline(cp, face)?;
 
-	let scale = 24.0 / face.units_per_em() as f32;
+	let scale = 24.0 / face.units_per_em() as f64;
 	rings.scale(scale);
 
-	let advance = (face.glyph_hor_advance(glyph_id).unwrap() as f32 * scale).round() as u32;
+	let advance = (face.glyph_hor_advance(glyph_id).unwrap() as f64 * scale).round() as u32;
 
 	// Render the SDF
 	let sdf_option = SdfGlyph::from_rings(rings);

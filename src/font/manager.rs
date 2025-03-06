@@ -47,30 +47,38 @@ impl<'a> FontManager<'a> {
 	}
 
 	pub fn render_glyphs(&'a self, writer: &mut Box<dyn Writer>) -> Result<()> {
-		let mut todos: Vec<(String, GlyphBlock<'a>)> = vec![];
+		struct Todo<'a> {
+			name: String,
+			block: GlyphBlock<'a>,
+		}
+
+		let mut todos: Vec<Todo> = vec![];
 
 		for (name, renderer) in &self.fonts {
 			writer.write_directory(&format!("{name}/"))?;
 
 			let blocks = renderer.get_blocks();
 			for block in blocks {
-				todos.push((name.clone(), block));
+				todos.push(Todo {
+					name: name.clone(),
+					block,
+				});
 			}
 		}
 
-		let sum = todos.iter().map(|todo| todo.1.len() as u64).sum();
+		let sum = todos.iter().map(|todo| todo.block.len() as u64).sum();
 		let progress = get_progress_bar(sum);
 
 		let tar_mutex = Mutex::new(writer);
 
 		todos.par_iter().for_each(|todo| {
-			let buf = todo.1.render(todo.0.clone()).unwrap();
+			let buf = todo.block.render(todo.name.clone()).unwrap();
 			tar_mutex
 				.lock()
 				.unwrap()
-				.write_file(&format!("{}/{}", todo.0, todo.1.filename()), &buf)
+				.write_file(&format!("{}/{}", todo.name, todo.block.filename()), &buf)
 				.unwrap();
-			progress.inc(todo.1.len() as u64);
+			progress.inc(todo.block.len() as u64);
 		});
 
 		progress.finish();

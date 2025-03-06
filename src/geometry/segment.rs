@@ -1,14 +1,14 @@
 use super::Point;
 
 // A line segment is just two Points
-#[derive(Clone, Copy, Debug)]
-pub struct Segment {
-	pub start: Point,
-	pub end: Point,
+#[derive(Clone, Debug)]
+pub struct Segment<'a> {
+	pub start: &'a Point,
+	pub end: &'a Point,
 }
 
-impl Segment {
-	pub fn new(start: Point, end: Point) -> Self {
+impl<'a> Segment<'a> {
+	pub fn new(start: &'a Point, end: &'a Point) -> Self {
 		Segment { start, end }
 	}
 
@@ -17,18 +17,19 @@ impl Segment {
 		let w = self.end;
 		let l2 = v.squared_distance_to(&w);
 		if l2 == 0.0 {
-			return v;
+			return v.clone();
 		}
 		let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
 		if t < 0.0 {
-			return v;
+			return v.clone();
 		} else if t > 1.0 {
-			return w;
+			return w.clone();
 		}
 		Point::new(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y))
 	}
 
-	pub fn squared_distance_to_point(&self, p: &Point) -> f32 {
+	#[inline(always)]
+	pub fn squared_distance_to_point(&self, p: &Point) -> f64 {
 		let proj = self.project_point_on(p);
 		p.squared_distance_to(&proj)
 	}
@@ -42,7 +43,7 @@ mod tests {
 	fn test_segment_new() {
 		let start = Point::new(1.0, 2.0);
 		let end = Point::new(3.0, 4.0);
-		let segment = Segment::new(start, end);
+		let segment = Segment::new(&start, &end);
 		assert_eq!(segment.start.x, 1.0);
 		assert_eq!(segment.start.y, 2.0);
 		assert_eq!(segment.end.x, 3.0);
@@ -52,7 +53,9 @@ mod tests {
 	#[test]
 	fn test_project_point_on_zero_length_segment() {
 		// If start == end, the segment is a degenerate line (a single point).
-		let degenerate_seg = Segment::new(Point::new(2.0, 3.0), Point::new(2.0, 3.0));
+		let start = Point::new(2.0, 3.0);
+		let end = Point::new(2.0, 3.0);
+		let degenerate_seg = Segment::new(&start, &end);
 		// The projection of any point onto this "segment" should return that single point.
 		let external_p = Point::new(10.0, 10.0);
 		let proj = degenerate_seg.project_point_on(&external_p);
@@ -63,7 +66,9 @@ mod tests {
 	#[test]
 	fn test_project_point_on_segment_before_start() {
 		// Segment from (1, 1) to (5, 1). A horizontal segment.
-		let seg = Segment::new(Point::new(1.0, 1.0), Point::new(5.0, 1.0));
+		let start = Point::new(1.0, 1.0);
+		let end = Point::new(5.0, 1.0);
+		let seg = Segment::new(&start, &end);
 		// A point far "to the left" (i.e., x < 1)
 		let p = Point::new(-2.0, 1.0);
 		let proj = seg.project_point_on(&p);
@@ -75,7 +80,9 @@ mod tests {
 	#[test]
 	fn test_project_point_on_segment_after_end() {
 		// Segment from (1, 1) to (5, 1).
-		let seg = Segment::new(Point::new(1.0, 1.0), Point::new(5.0, 1.0));
+		let start = Point::new(1.0, 1.0);
+		let end = Point::new(5.0, 1.0);
+		let seg = Segment::new(&start, &end);
 		// A point far "to the right" (i.e., x > 5)
 		let p = Point::new(10.0, 1.0);
 		let proj = seg.project_point_on(&p);
@@ -87,7 +94,9 @@ mod tests {
 	#[test]
 	fn test_project_point_on_segment_in_between() {
 		// Segment from (0, 0) to (10, 0). A horizontal segment along x.
-		let seg = Segment::new(Point::new(0.0, 0.0), Point::new(10.0, 0.0));
+		let start = Point::new(0.0, 0.0);
+		let end = Point::new(10.0, 0.0);
+		let seg = Segment::new(&start, &end);
 		// A point above the midpoint, e.g., (5, 5).
 		let p = Point::new(5.0, 5.0);
 		let proj = seg.project_point_on(&p);
@@ -99,7 +108,9 @@ mod tests {
 	#[test]
 	fn test_project_point_on_segment_diagonal() {
 		// Diagonal segment from (0, 0) to (4, 4)
-		let seg = Segment::new(Point::new(0.0, 0.0), Point::new(4.0, 4.0));
+		let start = Point::new(0.0, 0.0);
+		let end = Point::new(4.0, 4.0);
+		let seg = Segment::new(&start, &end);
 		// Point (2, 3) is not directly along line y=x, so let's see projection.
 		// The param t is given by dot((p - v), (w - v)) / |w - v|^2
 		// (w - v) = (4,4), (p - v) = (2,3).
@@ -110,12 +121,12 @@ mod tests {
 		let p = Point::new(2.0, 3.0);
 		let proj = seg.project_point_on(&p);
 		assert!(
-			(proj.x - 2.5).abs() < f32::EPSILON,
+			(proj.x - 2.5).abs() < f64::EPSILON,
 			"Expected 2.5 but got {}",
 			proj.x
 		);
 		assert!(
-			(proj.y - 2.5).abs() < f32::EPSILON,
+			(proj.y - 2.5).abs() < f64::EPSILON,
 			"Expected 2.5 but got {}",
 			proj.y
 		);
@@ -124,13 +135,15 @@ mod tests {
 	#[test]
 	fn test_squared_distance_to_point() {
 		// Segment from (0, 0) to (5, 0)
-		let seg = Segment::new(Point::new(0.0, 0.0), Point::new(5.0, 0.0));
+		let start = Point::new(0.0, 0.0);
+		let end = Point::new(5.0, 0.0);
+		let seg = Segment::new(&start, &end);
 		// A point (0, 3) is to the left (on the y-axis), and nearest segment point is (0,0).
 		// squared distance should be 9
 		let p = Point::new(0.0, 3.0);
 		let dist_sq = seg.squared_distance_to_point(&p);
 		assert!(
-			(dist_sq - 9.0).abs() < f32::EPSILON,
+			(dist_sq - 9.0).abs() < f64::EPSILON,
 			"Expected 9.0 but got {}",
 			dist_sq
 		);
@@ -140,7 +153,7 @@ mod tests {
 		let p_far = Point::new(10.0, 0.0);
 		let dist_sq_far = seg.squared_distance_to_point(&p_far);
 		assert!(
-			(dist_sq_far - 25.0).abs() < f32::EPSILON,
+			(dist_sq_far - 25.0).abs() < f64::EPSILON,
 			"Expected 25.0 but got {}",
 			dist_sq_far
 		);
@@ -150,7 +163,7 @@ mod tests {
 		let p_above = Point::new(2.0, 4.0);
 		let dist_sq_above = seg.squared_distance_to_point(&p_above);
 		assert!(
-			(dist_sq_above - 16.0).abs() < f32::EPSILON,
+			(dist_sq_above - 16.0).abs() < f64::EPSILON,
 			"Expected 16.0 but got {}",
 			dist_sq_above
 		);
