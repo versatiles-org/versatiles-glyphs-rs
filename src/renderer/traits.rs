@@ -1,8 +1,11 @@
 use super::{SdfGlyph, BUFFER};
 use crate::geometry::{Point, Rings};
 
-pub trait RendererTrait {
-	fn render(rings: Rings) -> Option<SdfGlyph>;
+pub trait RendererTrait
+where
+	Self: Copy + Sync + Send,
+{
+	fn render(&self, rings: Rings) -> Option<SdfGlyph>;
 
 	fn prepare(mut rings: Rings) -> Option<(Rings, SdfGlyph)> {
 		// Calculate the real glyph bbox.

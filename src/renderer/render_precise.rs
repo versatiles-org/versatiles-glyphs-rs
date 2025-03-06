@@ -5,11 +5,12 @@ use super::{
 use crate::geometry::{Point, Rings};
 use rstar::RTree;
 
+#[derive(Clone, Copy)]
 pub struct RendererPrecise {}
 
 impl RendererTrait for RendererPrecise {
 	// https://github.com/mapbox/sdf-glyph-foundry/blob/6ed4f2099009fc8a1a324626345ceb29dcd5277c/include/mapbox/glyph_foundry_impl.hpp
-	fn render(rings: Rings) -> Option<SdfGlyph> {
+	fn render(&self, rings: Rings) -> Option<SdfGlyph> {
 		let (rings, mut glyph) = Self::prepare(rings)?;
 
 		let width = glyph.width as usize;
@@ -79,18 +80,20 @@ mod tests {
 	#[test]
 	fn test_render_sdf_empty_bbox() {
 		let rings = make_empty_rings();
-		let glyph = RendererPrecise::render(rings);
+		let glyph = RendererPrecise {}.render(rings);
 		assert!(glyph.is_none(), "Expected None for empty geometry");
 	}
 
 	#[test]
 	fn test_render_sdf_simple_square() {
 		let rings = make_square_rings();
-		let glyph = RendererPrecise::render(rings).unwrap();
+		let glyph = RendererPrecise {}.render(rings).unwrap();
 
 		assert_eq!(glyph.width, 10);
 		assert_eq!(glyph.height, 10);
 		assert_eq!(glyph.x0, -2);
+		assert_eq!(glyph.x1, 8);
+		assert_eq!(glyph.y0, -1);
 		assert_eq!(glyph.y1, 9);
 		assert_eq!(
 			glyph.bitmap.as_ref().unwrap().len(),

@@ -6,6 +6,7 @@ use std::{
 };
 use versatiles_glyphs::{
 	font::FontManager,
+	renderer::RendererPrecise,
 	utils::prepare_output_directory,
 	writer::{FileWriter, TarWriter, Writer},
 };
@@ -64,7 +65,7 @@ pub fn run(arguments: &Subcommand) -> Result<()> {
 		Box::new(FileWriter::new(path::absolute(output_directory)?))
 	};
 
-	font_manager.render_glyphs(&mut writer)?;
+	font_manager.render_glyphs(&mut writer, RendererPrecise {})?;
 	if !arguments.no_index {
 		font_manager.write_index_json(&mut writer)?;
 	}

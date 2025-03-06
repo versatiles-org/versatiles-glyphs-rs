@@ -1,6 +1,7 @@
 use super::index_files::{build_font_families_json, build_index_json};
 use crate::{
 	font::{FontFileEntry, FontWrapper, GlyphBlock},
+	renderer::RendererTrait,
 	utils::get_progress_bar,
 	writer::Writer,
 };
@@ -44,7 +45,11 @@ impl<'a> FontManager<'a> {
 		Ok(())
 	}
 
-	pub fn render_glyphs(&'a self, writer: &mut Box<dyn Writer>) -> Result<()> {
+	pub fn render_glyphs(
+		&'a self,
+		writer: &mut Box<dyn Writer>,
+		renderer: impl RendererTrait,
+	) -> Result<()> {
 		struct Todo<'a> {
 			name: String,
 			block: GlyphBlock<'a>,
@@ -71,7 +76,7 @@ impl<'a> FontManager<'a> {
 
 		todos.par_iter().for_each(|todo| {
 			let filename = format!("{}/{}", todo.name, todo.block.filename());
-			let buf = todo.block.render(todo.name.clone()).unwrap();
+			let buf = todo.block.render(todo.name.clone(), renderer).unwrap();
 
 			writer_mutex
 				.lock()
@@ -113,7 +118,7 @@ fn name_to_id(name: &str) -> String {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::writer::dummy::DummyWriter;
+	use crate::{renderer::RendererDummy, writer::dummy::DummyWriter};
 
 	fn get_test_paths() -> Vec<PathBuf> {
 		let d = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");
@@ -132,7 +137,7 @@ mod tests {
 
 		assert_eq!(manager.fonts.len(), 2);
 		let mut writer: Box<dyn Writer> = Box::new(DummyWriter::default());
-		manager.render_glyphs(&mut writer)?;
+		manager.render_glyphs(&mut writer, RendererDummy {})?;
 
 		let mut files = writer.get_inner().unwrap().to_vec();
 		files.sort_unstable();

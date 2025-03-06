@@ -1,5 +1,5 @@
 use super::file_entry::FontFileEntry;
-use crate::{glyph::render_glyph, protobuf::PbfGlyphs};
+use crate::{glyph::render_glyph, protobuf::PbfGlyphs, renderer::RendererTrait};
 use anyhow::Result;
 use std::collections::HashMap;
 
@@ -40,12 +40,12 @@ impl<'a> GlyphBlock<'a> {
 		)
 	}
 
-	pub fn render(&self, font_name: String) -> Result<Vec<u8>> {
+	pub fn render(&self, font_name: String, renderer: impl RendererTrait) -> Result<Vec<u8>> {
 		let mut glyphs = PbfGlyphs::new(font_name, self.range());
 
 		for (index, font) in self.glyphs.iter() {
 			let codepoint = self.start_index + *index as u32;
-			if let Some(glyph) = render_glyph(&font.face, codepoint) {
+			if let Some(glyph) = render_glyph(&font.face, codepoint, renderer) {
 				glyphs.push(glyph);
 			}
 		}
@@ -61,6 +61,8 @@ impl<'a> GlyphBlock<'a> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::renderer::RendererDummy;
+
 	const VALID_FONT: &[u8] = include_bytes!("../../testdata/Fira Sans - Regular.ttf");
 
 	// Helper to create a FontFileEntry from the test font bytes.
@@ -100,7 +102,7 @@ mod tests {
 		block.set_glyph_font(65, &font_entry);
 
 		// Render the block with a given font name.
-		let render_result = block.render("TestFont".to_string());
+		let render_result = block.render("TestFont".to_string(), RendererDummy {});
 		assert!(render_result.is_ok());
 		let out_data = render_result.unwrap();
 		assert!(!out_data.is_empty());
