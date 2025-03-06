@@ -5,6 +5,7 @@ use ttf_parser::OutlineBuilder;
 pub struct RingBuilder {
 	rings: Rings,
 	ring: Ring,
+	precision: f64,
 }
 
 impl RingBuilder {
@@ -12,6 +13,7 @@ impl RingBuilder {
 		RingBuilder {
 			rings: Rings::new(),
 			ring: Ring::new(),
+			precision: 0.01,
 		}
 	}
 
@@ -53,9 +55,12 @@ impl OutlineBuilder for RingBuilder {
 			return;
 		}
 		let start = self.ring.last().unwrap().clone();
-		self
-			.ring
-			.add_quadratic_bezier(&start, &Point::from((x1, y1)), Point::from((x, y)), 0.3);
+		self.ring.add_quadratic_bezier(
+			&start,
+			&Point::from((x1, y1)),
+			Point::from((x, y)),
+			self.precision,
+		);
 	}
 
 	fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
@@ -68,7 +73,7 @@ impl OutlineBuilder for RingBuilder {
 			&Point::from((x1, y1)),
 			&Point::from((x2, y2)),
 			Point::from((x, y)),
-			0.3,
+			self.precision,
 		);
 	}
 
@@ -164,7 +169,7 @@ mod tests {
 		// ending in (20,0). The subdiv logic in `add_quadratic_bezier` depends on tolerance.
 		// Hard to precisely match the count, but we can check the last point:
 
-		assert_eq!(builder.ring.points.len(), 9);
+		assert_eq!(builder.ring.points.len(), 17);
 		let last_point = builder.ring.points.last().unwrap();
 		assert_eq!(last_point.as_tuple(), (20.0, 0.0));
 	}
@@ -184,7 +189,7 @@ mod tests {
 		builder.curve_to(10.0, 10.0, 20.0, 10.0, 30.0, 0.0);
 		// The ring should contain subdivided cubic points from (0,0) to (30,0).
 
-		assert_eq!(builder.ring.points.len(), 9);
+		assert_eq!(builder.ring.points.len(), 17);
 		let last_point = builder.ring.points.last().unwrap();
 		assert_eq!(last_point.as_tuple(), (30.0, 0.0));
 	}
