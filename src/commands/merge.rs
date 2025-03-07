@@ -20,7 +20,7 @@ use versatiles_glyphs::{
 pub struct Subcommand {
 	/// one or more font files to merge and convert
 	#[arg(num_args=1..)]
-	input_files: Vec<String>,
+	input_files: Vec<PathBuf>,
 
 	/// the output directory where the glyphs folder will be saved.
 	#[arg(long, short = 'o', conflicts_with = "tar")]

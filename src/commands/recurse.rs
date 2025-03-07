@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::{
 	fs,
-	path::{self, Path},
+	path::{self, Path, PathBuf},
 };
 use versatiles_glyphs::{
 	font::FontManager,
@@ -13,16 +13,16 @@ use versatiles_glyphs::{
 
 #[derive(clap::Args, Debug)]
 #[command(arg_required_else_help = true)]
-/// Scans a directory for font files and convert them into multiple directories of glyphs.
+/// Scans a directory recursively for font files and convert them into multiple directories of glyphs.
 ///
 /// If a directory contains a "fonts.json" file, it will be used to configure the conversion.
 /// A "fonts.json" has the structure: { name: string, sources: string[] }[] where:
-///   - name: the name of the font.
+///   - name: the name of the font, like "Noto Sans Regular".
 ///   - sources: the list of font files to merge, relative to the directory.
 pub struct Subcommand {
-	/// directory to scan for font files.
-	#[arg()]
-	input_directory: String,
+	/// directories to scan for font files.
+	#[arg(num_args=1..)]
+	input_directories: Vec<PathBuf>,
 
 	/// the output directory where the glyph folders will be saved.
 	#[arg(long, short = 'o', conflicts_with = "tar")]
@@ -50,9 +50,11 @@ struct FontConfig {
 pub fn run(arguments: &Subcommand) -> Result<()> {
 	let mut font_manager = FontManager::default();
 
-	let input_directory = path::absolute(&arguments.input_directory)?.canonicalize()?;
-	eprintln!("Scanning directory: {:?}", input_directory);
-	scan(&input_directory, &mut font_manager)?;
+	for input_directory in &arguments.input_directories {
+		let input_directory = path::absolute(input_directory)?.canonicalize()?;
+		eprintln!("Scanning directory: {:?}", input_directory);
+		scan(&input_directory, &mut font_manager)?;
+	}
 
 	let mut writer: Box<dyn Writer> = if arguments.tar {
 		eprintln!("Rendering glyphs as tar to stdout");
@@ -78,34 +80,33 @@ pub fn run(arguments: &Subcommand) -> Result<()> {
 	Ok(())
 }
 
-fn scan(input_directory: &Path, font_manager: &mut FontManager) -> Result<()> {
-	let font_file = input_directory.join("fonts.json");
-	if font_file.exists() {
-		let data =
-			fs::read(&font_file).with_context(|| format!("reading font file \"{font_file:?}\""))?;
-
-		let font_configs = serde_json::from_slice::<Vec<FontConfig>>(&data)?;
-
-		for font_config in font_configs {
-			font_manager.add_font_with_name(
-				&font_config.name,
-				&font_config
-					.sources
-					.iter()
-					.map(|source| input_directory.join(source))
-					.collect::<Vec<_>>(),
-			)?;
+fn scan(input: &Path, font_manager: &mut FontManager) -> Result<()> {
+	if input.is_file() {
+		let extension = input.extension().unwrap_or_default().to_str().unwrap();
+		if extension == "ttf" || extension == "otf" {
+			font_manager.add_path(input)?;
 		}
-	} else {
-		for entry in fs::read_dir(input_directory)? {
-			let path = entry?.path();
-			if path.is_file() {
-				let extension = path.extension().unwrap_or_default().to_str().unwrap();
-				if extension == "ttf" || extension == "otf" {
-					font_manager.add_paths(&[path])?;
-				}
-			} else if path.is_dir() {
-				scan(&path, font_manager)?;
+	} else if input.is_dir() {
+		let font_file = input.join("fonts.json");
+		if font_file.exists() {
+			let data =
+				fs::read(&font_file).with_context(|| format!("reading font file \"{font_file:?}\""))?;
+
+			let font_configs = serde_json::from_slice::<Vec<FontConfig>>(&data)?;
+
+			for font_config in font_configs {
+				font_manager.add_font_with_name(
+					&font_config.name,
+					&font_config
+						.sources
+						.iter()
+						.map(|source| input.join(source))
+						.collect::<Vec<_>>(),
+				)?;
+			}
+		} else {
+			for entry in fs::read_dir(input)? {
+				scan(&entry?.path(), font_manager)?;
 			}
 		}
 	}

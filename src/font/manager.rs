@@ -10,7 +10,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex_lite::Regex;
 use std::{
 	collections::{hash_map::Entry, HashMap},
-	path::PathBuf,
+	path::{Path, PathBuf},
 	sync::Mutex,
 };
 
@@ -20,16 +20,21 @@ pub struct FontManager<'a> {
 }
 
 impl<'a> FontManager<'a> {
+	pub fn add_path(&mut self, path: &Path) -> Result<()> {
+		let file = FontFileEntry::new(std::fs::read(path)?)?;
+		let id = name_to_id(&file.metadata.generate_name());
+
+		if let Entry::Vacant(entry) = self.fonts.entry(id.clone()) {
+			entry.insert(FontWrapper::from(file));
+		} else {
+			self.fonts.get_mut(&id).unwrap().add_file(file);
+		}
+		Ok(())
+	}
+
 	pub fn add_paths(&mut self, paths: &[PathBuf]) -> Result<()> {
 		for path in paths {
-			let file = FontFileEntry::new(std::fs::read(path)?)?;
-			let id = name_to_id(&file.metadata.generate_name());
-
-			if let Entry::Vacant(entry) = self.fonts.entry(id.clone()) {
-				entry.insert(FontWrapper::from(file));
-			} else {
-				self.fonts.get_mut(&id).unwrap().add_file(file);
-			}
+			self.add_path(path)?;
 		}
 		Ok(())
 	}
