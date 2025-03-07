@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-set -e
 cd "$(dirname "$0")/.."
 
 echo "cargo fmt"
 result=$(cargo fmt -- --check 2>&1)
-if [ $? -ne 0 ]; then
+if [ "$result" != "" ]; then
 	echo -e "$result\nERROR DURING: cargo fmt"
 	exit 1
 fi

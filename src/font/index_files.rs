@@ -51,9 +51,7 @@ impl FontFamily {
 /// # Errors
 ///
 /// Returns an error if the encoding process fails.
-pub fn build_index_json<'a>(
-	iter: impl Iterator<Item = &'a String>,
-) -> Result<Vec<u8>> {
+pub fn build_index_json<'a>(iter: impl Iterator<Item = &'a String>) -> Result<Vec<u8>> {
 	let mut list = iter.collect::<Vec<_>>();
 	list.sort();
 	Ok(serde_json::to_vec_pretty(&list)?)

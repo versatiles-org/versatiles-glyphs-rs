@@ -1,7 +1,16 @@
+//! Represents a sequence of 2D points forming a ring (closed polygonal chain).
+//!
+//! This structure supports adding points, applying geometric transformations,
+//! and approximating curves via recursive subdivision of Bezier segments.
+//! It also includes a winding number calculation for point-in-polygon tests.
+
 use super::{BBox, Point, Segment};
 
+/// A ring is essentially a list of [`Point`] instances that optionally end where they began,
+/// forming a closed polygonal chain.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ring {
+	/// The ordered collection of [`Point`]s.
 	pub points: Vec<Point>,
 }
 
@@ -12,26 +21,35 @@ impl Default for Ring {
 }
 
 impl Ring {
+	/// Creates an empty [`Ring`] with no points.
 	pub fn new() -> Self {
 		Ring { points: Vec::new() }
 	}
 
+	/// Returns `true` if there are no points in this ring.
 	pub fn is_empty(&self) -> bool {
 		self.points.is_empty()
 	}
 
+	/// Returns the number of points in this ring.
 	pub fn len(&self) -> usize {
 		self.points.len()
 	}
 
+	/// Removes all points in this ring, leaving it empty.
 	pub fn clear(&mut self) {
 		self.points.clear();
 	}
 
+	/// Adds a [`Point`] to the end of this ring.
 	pub fn add_point(&mut self, point: Point) {
 		self.points.push(point);
 	}
 
+	/// Ensures the ring is closed by appending the first point to the end, if needed.
+	///
+	/// If the last point is already the same as the first (within floating-point epsilon),
+	/// no additional point is appended.
 	pub fn close(&mut self) {
 		if self.points.is_empty() {
 			return;
@@ -44,6 +62,7 @@ impl Ring {
 		}
 	}
 
+	/// Computes the [bounding box](BBox) that encloses all points in this ring.
 	pub fn get_bbox(&self) -> BBox {
 		let mut bbox = BBox::new();
 		for point in &self.points {
@@ -52,22 +71,29 @@ impl Ring {
 		bbox
 	}
 
+	/// Translates (moves) every point in this ring by a given offset.
 	pub fn translate(&mut self, offset: &Point) {
 		for point in &mut self.points {
 			point.translate(offset);
 		}
 	}
 
+	/// Uniformly scales every point in this ring by a given factor.
 	pub fn scale(&mut self, scale: f64) {
 		for point in &mut self.points {
 			point.scale(scale);
 		}
 	}
 
+	/// Returns the last point in this ring, if it exists.
 	pub fn last(&self) -> Option<&Point> {
 		self.points.last()
 	}
 
+	/// Returns a list of [`Segment`] instances connecting consecutive points in this ring.
+	///
+	/// This does not automatically close the ring. Therefore, if you want a fully closed
+	/// set of segments (e.g., a polygon), call [`close()`](Self::close) first.
 	pub fn get_segments(&self) -> Vec<Segment> {
 		self
 			.points
@@ -77,6 +103,15 @@ impl Ring {
 			.collect()
 	}
 
+	/// Approximates a quadratic Bezier curve by recursively subdividing until it's "flat enough,"
+	/// then adds the endpoint to this ring.
+	///
+	/// # Arguments
+	///
+	/// * `start` - Starting point of the curve.
+	/// * `ctrl` - The single control point.
+	/// * `end` - The final endpoint of the curve (will be added to this ring once recursion ends).
+	/// * `tolerance_sq` - The squared tolerance for "flatness". Smaller values increase subdivisions.
 	pub fn add_quadratic_bezier(
 		&mut self,
 		start: &Point,
@@ -89,21 +124,31 @@ impl Ring {
 		let mid_2 = ctrl.midpoint(&end);
 		let mid = mid_1.midpoint(&mid_2);
 
-		// We check if the curve is "flat enough"
+		// Check "flatness"
 		let dx = start.x + end.x - ctrl.x * 2.0;
 		let dy = start.y + end.y - ctrl.y * 2.0;
 		let dist_sq = dx * dx + dy * dy;
 
 		if dist_sq <= tolerance_sq {
-			// It's flat enough, just line to the end
+			// It's flat enough; just line to the end
 			self.add_point(end);
 		} else {
-			// Subdivide
+			// Otherwise, subdivide
 			self.add_quadratic_bezier(start, &mid_1, mid.clone(), tolerance_sq);
 			self.add_quadratic_bezier(&mid, &mid_2, end, tolerance_sq);
 		}
 	}
 
+	/// Approximates a cubic Bezier curve by recursively subdividing until "flat enough,"
+	/// then adds the endpoint to this ring.
+	///
+	/// # Arguments
+	///
+	/// * `start` - Starting point.
+	/// * `c1` - First control point.
+	/// * `c2` - Second control point.
+	/// * `end` - Final endpoint (added once the curve is sufficiently flat).
+	/// * `tolerance_sq` - The squared tolerance for "flatness".
 	pub fn add_cubic_bezier(
 		&mut self,
 		start: &Point,
@@ -112,8 +157,7 @@ impl Ring {
 		end: Point,
 		tolerance_sq: f64,
 	) {
-		// Using De Casteljau or similar approach.
-		// Compute midpoints
+		// Compute midpoints (De Casteljau subdivision)
 		let p01 = start.midpoint(c1);
 		let p12 = c1.midpoint(c2);
 		let p23 = c2.midpoint(&end);
@@ -121,7 +165,7 @@ impl Ring {
 		let p123 = p12.midpoint(&p23);
 		let mid = p012.midpoint(&p123);
 
-		// Check "flatness" by approximating the distance from midpoints
+		// Approximate flatness
 		let dx = (c2.x + c1.x) - (start.x + end.x);
 		let dy = (c2.y + c1.y) - (start.y + end.y);
 		let dist_sq = dx * dx + dy * dy;
@@ -136,6 +180,12 @@ impl Ring {
 		}
 	}
 
+	/// Calculates the winding number of a point relative to this ring,
+	/// which can be used for point-in-polygon tests.
+	///
+	/// A positive non-zero winding number typically indicates the point
+	/// lies within the polygon. This function assumes the ring is intended
+	/// to be closed, so consider calling [`close()`](Self::close) first.
 	pub fn winding_number(&self, pt: &Point) -> i32 {
 		let ring = &self.points;
 		if ring.len() < 2 {
@@ -145,11 +195,15 @@ impl Ring {
 		let mut winding_number = 0;
 		for p2 in ring.iter().skip(1) {
 			if p1.y <= pt.y {
+				// Upward crossing
 				if p2.y > pt.y && cross_product(p1, p2, pt) > 0.0 {
 					winding_number += 1;
 				}
-			} else if p2.y <= pt.y && cross_product(p1, p2, pt) < 0.0 {
-				winding_number -= 1;
+			} else {
+				// Downward crossing
+				if p2.y <= pt.y && cross_product(p1, p2, pt) < 0.0 {
+					winding_number -= 1;
+				}
 			}
 			p1 = p2;
 		}
@@ -157,6 +211,10 @@ impl Ring {
 	}
 }
 
+/// Calculates the cross product of the vectors `(p0 -> p1)` and `(p0 -> p2)`.
+///
+/// Used by [`winding_number`](Ring::winding_number) to determine the orientation
+/// of point `p2` relative to the line segment from `p0` to `p1`.
 #[inline(always)]
 fn cross_product(p0: &Point, p1: &Point, p2: &Point) -> f64 {
 	(p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y)
@@ -166,9 +224,18 @@ impl<T> From<Vec<T>> for Ring
 where
 	Point: From<T>,
 {
+	/// Creates a new [`Ring`] from a vector of items that can be converted into [`Point`].
+	///
+	/// This lets you do:
+	/// ```
+	/// # use versatiles_glyphs::geometry::point::Point;
+	/// # use versatiles_glyphs::geometry::ring::Ring;
+	/// let ring: Ring = vec![(0.0, 0.0), (1.0, 0.0)].into();
+	/// assert_eq!(ring.len(), 2);
+	/// ```
 	fn from(points: Vec<T>) -> Self {
 		Ring {
-			points: points.into_iter().map(|p| p.into()).collect(),
+			points: points.into_iter().map(Point::from).collect(),
 		}
 	}
 }

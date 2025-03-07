@@ -1,7 +1,18 @@
+//! A collection of multiple [`Ring`] instances, which can represent complex shapes
+//! or multi-polygon outlines.
+//!
+//! Each [`Ring`] may form a closed loop, such as a polygon boundary. Together,
+//! they can compose regions with holes, overlapping areas, etc. This module
+//! also provides convenient methods for bounding box calculation, transformations,
+//! and point-in-polygon tests.
+
 use super::{BBox, Point, Ring, Segment};
 
+/// A wrapper around multiple [`Ring`]s, enabling operations over
+/// all rings simultaneously (e.g., bounding box calculation, translation).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Rings {
+	/// The individual [`Ring`]s that compose this collection.
 	pub rings: Vec<Ring>,
 }
 
@@ -12,22 +23,29 @@ impl Default for Rings {
 }
 
 impl Rings {
+	/// Creates an empty [`Rings`] collection with no [`Ring`]s.
 	pub fn new() -> Self {
 		Rings { rings: Vec::new() }
 	}
 
+	/// Returns the number of [`Ring`]s in this collection.
 	pub fn len(&self) -> usize {
 		self.rings.len()
 	}
 
+	/// Returns `true` if there are no [`Ring`]s in this collection.
 	pub fn is_empty(&self) -> bool {
 		self.rings.is_empty()
 	}
 
+	/// Adds a [`Ring`] to this collection.
 	pub fn add_ring(&mut self, ring: Ring) {
 		self.rings.push(ring);
 	}
 
+	/// Computes the [bounding box](BBox) that encloses every [`Ring`] in this collection.
+	///
+	/// This is done by merging all ring-level bounding boxes.
 	pub fn get_bbox(&self) -> BBox {
 		let mut bbox = BBox::new();
 		for ring in &self.rings {
@@ -36,18 +54,23 @@ impl Rings {
 		bbox
 	}
 
+	/// Translates all points in every [`Ring`] by the given offset.
 	pub fn translate(&mut self, offset: &Point) {
 		for ring in &mut self.rings {
 			ring.translate(offset);
 		}
 	}
 
+	/// Scales all points in every [`Ring`] by the given factor.
 	pub fn scale(&mut self, scale: f64) {
 		for ring in &mut self.rings {
 			ring.scale(scale);
 		}
 	}
 
+	/// Returns all [`Segment`]s from all [`Ring`]s in this collection.
+	///
+	/// Consecutive points in each ring form a segment, and the rings are processed in order.
 	pub fn get_segments(&self) -> Vec<Segment> {
 		self
 			.rings
@@ -56,9 +79,14 @@ impl Rings {
 			.collect()
 	}
 
+	/// Determines whether the specified `pt` lies inside the area formed by any of
+	/// the [`Ring`]s in this collection, based on winding number logic.
+	///
+	/// If at least one ring encloses the point (non-zero winding),
+	/// this method returns `true`.
 	pub fn contains_point(&self, pt: &Point) -> bool {
 		let mut winding_number = 0;
-		for ring in self.rings.iter() {
+		for ring in &self.rings {
 			winding_number += ring.winding_number(pt);
 		}
 		winding_number != 0
@@ -69,9 +97,23 @@ impl<T> From<Vec<T>> for Rings
 where
 	Ring: From<T>,
 {
+	/// Creates a new [`Rings`] object from a vector of items that
+	/// can be converted into [`Ring`].
+	///
+	/// For example:
+	/// ```
+	/// // Each sub-vector can become a Ring,
+	/// // which in turn is constructed from Points or tuples.
+	/// let all_rings = vec![
+	///     vec![(0.0, 0.0), (1.0, 0.0)],
+	///     vec![(2.0, 2.0), (3.0, 2.0)],
+	/// ];
+	/// let rings: Rings = all_rings.into();
+	/// assert_eq!(rings.len(), 2);
+	/// ```
 	fn from(rings: Vec<T>) -> Self {
 		Rings {
-			rings: rings.into_iter().map(|p| p.into()).collect(),
+			rings: rings.into_iter().map(Ring::from).collect(),
 		}
 	}
 }
@@ -113,8 +155,7 @@ mod tests {
 		rings.add_ring(ring2);
 
 		let bbox = rings.get_bbox();
-		// The combined bounding box should be from min(0, -1) => (0, -1)
-		// to max(5, 2) => (5, 2)
+		// The combined bounding box should be (0, -1) to (5, 2)
 		assert_eq!(bbox.min.as_tuple(), (0.0, -1.0));
 		assert_eq!(bbox.max.as_tuple(), (5.0, 2.0));
 	}
@@ -177,12 +218,11 @@ mod tests {
 		// total segments = 2 + 3 = 5
 		assert_eq!(segments.len(), 5);
 
-		// Just verify a few
-		// The first ring's first segment: (0,0)->(1,0)
+		// First ring's first segment: (0,0)->(1,0)
 		assert_eq!(segments[0].start.as_tuple(), (0.0, 0.0));
 		assert_eq!(segments[0].end.as_tuple(), (1.0, 0.0));
 
-		// The second ring's last segment: (3,3)->(2,3)
+		// Second ring's last segment: (3,3)->(2,3)
 		let last_seg = &segments[4];
 		assert_eq!(last_seg.start.as_tuple(), (3.0, 3.0));
 		assert_eq!(last_seg.end.as_tuple(), (2.0, 3.0));
@@ -192,7 +232,7 @@ mod tests {
 	fn test_contains_point() {
 		let mut rings = Rings::new();
 
-		// Make a simple square ring around the origin: (0,0)->(10,0)->(10,10)->(0,10)->(0,0)
+		// A simple square ring around the origin
 		let mut ring1 = Ring::new();
 		ring1.add_point(Point::new(0.0, 0.0));
 		ring1.add_point(Point::new(10.0, 0.0));
