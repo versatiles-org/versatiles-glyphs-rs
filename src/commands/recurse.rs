@@ -28,7 +28,7 @@ pub struct Subcommand {
 	#[arg(long, short = 'o', conflicts_with = "tar")]
 	output_directory: Option<String>,
 
-	/// the output directory where the glyph folders will be saved.
+	/// instead of writing the glyphs to a directory, write them as a tar to stdout.
 	#[arg(long, short = 't', conflicts_with = "output_directory")]
 	tar: bool,
 
