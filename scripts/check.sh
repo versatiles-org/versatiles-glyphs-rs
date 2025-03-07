@@ -2,8 +2,6 @@
 set -e
 cd "$(dirname "$0")/.."
 
-PROJECT_DIR=$(pwd)
-
 echo "cargo fmt"
 result=$(cargo fmt -- --check 2>&1)
 if [ $? -ne 0 ]; then
