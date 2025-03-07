@@ -1,7 +1,7 @@
 //! Manages a collection of one or more [`FontFileEntry`] instances that represent a logical font.
 //!
 //! This wrapper abstracts multiple font files that share the same "family" identity
-//! (for example, different scripts or subsets). It provides methods to load font
+//! (for example, different languages). It provides methods to load font
 //! data from file paths, retrieve metadata, and generate glyph blocks for rendering.
 
 use super::{FontFileEntry, FontMetadata, GlyphBlock, GLYPH_BLOCK_SIZE};
@@ -10,7 +10,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 /// A wrapper around one or more [`FontFileEntry`] instances.  
 /// Each [`FontWrapper`] is effectively a "logical" font that can span
-/// multiple font files (e.g., for different scripts).
+/// multiple font files (e.g., for different languages).
 #[derive(Default)]
 pub struct FontWrapper<'a> {
 	/// Collection of all font files that share the same logical font identity.

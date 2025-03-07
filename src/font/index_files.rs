@@ -52,9 +52,9 @@ impl FontFamily {
 ///
 /// Returns an error if the encoding process fails.
 pub fn build_index_json<'a>(
-	iter: impl Iterator<Item = (&'a String, &'a FontWrapper<'a>)>,
+	iter: impl Iterator<Item = &'a String>,
 ) -> Result<Vec<u8>> {
-	let mut list = iter.map(|f| f.0.clone()).collect::<Vec<_>>();
+	let mut list = iter.collect::<Vec<_>>();
 	list.sort();
 	Ok(serde_json::to_vec_pretty(&list)?)
 }
@@ -104,7 +104,7 @@ mod tests {
 			PathBuf::from("./testdata/Noto Sans/Noto Sans - Regular.ttf"),
 		])?;
 
-		let json_bytes = build_index_json(manager.fonts.iter())?;
+		let json_bytes = build_index_json(manager.fonts.keys())?;
 		assert_eq!(
 			String::from_utf8(json_bytes)?
 				.split('\n')

@@ -116,7 +116,7 @@ impl<'a> FontManager<'a> {
 
 	/// Writes an index of all font IDs to `index.json`.
 	pub fn write_index_json(&self, writer: &mut Box<dyn Writer>) -> Result<()> {
-		let content = build_index_json(self.fonts.iter())?;
+		let content = build_index_json(self.fonts.keys())?;
 		writer.write_file("index.json", &content)
 	}
 
