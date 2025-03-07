@@ -2,6 +2,9 @@ use super::wrapper::FontWrapper;
 use anyhow::Result;
 use std::collections::HashMap;
 
+/// Data structure representing a single font face within a family.
+/// This includes the unique `id`, as well as styling attributes like
+/// `style`, `weight`, and `width`.
 #[derive(serde::Serialize)]
 struct FontFace {
 	id: String,
@@ -10,20 +13,26 @@ struct FontFace {
 	width: String,
 }
 
+/// Data structure representing a font family, which can contain
+/// one or more [`FontFace`] entries.
 #[derive(serde::Serialize)]
 struct FontFamily {
+	/// Name of the font family, e.g., "Noto Sans".
 	name: String,
+	/// Collection of faces that belong to this family.
 	faces: Vec<FontFace>,
 }
 
 impl FontFamily {
-	fn new(name: String) -> FontFamily {
+	/// Creates a new font family with the given name.
+	fn new(name: String) -> Self {
 		FontFamily {
 			name,
 			faces: Vec::new(),
 		}
 	}
 
+	/// Adds a new [`FontFace`] to this family.
 	fn add_font(&mut self, id: String, style: String, weight: u16, width: String) {
 		self.faces.push(FontFace {
 			id,
@@ -34,6 +43,14 @@ impl FontFamily {
 	}
 }
 
+/// Builds an index (list) of all font IDs, returning JSON-encoded bytes.
+///
+/// The iterator should yield `(id, FontWrapper)` pairs. The resulting JSON
+/// is an array of sorted string IDs.
+///
+/// # Errors
+///
+/// Returns an error if the encoding process fails.
 pub fn build_index_json<'a>(
 	iter: impl Iterator<Item = (&'a String, &'a FontWrapper<'a>)>,
 ) -> Result<Vec<u8>> {
@@ -42,12 +59,22 @@ pub fn build_index_json<'a>(
 	Ok(serde_json::to_vec_pretty(&list)?)
 }
 
+/// Builds a list of font families, each containing one or more font faces,
+/// returning JSON-encoded bytes.
+///
+/// The iterator should yield `(id, FontWrapper)` pairs. Each font's
+/// metadata is examined, and faces with the same family name are grouped together.
+/// The JSON contains a sorted array of families, each with an array of faces.
+///
+/// # Errors
+///
+/// Returns an error if the encoding process fails.
 pub fn build_font_families_json<'a>(
 	iter: impl Iterator<Item = (&'a String, &'a FontWrapper<'a>)>,
 ) -> Result<Vec<u8>> {
 	let mut family_map = HashMap::<String, FontFamily>::new();
-	for (id, renderer) in iter {
-		let meta = renderer.get_metadata();
+	for (id, font) in iter {
+		let meta = font.get_metadata();
 		family_map
 			.entry(meta.family.to_string())
 			.or_insert_with(|| FontFamily::new(meta.family.to_string()))

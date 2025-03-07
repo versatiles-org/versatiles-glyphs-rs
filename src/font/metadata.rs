@@ -1,19 +1,37 @@
+//! Metadata extraction and analysis for font files.
+//!
+//! This module defines [`FontMetadata`] and provides functionality for
+//! gathering name, family, style, weight, width, and codepoint coverage
+//! information from a [`ttf_parser::Face`].
+
 use anyhow::Result;
 use std::{collections::HashMap, fmt::Debug};
 use ttf_parser::{name_id, Face, PlatformId};
 
 use super::parse_font_name;
 
+/// Stores extracted font properties such as `family`, `style`, and `weight`,
+/// along with a set of all supported codepoints.
 pub struct FontMetadata {
+	/// The raw font name (may include style and other descriptors).
 	pub name: String,
+	/// The family portion of the font name (e.g. "Noto Sans").
 	pub family: String,
+	/// All codepoints supported by this font.
 	pub codepoints: Vec<u32>,
+	/// Font style, typically "normal" or "italic".
 	pub style: String,
+	/// Numerical weight (e.g. 400 for Regular, 700 for Bold, etc.).
 	pub weight: u16,
+	/// Width descriptor, often "normal", "condensed", or "expanded".
 	pub width: String,
 }
 
 impl FontMetadata {
+	/// Generates a human-readable name, including family, width, weight, and style.
+	///
+	/// For example, a font with `family = "Noto Sans"`, `weight = 400`,
+	/// `width = "normal"`, and `style = "normal"` produces `"Noto Sans Regular"`.
 	pub fn generate_name(&self) -> String {
 		let mut name = self.family.clone();
 		if self.width != "normal" {
@@ -32,7 +50,7 @@ impl FontMetadata {
 			900 => "Black",
 			_ => "Unknown",
 		};
-		name = format!("{name} {}", weight);
+		name = format!("{name} {weight}");
 
 		if self.style != "normal" {
 			name = format!("{name} {}", self.style);
@@ -58,6 +76,9 @@ impl Debug for FontMetadata {
 
 impl TryFrom<&Face<'_>> for FontMetadata {
 	type Error = anyhow::Error;
+
+	/// Attempts to build a [`FontMetadata`] from a [`ttf_parser::Face`],
+	/// extracting properties like family name, style, weight, width, and codepoints.
 	fn try_from(face: &Face) -> Result<Self> {
 		let map = HashMap::<u16, String>::from_iter(
 			face

@@ -11,115 +11,124 @@ use versatiles_glyphs::{
 	writer::{FileWriter, TarWriter, Writer},
 };
 
+/// Subcommand arguments for recursively scanning font files.
 #[derive(clap::Args, Debug)]
 #[command(arg_required_else_help = true)]
-/// Scans a directory recursively for font files and convert them into multiple directories of glyphs.
+/// Recursively scans directories for `.ttf` or `.otf` files and converts them.
 ///
 /// If a directory contains a "fonts.json" file, it will be used to configure the conversion.
 /// A "fonts.json" has the structure: { name: string, sources: string[] }[] where:
 ///   - name: the name of the font, like "Noto Sans Regular".
 ///   - sources: the list of font files to merge, relative to the directory.
+///
+/// # Examples
+///
+/// ```bash
+/// versatiles_glyphs recurse -o glyphs my_font_directory
+/// versatiles_glyphs recurse -t another_directory
+/// ```
 pub struct Subcommand {
-	/// directories to scan for font files.
+	/// Directories to scan for font files.
 	#[arg(num_args=1..)]
 	input_directories: Vec<PathBuf>,
 
-	/// the output directory where the glyph folders will be saved.
+	/// Output directory for glyphs. Mutually exclusive with `tar`.
 	#[arg(long, short = 'o', conflicts_with = "tar")]
 	output_directory: Option<String>,
 
-	/// instead of writing the glyphs to a directory, write them as a tar to stdout.
+	/// Write glyphs as a tar to stdout. Mutually exclusive with `output_directory`.
 	#[arg(long, short = 't', conflicts_with = "output_directory")]
 	tar: bool,
 
-	/// do not write the font_families.json file.
+	/// Skip writing the `font_families.json` file.
 	#[arg(long)]
 	no_families: bool,
 
-	/// do not write the index.json file.
+	/// Skip writing the `index.json` file.
 	#[arg(long)]
 	no_index: bool,
 }
 
+/// Describes the structure of a `fonts.json` for merged font sets.
 #[derive(Debug, Deserialize)]
 struct FontConfig {
+	/// Descriptive name for the font or set of merged fonts.
 	name: String,
+	/// Paths to `.ttf` / `.otf` files, relative to the containing folder.
 	sources: Vec<String>,
 }
 
-pub fn run(arguments: &Subcommand) -> Result<()> {
+/// Executes the recurse subcommand logic.
+///
+/// Scans specified directories, reading `fonts.json` if present, and
+/// merges fonts into a [`FontManager`]. The glyph data is written
+/// either to a directory or stdout tar.
+pub fn run(args: &Subcommand) -> Result<()> {
 	let mut font_manager = FontManager::default();
 
-	for input_directory in &arguments.input_directories {
-		let input_directory = path::absolute(input_directory)?.canonicalize()?;
-		eprintln!("Scanning directory: {:?}", input_directory);
-		scan(&input_directory, &mut font_manager)?;
+	for dir in &args.input_directories {
+		let canonical = path::absolute(dir)?.canonicalize()?;
+		eprintln!("Scanning directory: {:?}", canonical);
+		scan(&canonical, &mut font_manager)?;
 	}
 
-	let mut writer: Box<dyn Writer> = if arguments.tar {
-		eprintln!("Rendering glyphs as tar to stdout");
+	let mut writer: Box<dyn Writer> = if args.tar {
+		eprintln!("Rendering glyphs as tar to stdout.");
 		Box::new(TarWriter::new(std::io::stdout()))
 	} else {
-		let output_directory =
-			prepare_output_directory(arguments.output_directory.as_deref().unwrap_or("output"))?;
-
-		eprintln!("Rendering glyphs to directory: {:?}", output_directory);
-		Box::new(FileWriter::new(path::absolute(output_directory)?))
+		let out_dir = prepare_output_directory(args.output_directory.as_deref().unwrap_or("output"))?;
+		eprintln!("Rendering glyphs to directory: {:?}", out_dir);
+		Box::new(FileWriter::new(path::absolute(out_dir)?))
 	};
 
-	font_manager.render_glyphs(&mut writer, RendererPrecise {})?;
-	if !arguments.no_index {
+	font_manager.render_glyphs(&mut writer, &RendererPrecise {})?;
+	if !args.no_index {
 		font_manager.write_index_json(&mut writer)?;
 	}
-	if !arguments.no_families {
+	if !args.no_families {
 		font_manager.write_families_json(&mut writer)?;
 	}
 
 	writer.finish()?;
-
 	Ok(())
 }
 
-fn scan(input: &Path, font_manager: &mut FontManager) -> Result<()> {
-	if input.is_file() {
-		let extension = input.extension().unwrap_or_default().to_str().unwrap();
+/// Recursively scans directories and adds matching font files to the [`FontManager`].
+fn scan(path: &Path, font_manager: &mut FontManager) -> Result<()> {
+	if path.is_file() {
+		let extension = path.extension().unwrap_or_default().to_str().unwrap();
 		if extension == "ttf" || extension == "otf" {
-			font_manager.add_path(input)?;
+			font_manager.add_path(path)?;
 		}
-	} else if input.is_dir() {
-		let font_file = input.join("fonts.json");
+	} else if path.is_dir() {
+		let font_file = path.join("fonts.json");
 		if font_file.exists() {
 			let data =
-				fs::read(&font_file).with_context(|| format!("reading font file \"{font_file:?}\""))?;
+				fs::read(&font_file).with_context(|| format!("Failed to read {:?}", font_file))?;
+			let configs = serde_json::from_slice::<Vec<FontConfig>>(&data)?;
 
-			let font_configs = serde_json::from_slice::<Vec<FontConfig>>(&data)?;
-
-			for font_config in font_configs {
+			for c in configs {
 				font_manager.add_font_with_name(
-					&font_config.name,
-					&font_config
-						.sources
+					&c.name,
+					&c.sources
 						.iter()
-						.map(|source| input.join(source))
+						.map(|src| path.join(src))
 						.collect::<Vec<_>>(),
 				)?;
 			}
 		} else {
-			for entry in fs::read_dir(input)? {
+			for entry in fs::read_dir(path)? {
 				scan(&entry?.path(), font_manager)?;
 			}
 		}
 	}
-
 	Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-	use versatiles_glyphs::font::FontWrapper;
-
 	use super::*;
-	use std::path::PathBuf;
+	use versatiles_glyphs::font::FontWrapper;
 
 	fn get_names(font: &FontWrapper) -> Vec<String> {
 		let mut names = font
@@ -134,7 +143,6 @@ mod tests {
 	#[test]
 	fn test_scan() -> Result<()> {
 		let dir_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");
-
 		let mut font_manager = FontManager::default();
 		scan(&dir_path, &mut font_manager)?;
 

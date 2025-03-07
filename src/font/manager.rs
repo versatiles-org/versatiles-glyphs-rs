@@ -14,110 +14,125 @@ use std::{
 	sync::Mutex,
 };
 
+/// Manages a collection of fonts and provides methods to render glyphs
+/// and write metadata (index/families) files.
 #[derive(Default)]
 pub struct FontManager<'a> {
+	/// Mapping from a font identifier to a [`FontWrapper`].
 	pub fonts: HashMap<String, FontWrapper<'a>>,
 }
 
 impl<'a> FontManager<'a> {
+	/// Adds a single font file to the manager by path.
+	///
+	/// The font name is normalized to form a key used in [`self.fonts`].
+	/// If the key already exists, the file is appended to that font.
 	pub fn add_path(&mut self, path: &Path) -> Result<()> {
-		let file = FontFileEntry::new(std::fs::read(path)?)?;
+		let file_data = std::fs::read(path)?;
+		let file = FontFileEntry::new(file_data)?;
 		let id = name_to_id(&file.metadata.generate_name());
 
-		if let Entry::Vacant(entry) = self.fonts.entry(id.clone()) {
-			entry.insert(FontWrapper::from(file));
-		} else {
-			self.fonts.get_mut(&id).unwrap().add_file(file);
+		match self.fonts.entry(id) {
+			Entry::Vacant(e) => {
+				e.insert(FontWrapper::from(file));
+			}
+			Entry::Occupied(mut e) => {
+				e.get_mut().add_file(file);
+			}
 		}
 		Ok(())
 	}
 
+	/// Adds multiple font files to the manager.
 	pub fn add_paths(&mut self, paths: &[PathBuf]) -> Result<()> {
-		for path in paths {
-			self.add_path(path)?;
+		for p in paths {
+			self.add_path(p)?;
 		}
 		Ok(())
 	}
 
+	/// Adds multiple sources for a single named font family.
+	///
+	/// Useful for merging multiple `.ttf` files under one key.
 	pub fn add_font_with_name(&mut self, name: &str, sources: &[PathBuf]) -> Result<()> {
 		let id = name_to_id(name);
-
 		self
 			.fonts
 			.entry(id)
-			.and_modify(|renderer| renderer.add_paths(sources).unwrap())
+			.and_modify(|f| f.add_paths(sources).unwrap())
 			.or_insert_with(|| FontWrapper::try_from(sources).unwrap());
 		Ok(())
 	}
 
+	/// Renders glyphs from all managed fonts via the provided renderer,
+	/// writing each glyph block to the supplied writer.
+	///
+	/// Rendering is parallelized with `rayon` for performance.
 	pub fn render_glyphs(
 		&'a self,
 		writer: &mut Box<dyn Writer>,
-		renderer: impl RendererTrait,
+		renderer: &impl RendererTrait,
 	) -> Result<()> {
-		struct Todo<'a> {
+		struct Todo<'block> {
 			name: String,
-			block: GlyphBlock<'a>,
+			block: GlyphBlock<'block>,
 		}
 
-		let mut todos: Vec<Todo> = vec![];
-
-		for (name, renderer) in &self.fonts {
-			writer.write_directory(&format!("{name}/"))?;
-
-			let blocks = renderer.get_blocks();
-			for block in blocks {
-				todos.push(Todo {
+		// Collect all blocks from every font.
+		let mut tasks = Vec::new();
+		for (name, font) in &self.fonts {
+			writer.write_directory(&format!("{}/", name))?;
+			for block in font.get_blocks() {
+				tasks.push(Todo {
 					name: name.clone(),
 					block,
 				});
 			}
 		}
 
-		let sum = todos.iter().map(|todo| todo.block.len() as u64).sum();
-		let progress = get_progress_bar(sum);
-
+		// Progress bar across all glyph blocks.
+		let total_glyphs = tasks.iter().map(|t| t.block.len() as u64).sum();
+		let progress = get_progress_bar(total_glyphs);
 		let writer_mutex = Mutex::new(writer);
 
-		todos.par_iter().for_each(|todo| {
-			let filename = format!("{}/{}", todo.name, todo.block.filename());
-			let buf = todo.block.render(todo.name.clone(), renderer).unwrap();
+		// Parallel iteration for rendering.
+		tasks.par_iter().for_each(|todo| {
+			let file_name = format!("{}/{}", todo.name, todo.block.filename());
+			let data = todo.block.render(todo.name.clone(), renderer).unwrap();
 
+			// Lock the writer and write out the rendered data.
 			writer_mutex
 				.lock()
 				.unwrap()
-				.write_file(&filename, &buf)
+				.write_file(&file_name, &data)
 				.unwrap();
 
 			progress.inc(todo.block.len() as u64);
 		});
 
 		progress.finish();
-
 		Ok(())
 	}
 
+	/// Writes an index of all font IDs to `index.json`.
 	pub fn write_index_json(&self, writer: &mut Box<dyn Writer>) -> Result<()> {
-		writer.write_file("index.json", &build_index_json(self.fonts.iter())?)
+		let content = build_index_json(self.fonts.iter())?;
+		writer.write_file("index.json", &content)
 	}
 
+	/// Writes a list of font families and their styles/weights to `font_families.json`.
 	pub fn write_families_json(&self, writer: &mut Box<dyn Writer>) -> Result<()> {
-		writer.write_file(
-			"font_families.json",
-			&build_font_families_json(self.fonts.iter())?,
-		)
+		let content = build_font_families_json(self.fonts.iter())?;
+		writer.write_file("font_families.json", &content)
 	}
 }
 
+/// Normalizes a font name into a lowercase, underscore-delimited string.
 fn name_to_id(name: &str) -> String {
-	let mut name = name.to_lowercase();
-	name = Regex::new(r"[-_\s]+")
-		.unwrap()
-		.replace_all(&name, " ")
-		.trim()
-		.to_string();
-	name = name.replace(" ", "_");
-	name
+	let mut lower = name.to_lowercase();
+	let re = Regex::new(r"[-_\s]+").unwrap();
+	lower = re.replace_all(&lower, " ").trim().to_string();
+	lower.replace(' ', "_")
 }
 
 #[cfg(test)]
@@ -142,7 +157,7 @@ mod tests {
 
 		assert_eq!(manager.fonts.len(), 2);
 		let mut writer: Box<dyn Writer> = Box::new(DummyWriter::default());
-		manager.render_glyphs(&mut writer, RendererDummy {})?;
+		manager.render_glyphs(&mut writer, &RendererDummy {})?;
 
 		let mut files = writer.get_inner().unwrap().to_vec();
 		files.sort_unstable();

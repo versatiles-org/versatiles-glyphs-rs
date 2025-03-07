@@ -3,18 +3,29 @@ use anyhow::{Context, Result};
 use std::{marker::PhantomPinned, pin::Pin, slice};
 use ttf_parser::Face;
 
+/// A font file entry that holds raw font bytes, a parsed [`Face`], and font metadata.
+/// This structure is pinned to ensure safe references to the underlying font data.
 #[derive(Debug)]
-/// A font file entry contains the raw bytes of a font file, its parsed face and the metadata of the font.
-/// It is used as a wrapper to handle multiple references to the same font file in memory.
 pub struct FontFileEntry<'a> {
+	/// Pinned raw font data buffer. Ensures the bytes won't be moved in memory.
 	#[allow(dead_code)]
 	data: Pin<Vec<u8>>,
+
+	/// The parsed [`Face`] containing information like glyph count, names, and metrics.
 	pub face: Face<'a>,
+
+	/// The metadata extracted from the font, such as name, style, and other descriptors.
 	pub metadata: FontMetadata,
+
+	/// Prevents movement of the struct after pinning.
 	_pin: PhantomPinned,
 }
 
 impl<'a> FontFileEntry<'a> {
+	/// Creates a new [`FontFileEntry`] from raw bytes.
+	///
+	/// # Errors
+	/// Returns an error if the font data fails to parse.
 	pub fn new(data: Vec<u8>) -> Result<Self> {
 		unsafe {
 			let data = Pin::new(data);

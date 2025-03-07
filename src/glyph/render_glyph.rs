@@ -2,7 +2,7 @@ use crate::{glyph::build_glyph_outline, protobuf::PbfGlyph, renderer::RendererTr
 use ttf_parser::Face;
 
 /// Generate a PBF buffer of glyphs in [start..=end].
-pub fn render_glyph(face: &Face, index: u32, renderer: impl RendererTrait) -> Option<PbfGlyph> {
+pub fn render_glyph(face: &Face, index: u32, renderer: &impl RendererTrait) -> Option<PbfGlyph> {
 	let cp = char::from_u32(index).unwrap();
 
 	// Check if face has a glyph for this codepoint
@@ -36,7 +36,7 @@ mod tests {
 
 	fn get_glyph(index: u32) -> PbfGlyph {
 		let face = Face::parse(TEST_FONT, 0).unwrap();
-		let glyph = render_glyph(&face, index, RendererPrecise {}).unwrap();
+		let glyph = render_glyph(&face, index, &RendererPrecise {}).unwrap();
 
 		if let Some(bitmap) = &glyph.bitmap {
 			assert_eq!(bitmap.len() as u32, (glyph.width + 6) * (glyph.height + 6));
