@@ -33,7 +33,7 @@ jobs:
           sudo chmod +x /usr/local/bin/cross
 
       - name: Build with Cross
-        run: cross build --release --bins --features="cli" --target ${{ matrix.target }}
+        run: cross build --release --bins --target ${{ matrix.target }}
 
       - name: Archive
         run: tar -czf ${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release versatiles_glyphs
@@ -59,7 +59,7 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: Build
-        run: cargo build --release --bins --features="cli" --target ${{ matrix.target }}
+        run: cargo build --release --bins --target ${{ matrix.target }}
 
       - name: Archive
         run: tar -czf ${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release versatiles_glyphs
