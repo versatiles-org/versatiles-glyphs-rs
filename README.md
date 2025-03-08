@@ -8,41 +8,44 @@
 
 # VersaTiles Glyphs
 
-**VersaTiles Glyphs** is a Rust-based tool and library for generating smooth SDF (Signed Distance Field) glyphs from TrueType fonts.
+**VersaTiles Glyphs** is a Rust tool and library for generating signed distance field (SDF) glyphs from TrueType fonts. It aims for high-precision rendering by working directly with font vector outlines—no additional C++ libraries or wrappers required.
 
-You can **see and test** the results for _Noto Sans_ (in several languages) here:  
+**See the results** for _Noto Sans_ (in several languages) here:  
 [versatiles.org/versatiles-glyphs-rs](https://versatiles.org/versatiles-glyphs-rs/)
 
-## Why?
+---
 
-There are many alternative projects related to glyph rendering like [font-maker](https://github.com/maplibre/font-maker), [fontnik](https://github.com/mapbox/fontnik), [node-fontnik](https://github.com/mapbox/node-fontnik), [sdf_font_tools](https://github.com/stadiamaps/sdf_font_tools), [sdf-glyph-foundry](https://github.com/mapbox/sdf-glyph-foundry) or[TinySDF](https://github.com/mapbox/tiny-sdf). But all of them violates at least one of the following criteria:
-- uses precise SDF calculation using vector data directly
-- render bezier curves with high precision
-- code does not have major bugs
-- it's an active project, that is still maintained and accepts pull requests
-- it's not a wrapper, around a wrapper, around a wrapper, around a side branch of an unmaintained repository
+## Why Another Glyph Tool?
+
+There are numerous glyph rendering projects — e.g., [font-maker](https://github.com/maplibre/font-maker), [fontnik](https://github.com/mapbox/fontnik), [node-fontnik](https://github.com/mapbox/node-fontnik), [sdf_font_tools](https://github.com/stadiamaps/sdf_font_tools), [sdf-glyph-foundry](https://github.com/mapbox/sdf-glyph-foundry), and [TinySDF](https://github.com/mapbox/tiny-sdf). However, many have tradeoffs such as low rendering precision, unmaintained code, or "unfavourable architecture".
+
+**VersaTiles Glyphs**:
+- Renders SDF with maximum precision directly from the raw vector data.
+- Renders also bezier curves with high precision.
+- No external wrappers or complicated build steps.
+- Actively maintained, welcomes contributions.
 
 ## Installation
 
-### Via Script
+### 1. Via Installation Script
 
-Download and install the latest precompiled binary in one step:
+Use a single shell command to download and install the latest precompiled binary:
 
 ```bash
 curl -Ls "https://github.com/versatiles-org/versatiles-glyphs-rs/raw/refs/heads/main/scripts/install.sh" | sh
 ```
 
-### Via Cargo Install
+### 2. Via Cargo
 
-To compile and install from crates.io, ensure you have Rust installed, then run:
+Install from crates.io using Rust’s package manager:
 
 ```bash
-cargo install versatiles_glyphs --features="cli"
+cargo install versatiles_glyphs
 ```
 
-### Building from Source
+### 3. From Source
 
-If you want to build the latest (potentially unreleased) version directly from GitHub:
+To build the latest (potentially unreleased) version:
 
 ```bash
 git clone https://github.com/versatiles-org/versatiles-glyphs-rs.git
@@ -54,19 +57,20 @@ The compiled binary will be located at target/release/versatiles_glyphs.
 
 ## Usage
 
-`versatiles_glyphs` has two subcommands `recurse` and `merge`:
+`versatiles_glyphs` provides two main subcommands: `recurse` and `merge`.
 
-### `versatiles_glyphs recurse`
+### Subcommand: `recurse`
 
-Scans one or more files and directories recursively for font files and convert them into multiple directories of glyphs.
+Recursively scans fonts from one or more directories or files, converting them into glyph sets:
 
-```shell
+```bash
 versatiles_glyphs recurse ./font/
 ```
 
-If a input directory contains a `fonts.json` (like [this one](https://github.com/versatiles-org/versatiles-fonts/blob/main/fonts/Noto%20Sans/fonts.json)) it uses the files listed in there instead of scanning recursively.
+If a directory contains a `fonts.json` (like [this example](https://github.com/versatiles-org/versatiles-fonts/blob/main/fonts/Noto%20Sans/fonts.json)), it uses the files from that JSON instead of a raw file scan.
 
-The results are written to an output directory that follows the [frontend specification](https://docs.versatiles.org/compendium/specification_frontend.html#folder-assets-glyphs);
+Output follows the [frontend specification](https://docs.versatiles.org/compendium/specification_frontend.html#folder-assets-glyphs):
+
 <pre>
 📂 glyphs/
 ├── 📂 {font_id}/
@@ -75,48 +79,63 @@ The results are written to an output directory that follows the [frontend specif
 └── 📄 index.json
 </pre>
 
-You can specify an output directory with the flag `-o` or `--output-directory`:
-```shell
+Specify an output directory with `-o` or `--output-directory`:
+
+```bash
 versatiles_glyphs recurse ./font/ -o glyphs
 ```
 
-Alternatively you can write the resulting files as a TAR to stdout with `-t` or `--tar`:
-```shell
-versatiles_glyphs recurse ./font/ -t | gzip -9 > glyphs.tar.gz
+Generate a TAR archive instead of directories, with `-t` or `--tar`:
+
+```bash
+versatiles_glyphs recurse ./font/ --tar | gzip -9 > glyphs.tar.gz
 ```
 
-### `versatiles_glyphs merge`
+### Subcommand: `merge`
 
-Merges one or more font files and converts them into a single directory of glyphs. Example
+Merges one or more font files into a single directory of glyphs:
 
-```shell
-versatiles_glyphs merge font
+```bash
+versatiles_glyphs merge ./font/
 ```
 
-You can also use the arguments `--output-directory` and `--tar`.
+It supports the same `--output-directory` and `--tar` options.
 
-## Develop
+## Development Notes
 
-### Font metrics
+### Documentation
 
-Since I could not find an official documentation on SDF glyphs - especially on how to use font metrics correctly - i heavily relied on the code of [sdf-glyph-foundry](https://github.com/mapbox/sdf-glyph-foundry/blob/master/include/mapbox/glyph_foundry_impl.hpp), [fontnik](https://github.com/mapbox/fontnik/blob/master/lib/sdf.js), [tiny-sdf](https://github.com/mapbox/tiny-sdf) and [maplibre-gl-js](https://github.com/maplibre/maplibre-gl-js/blob/main/src/render/glyph_manager.ts).
+You can find the latest documentation at [docs.rs/versatiles_glyphs](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/).
 
-### Testing results
+### Quick Overview
 
-For every release [versatiles.org/versatiles-glyphs-rs](https://versatiles.org/versatiles-glyphs-rs/) is updated to show the resulting glyphs.
+- Font files are added to a [`FontManager`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontManager.html), which scans their [metadata](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontMetadata.html) and [parses the font name](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/fn.parse_font_name.html) to guess the font family, style, weight, width …
+- Font files of the same font (e.g. when a font is split into multiple files, each for a different language) are combined in a [`FontWrapper`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontWrapper.html).
+- The [`FontManager`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontManager.html) can [render all glyphs and write them](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontManager.html#method.render_glyphs) to one of two [`Writer`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/writer/trait.Writer.html)s: [`FileWriter`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/writer/struct.FileWriter.html) or [`TarWriter`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/writer/struct.TarWriter.html)
+- Glyphs are rendered serially per [`GlyphBlock`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.GlyphBlock.html). Each block contains a maximum of 256 glyphs. The blocks are rendered in parallel.
+- A single glyph is rendered with [`render_glyph`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/render/fn.render_glyph.html) using [`RendererPrecise`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/render/struct.RendererPrecise.html).
 
-If you want to improve or expand the languages/characters being tested, you can add new strings [here](https://github.com/versatiles-org/versatiles-glyphs-rs/blob/main/pages/web/index.html#L26).
+### Font Metrics & Precision
 
-### Local Testing (Web Pages)
+Since no official SDF-glyph spec for all metrics could be found, most references come from:
+- [sdf-glyph-foundry](https://github.com/mapbox/sdf-glyph-foundry/blob/master/include/mapbox/glyph_foundry_impl.hpp)
+- [fontnik](https://github.com/mapbox/fontnik/blob/master/lib/sdf.js)
+- [tiny-sdf](https://github.com/mapbox/tiny-sdf)
+- [maplibre-gl-js](https://github.com/maplibre/maplibre-gl-js/blob/main/src/render/glyph_manager.ts).
 
-1. Run the build script: `./pages/build.sh`
-2. Serve the folder `./pages/web/` locally (for example, using `npx http-server -sc0`, `python3 -m http.server` or `cargo install basic-http-server`)
-3. Open the served page in your browser to see the changes.
+### Testing Online
+
+Every new release is showcased at [versatiles.org/versatiles-glyphs-rs](https://versatiles.org/versatiles-glyphs-rs/).
+If you’d like to expand or alter characters tested, [edit these lines](https://github.com/versatiles-org/versatiles-glyphs-rs/blob/main/pages/web/index.html#L27).
+
+### Local Web Testing
+1.	Run the build script: `./pages/build.sh`
+2.	Serve the `./pages/web/` directory (e.g., using `npx http-server -sc0`, `python3 -m http.server` or `cargo install basic-http-server`)
+3.	Visit it in your browser to check changes.
 
 ## Contributing
 
-Contributions, issues, and feature requests are very welcome!
-Feel free to open an issue or pull request if you’d like to contribute, report a bug, or suggest new features.
+Issues and pull requests are always welcome. Join the community by reporting bugs, improving documentation, or adding new features!
 
 ## License
 
