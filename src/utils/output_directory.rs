@@ -1,6 +1,38 @@
 use anyhow::{Context, Result};
 use std::{fs, path::PathBuf};
 
+/// Prepares a fresh output directory by removing any existing contents,
+/// then creating a new directory at the specified path.
+///
+/// # Arguments
+///
+/// * `output_directory` - The string path of the directory to create.
+///
+/// # Returns
+///
+/// A [`PathBuf`] referencing the newly created directory.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The existing directory could not be removed.
+/// - The new directory could not be created.
+///
+/// This operation is considered destructive, because any existing directory
+/// (and its contents) at `output_directory` will be removed.
+///
+/// # Examples
+///
+/// ```
+/// use versatiles_glyphs::utils::prepare_output_directory;
+/// use std::path::PathBuf;
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let output_path = prepare_output_directory("target/output")?;
+/// assert!(output_path.exists());
+/// # Ok(())
+/// # }
+/// ```
 pub fn prepare_output_directory(output_directory: &str) -> Result<PathBuf> {
 	let output_directory: PathBuf = PathBuf::from(output_directory);
 

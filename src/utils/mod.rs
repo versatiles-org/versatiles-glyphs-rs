@@ -1,3 +1,5 @@
+//! Utility functions and modules used throughout the application.
+
 #[cfg(test)]
 mod decode_bitmap;
 mod output_directory;
