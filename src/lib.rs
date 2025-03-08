@@ -15,7 +15,7 @@ pub mod geometry;
 pub mod protobuf;
 
 /// Rendering traits and implementations for generating SDF.
-pub mod renderer;
+pub mod render;
 
 /// Utility functions and structures for file paths, progress bars, etc.
 pub mod utils;

@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::path::{self, PathBuf};
 use versatiles_glyphs::{
 	font::FontManager,
-	renderer::RendererPrecise,
+	render::RendererPrecise,
 	utils::prepare_output_directory,
 	writer::{FileWriter, TarWriter, Writer},
 };

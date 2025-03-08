@@ -1,5 +1,5 @@
 use super::RingBuilder;
-use crate::{protobuf::PbfGlyph, renderer::RendererTrait};
+use crate::{protobuf::PbfGlyph, render::RendererTrait};
 use ttf_parser::Face;
 
 /// Generate a PBF buffer of glyphs in [start..=end].
@@ -29,7 +29,7 @@ pub fn render_glyph(face: &Face, index: u32, renderer: &impl RendererTrait) -> O
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{renderer::RendererPrecise, utils::bitmap_as_ascii_art};
+	use crate::{render::RendererPrecise, utils::bitmap_as_ascii_art};
 
 	const TEST_FONT: &[u8] = include_bytes!("../../testdata/Fira Sans - Regular.ttf");
 

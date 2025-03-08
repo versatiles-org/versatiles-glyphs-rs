@@ -1,7 +1,7 @@
 use super::index_files::{build_font_families_json, build_index_json};
 use crate::{
 	font::{FontFileEntry, FontWrapper, GlyphBlock},
-	renderer::RendererTrait,
+	render::RendererTrait,
 	utils::get_progress_bar,
 	writer::Writer,
 };
@@ -138,7 +138,7 @@ fn name_to_id(name: &str) -> String {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{renderer::RendererDummy, writer::dummy::DummyWriter};
+	use crate::{render::RendererDummy, writer::dummy::DummyWriter};
 
 	fn get_test_paths() -> Vec<PathBuf> {
 		let d = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");

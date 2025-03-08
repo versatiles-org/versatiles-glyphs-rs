@@ -6,7 +6,7 @@ use std::{
 };
 use versatiles_glyphs::{
 	font::FontManager,
-	renderer::RendererPrecise,
+	render::RendererPrecise,
 	utils::prepare_output_directory,
 	writer::{FileWriter, TarWriter, Writer},
 };

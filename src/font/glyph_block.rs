@@ -1,7 +1,7 @@
 use super::file_entry::FontFileEntry;
 use crate::{
 	protobuf::PbfGlyphs,
-	renderer::{render_glyph, RendererTrait},
+	render::{render_glyph, RendererTrait},
 };
 use anyhow::Result;
 use std::collections::HashMap;
@@ -90,7 +90,7 @@ impl<'a> GlyphBlock<'a> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::renderer::RendererDummy;
+	use crate::render::RendererDummy;
 
 	const VALID_FONT: &[u8] = include_bytes!("../../testdata/Fira Sans - Regular.ttf");
 
