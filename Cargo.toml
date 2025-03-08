@@ -1,6 +1,6 @@
 [package]
 name = "versatiles_glyphs"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 description = "A tool for generating SDF glyphs from fonts."
 license = "Unlicense"
