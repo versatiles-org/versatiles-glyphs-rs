@@ -1,26 +1,62 @@
 use prost::{alloc, Message};
 
+/// A representation of an individual glyph, complete with bitmap data and metrics.
+///
+/// Each glyph is identified by an `id` and may have an optional `bitmap` buffer
+/// that holds its Signed Distance Field data. The dimensions and metrics (width,
+/// height, left, top, and advance) describe how this glyph is displayed and placed
+/// in a layout.
 #[derive(Clone, PartialEq, Message)]
 pub struct Glyph {
+	/// The numeric identifier corresponding to this glyph.
 	#[prost(uint32, required, tag = "1")]
 	pub id: u32,
-	/// A signed distance field of the glyph with a border of 3 pixels.
+
+	/// Optional Signed Distance Field for the glyph, potentially including a
+	/// 3-pixel border to capture smoothing data.
 	#[prost(bytes = "vec", optional, tag = "2")]
 	pub bitmap: Option<alloc::vec::Vec<u8>>,
-	/// Glyph metrics.
+
+	/// The width of the glyph bitmap, in pixels.
 	#[prost(uint32, required, tag = "3")]
 	pub width: u32,
+
+	/// The height of the glyph bitmap, in pixels.
 	#[prost(uint32, required, tag = "4")]
 	pub height: u32,
+
+	/// The number of pixels to move to the right before drawing the bitmap,
+	/// relative to the drawing cursor.
 	#[prost(sint32, required, tag = "5")]
 	pub left: i32,
+
+	/// The number of pixels to move down before drawing the bitmap,
+	/// relative to the baseline.
 	#[prost(sint32, required, tag = "6")]
 	pub top: i32,
+
+	/// The horizontal distance to advance the cursor after drawing this glyph.
 	#[prost(uint32, required, tag = "7")]
 	pub advance: u32,
 }
 
 impl Glyph {
+	/// Creates a new [`Glyph`] with the specified `id` and `advance`,
+	/// while leaving all other fields unset or zero.
+	///
+	/// This is useful for glyphs that only need advance/position metrics
+	/// without any bitmap data.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use versatiles_glyphs::protobuf::glyph::Glyph;
+	///
+	/// let glyph = Glyph::empty(42, 100);
+	/// assert_eq!(glyph.id, 42);
+	/// assert_eq!(glyph.advance, 100);
+	/// assert!(glyph.bitmap.is_none());
+	/// ```
 	pub fn empty(id: u32, advance: u32) -> Self {
 		Glyph {
 			id,
@@ -69,9 +105,9 @@ mod tests {
 		let decoded_glyph = Glyph::decode(&encoded[..]).unwrap();
 
 		assert_eq!(
-			format!("{decoded_glyph:?}"),
-			"Glyph { id: 99, bitmap: Some([10, 20, 30, 40]), width: 64, height: 128, left: -5, top: 10, advance: 70 }"
-		);
+            format!("{decoded_glyph:?}"),
+            "Glyph { id: 99, bitmap: Some([10, 20, 30, 40]), width: 64, height: 128, left: -5, top: 10, advance: 70 }"
+        );
 	}
 
 	#[test]

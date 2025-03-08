@@ -1,8 +1,15 @@
 use super::fontstack::Fontstack;
 use prost::{alloc, Message};
 
+/// A collection of one or more [`Fontstack`] instances,
+/// each containing glyph data for a particular font or range.
+///
+/// This top-level message is often used to represent an entire
+/// set of glyphs for multiple fonts in a single protobuf structure.
 #[derive(Clone, PartialEq, Message)]
 pub struct Glyphs {
+	/// A list of [`Fontstack`] objects, where each entry
+	/// corresponds to a unique font name or ID range.
 	#[prost(message, repeated, tag = "1")]
 	pub stacks: alloc::vec::Vec<Fontstack>,
 }

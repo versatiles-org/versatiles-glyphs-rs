@@ -2,21 +2,60 @@ use super::{fontstack::Fontstack, glyph::Glyph, glyphs::Glyphs};
 use anyhow::Result;
 use prost::Message;
 
+/// A wrapper around a single `Fontstack` that provides easy methods
+/// to add glyphs and convert them into a serialized protobuf buffer.
 pub struct PbfGlyphs {
 	fontstack: Fontstack,
 }
 
 impl PbfGlyphs {
+	/// Creates a new [`PbfGlyphs`] for the specified font name and glyph ID `range`.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use versatiles_glyphs::protobuf::pbf_glyphs::PbfGlyphs;
+	///
+	/// let pbf = PbfGlyphs::new("MyFont".to_string(), "0-255".to_string());
+	/// ```
 	pub fn new(name: String, range: String) -> Self {
 		Self {
 			fontstack: Fontstack::new(name, range),
 		}
 	}
 
+	/// Adds a single [`Glyph`] to the wrapped `Fontstack`.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use versatiles_glyphs::protobuf::{glyph::Glyph, pbf_glyphs::PbfGlyphs};
+	///
+	/// let mut pbf = PbfGlyphs::new("MyFont".to_string(), "0-255".to_string());
+	/// pbf.push(Glyph::empty(42, 12));
+	/// ```
 	pub fn push(&mut self, glyph: Glyph) {
 		self.fontstack.glyphs.push(glyph);
 	}
 
+	/// Consumes this instance, returning a protobuf-encoded representation
+	/// of the underlying data in a `Vec<u8>`.
+	///
+	/// # Errors
+	///
+	/// Returns an [`anyhow::Error`] if encoding fails.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use versatiles_glyphs::protobuf::{glyph::Glyph, pbf_glyphs::PbfGlyphs};
+	///
+	/// let mut pbf = PbfGlyphs::new("MyFont".to_string(), "0-255".to_string());
+	/// pbf.push(Glyph::empty(42, 12));
+	///
+	/// let bytes = pbf.into_vec().unwrap();
+	/// assert!(!bytes.is_empty());
+	/// ```
 	pub fn into_vec(self) -> Result<Vec<u8>> {
 		let glyphs = Glyphs {
 			stacks: vec![self.fontstack],
