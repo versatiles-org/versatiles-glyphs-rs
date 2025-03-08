@@ -1,7 +1,6 @@
+use super::RingBuilder;
 use crate::{protobuf::PbfGlyph, renderer::RendererTrait};
 use ttf_parser::Face;
-
-use super::RingBuilder;
 
 /// Generate a PBF buffer of glyphs in [start..=end].
 pub fn render_glyph(face: &Face, index: u32, renderer: &impl RendererTrait) -> Option<PbfGlyph> {

@@ -2,8 +2,8 @@
 
 set -e
 
-cargo modules dependencies --lib --all-features --no-externs --no-traits --no-types --layout neato \
-	| sed -e 's/color="#7f7f7f"/color="#00000033"/g' \
+cargo modules dependencies --lib --all-features --no-externs --no-traits --no-types --no-fns --layout neato \
+	| sed -e 's/color="#7f7f7f", style="dashed"/color="#00000020", fontcolor="#00000020"/g' \
 	| dot -Gmode=sgd -Gmaxiter=10000 -Elen=100 -Tsvg \
 	> graph.svg
 
