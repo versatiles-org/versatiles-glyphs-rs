@@ -2,7 +2,16 @@ use super::RingBuilder;
 use crate::{protobuf::PbfGlyph, render::RendererTrait};
 use ttf_parser::Face;
 
-/// Generate a PBF buffer of glyphs in [start..=end].
+/// Renders a single glyph to a [`PbfGlyph`], given a font [`Face`],
+/// a Unicode `index` (`char::from_u32`) and a rendering backend (`renderer`).
+///
+/// This process outlines the glyph, scales it, and uses the provided renderer
+/// to create a signed distance field (SDF). The SDF is then converted
+/// into a [`PbfGlyph`]. If no SDF is produced, an empty glyph is returned.
+///
+/// # Return
+///
+/// Returns [`None`] if no corresponding glyph index can be found in `face`.
 pub fn render_glyph(face: &Face, index: u32, renderer: &impl RendererTrait) -> Option<PbfGlyph> {
 	let cp = char::from_u32(index).unwrap();
 
@@ -19,6 +28,7 @@ pub fn render_glyph(face: &Face, index: u32, renderer: &impl RendererTrait) -> O
 	// Render the SDF
 	let sdf_option = renderer.render(rings);
 	Some(if let Some(mut sdf) = sdf_option {
+		// Shift the SDF output to re-base the glyph
 		sdf.y1 -= 24;
 		sdf.into_pbf_glyph(index, advance)
 	} else {
@@ -134,6 +144,7 @@ mod tests {
 			]
 		);
 	}
+
 	#[test]
 	fn test_render_glyph_96() {
 		let glyph = get_glyph(96);

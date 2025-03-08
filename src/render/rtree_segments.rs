@@ -1,12 +1,17 @@
 use super::super::geometry::{Point, Segment};
 use rstar::{RTree, RTreeObject, AABB};
 
+/// A wrapper for a [`Segment`], allowing it to be inserted into an [`rstar::RTree`].
+///
+/// This enables fast spatial queries, such as finding the nearest segment
+/// to a particular point when building a signed distance field.
 #[derive(Clone, Debug)]
 pub struct SegmentValue<'a> {
 	segment: Segment<'a>,
 }
 
 impl<'a> SegmentValue<'a> {
+	/// Creates a new [`SegmentValue`] from a [`Segment`].
 	pub fn new(segment: Segment<'a>) -> Self {
 		SegmentValue { segment }
 	}
@@ -15,6 +20,8 @@ impl<'a> SegmentValue<'a> {
 impl RTreeObject for SegmentValue<'_> {
 	type Envelope = AABB<[f64; 2]>;
 
+	/// Returns the axis-aligned bounding box (AABB) covering the segment,
+	/// which is used by the R-tree for indexing.
 	fn envelope(&self) -> Self::Envelope {
 		let minx = self.segment.start.x.min(self.segment.end.x);
 		let maxx = self.segment.start.x.max(self.segment.end.x);
@@ -24,19 +31,29 @@ impl RTreeObject for SegmentValue<'_> {
 	}
 }
 
+/// Finds the shortest distance from a point `p` to any line segment in an [`RTree`],
+/// searching only segments intersecting a bounding box defined by `max_radius`.
+///
+/// This function helps optimize distance computations for glyph outline rendering:
+/// rather than searching every segment, we only look at those near the query point.
 #[inline]
 pub fn min_distance_to_line_segment(
 	rtree: &RTree<SegmentValue>,
 	p: &Point,
 	max_radius: &f64,
 ) -> f64 {
-	// We'll do a bounding box query
+	// Create a bounding box centered on `p` with side length = 2 * max_radius.
+	// This quickly filters out segments outside the maximum distance of interest.
 	let query_env = AABB::from_corners(
 		[p.x - max_radius, p.y - max_radius],
 		[p.x + max_radius, p.y + max_radius],
 	);
+
+	// Collect candidate segments in that bounding box.
 	let candidates = rtree.locate_in_envelope_intersecting(&query_env);
 
+	// Determine the squared distance from `p` to each candidate,
+	// keeping track of the minimum.
 	let mut best_sq = f64::INFINITY;
 	for candidate in candidates {
 		let seg = &candidate.segment;
@@ -46,6 +63,7 @@ pub fn min_distance_to_line_segment(
 		}
 	}
 
+	// Return the actual distance (not squared).
 	best_sq.sqrt()
 }
 

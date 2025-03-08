@@ -1,20 +1,54 @@
 use super::BUFFER;
 use crate::protobuf::PbfGlyph;
 
+/// Holds intermediate results of the glyph rendering process,
+/// including bitmap dimensions and offset bounds.
 #[derive(Debug, Default)]
 pub struct RenderResult {
+	/// The minimum and maximum x-coordinates of the rendered glyph,
+	/// relative to the coordinate space used during rendering.
 	pub x0: i32,
 	pub x1: i32,
+	/// The minimum and maximum y-coordinates of the rendered glyph.
 	pub y0: i32,
 	pub y1: i32,
 
+	/// The overall width and height of the rendered bitmap,
+	/// including any buffer or padding.
 	pub width: u32,
 	pub height: u32,
 
+	/// The rendered bitmap data, if available.
 	pub bitmap: Option<Vec<u8>>,
 }
 
 impl RenderResult {
+	/// Consumes this rendering result and produces a [`PbfGlyph`].
+	///
+	/// It subtracts the buffer from the raw width/height, then
+	/// adjusts the `left` and `top` metrics to account for that buffer,
+	/// returning a fully initialized `PbfGlyph`.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use versatiles_glyphs::renderer::render_result::RenderResult;
+	/// use versatiles_glyphs::protobuf::PbfGlyph;
+	///
+	/// let render = RenderResult {
+	///     x0: 0,
+	///     x1: 14,
+	///     y0: -7,
+	///     y1: 10,
+	///     width: 20,
+	///     height: 24,
+	///     bitmap: Some(vec![0; 20 * 24]),
+	/// };
+	///
+	/// let glyph: PbfGlyph = render.into_pbf_glyph(65, 14);
+	/// assert_eq!(glyph.id, 65);
+	/// assert_eq!(glyph.advance, 14);
+	/// ```
 	pub fn into_pbf_glyph(self, id: u32, advance: u32) -> PbfGlyph {
 		PbfGlyph {
 			id,

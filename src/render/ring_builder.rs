@@ -2,30 +2,52 @@ use crate::geometry::{Point, Ring, Rings};
 use std::mem::swap;
 use ttf_parser::OutlineBuilder;
 
+/// Implements [`ttf_parser::OutlineBuilder`] to accumulate glyph outline data
+/// into a [`Rings`] collection. Each ring represents a continuous path of
+/// points (lines or Bezier segments) in the glyph outline.
 pub struct RingBuilder {
+	/// The collection of all rings built so far.
 	rings: Rings,
+
+	/// The current active ring, being populated as outline commands arrive.
 	ring: Ring,
+
+	/// The approximation precision for Bezier curves. A smaller value increases
+	/// the number of line segments approximating each curve.
 	precision: f64,
 }
 
 impl RingBuilder {
+	/// Finalizes the current ring (if valid) and returns all built rings.
+	///
+	/// This method will automatically close and save the active ring
+	/// before returning the [`Rings`]. Once called, this builder should
+	/// no longer be used.
 	pub fn into_rings(mut self) -> Rings {
 		self.save_ring();
 		self.rings
 	}
 
+	/// Closes and validates the current ring, adds it to the collection
+	/// if it has enough points, then starts a fresh ring.
 	fn save_ring(&mut self) {
+		// Ignore any ring with fewer than 3 points (not a valid polygon).
 		if self.ring.len() < 3 {
 			self.ring.clear();
 			return;
 		}
 
+		// Close the ring by linking its last point to its first,
+		// ensuring it forms a proper loop.
 		self.ring.close();
+
+		// If, after closing, it's too short, discard it.
 		if self.ring.len() < 4 {
 			self.ring.clear();
 			return;
 		}
 
+		// Swap out the current ring and store it in `rings`.
 		let mut ring = Ring::new();
 		swap(&mut self.ring, &mut ring);
 		self.rings.add_ring(ring);
@@ -43,15 +65,20 @@ impl Default for RingBuilder {
 }
 
 impl OutlineBuilder for RingBuilder {
+	/// Moves the drawing cursor to `(x, y)`, closing any currently active ring.
 	fn move_to(&mut self, x: f32, y: f32) {
 		self.save_ring();
 		self.ring.add_point(Point::from((x, y)));
 	}
 
+	/// Draws a straight line from the current cursor to `(x, y)`.
 	fn line_to(&mut self, x: f32, y: f32) {
 		self.ring.add_point(Point::from((x, y)));
 	}
 
+	/// Draws a quadratic Bézier curve from the current cursor position
+	/// to `(x, y)`, using `(x1, y1)` as the control point. The curve
+	/// is approximated via line segments based on the builder's precision.
 	fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
 		if self.ring.is_empty() {
 			return;
@@ -65,6 +92,9 @@ impl OutlineBuilder for RingBuilder {
 		);
 	}
 
+	/// Draws a cubic Bézier curve from the current cursor position to `(x, y)`,
+	/// using `(x1, y1)` and `(x2, y2)` as control points. The curve is approximated
+	/// via line segments based on the builder's precision.
 	fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
 		if self.ring.is_empty() {
 			return;
@@ -79,6 +109,8 @@ impl OutlineBuilder for RingBuilder {
 		);
 	}
 
+	/// Closes the current ring by connecting its last point back to the first.
+	/// If the ring is valid (at least 3 points), it is saved to the collection.
 	fn close(&mut self) {
 		self.save_ring();
 	}
