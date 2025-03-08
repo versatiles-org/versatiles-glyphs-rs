@@ -1,16 +1,16 @@
-use crate::{glyph::build_glyph_outline, protobuf::PbfGlyph, renderer::RendererTrait};
+use crate::{protobuf::PbfGlyph, renderer::RendererTrait};
 use ttf_parser::Face;
+
+use super::RingBuilder;
 
 /// Generate a PBF buffer of glyphs in [start..=end].
 pub fn render_glyph(face: &Face, index: u32, renderer: &impl RendererTrait) -> Option<PbfGlyph> {
 	let cp = char::from_u32(index).unwrap();
 
-	// Check if face has a glyph for this codepoint
 	let glyph_id = face.glyph_index(cp)?;
-
-	assert!(cp as u32 == index, "Invalid codepoint: {}", index);
-
-	let mut rings = build_glyph_outline(cp, face)?;
+	let mut builder = RingBuilder::default();
+	face.outline_glyph(glyph_id, &mut builder);
+	let mut rings = builder.into_rings();
 
 	let scale = 24.0 / face.units_per_em() as f64;
 	rings.scale(scale);

@@ -1,5 +1,8 @@
 use super::file_entry::FontFileEntry;
-use crate::{glyph::render_glyph, protobuf::PbfGlyphs, renderer::RendererTrait};
+use crate::{
+	protobuf::PbfGlyphs,
+	renderer::{render_glyph, RendererTrait},
+};
 use anyhow::Result;
 use std::collections::HashMap;
 

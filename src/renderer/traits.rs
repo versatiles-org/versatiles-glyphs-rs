@@ -1,13 +1,13 @@
-use super::{SdfGlyph, BUFFER};
+use super::{RenderResult, BUFFER};
 use crate::geometry::{Point, Rings};
 
 pub trait RendererTrait
 where
 	Self: Copy + Sync + Send,
 {
-	fn render(&self, rings: Rings) -> Option<SdfGlyph>;
+	fn render(&self, rings: Rings) -> Option<RenderResult>;
 
-	fn prepare(mut rings: Rings) -> Option<(Rings, SdfGlyph)> {
+	fn prepare(mut rings: Rings) -> Option<(Rings, RenderResult)> {
 		// Calculate the real glyph bbox.
 		let bbox = rings.get_bbox();
 
@@ -27,7 +27,7 @@ where
 
 		rings.translate(&offset);
 
-		let glyph = SdfGlyph {
+		let glyph = RenderResult {
 			x0,
 			y1,
 			x1,

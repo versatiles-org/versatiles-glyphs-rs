@@ -9,14 +9,6 @@ pub struct RingBuilder {
 }
 
 impl RingBuilder {
-	pub fn new() -> Self {
-		RingBuilder {
-			rings: Rings::new(),
-			ring: Ring::new(),
-			precision: 0.01,
-		}
-	}
-
 	pub fn into_rings(mut self) -> Rings {
 		self.save_ring();
 		self.rings
@@ -37,6 +29,16 @@ impl RingBuilder {
 		let mut ring = Ring::new();
 		swap(&mut self.ring, &mut ring);
 		self.rings.add_ring(ring);
+	}
+}
+
+impl Default for RingBuilder {
+	fn default() -> Self {
+		RingBuilder {
+			rings: Rings::new(),
+			ring: Ring::new(),
+			precision: 0.01,
+		}
 	}
 }
 
@@ -88,7 +90,7 @@ mod tests {
 
 	#[test]
 	fn test_ring_builder_new() {
-		let builder = RingBuilder::new();
+		let builder = RingBuilder::default();
 		// Initially, there's one empty ring inside
 		assert!(builder.ring.is_empty());
 		// The Rings collection is empty
@@ -98,7 +100,7 @@ mod tests {
 
 	#[test]
 	fn test_drop_invalid_ring() {
-		let mut builder = RingBuilder::new();
+		let mut builder = RingBuilder::default();
 		builder.move_to(10.0, 20.0);
 		// Now the builder's current ring has one point
 		assert_eq!(builder.rings.len(), 0);
@@ -115,7 +117,7 @@ mod tests {
 
 	#[test]
 	fn test_line_to() {
-		let mut builder = RingBuilder::new();
+		let mut builder = RingBuilder::default();
 		builder.move_to(0.0, 0.0);
 		builder.line_to(1.0, 2.0);
 		builder.line_to(-1.0, 3.0);
@@ -152,7 +154,7 @@ mod tests {
 
 	#[test]
 	fn test_quad_to_when_empty_does_nothing() {
-		let mut builder = RingBuilder::new();
+		let mut builder = RingBuilder::default();
 		// We don't move_to or line_to first, so the ring is empty
 		builder.quad_to(10.0, 10.0, 20.0, 20.0);
 		// Because ring is empty, quad_to should do nothing
@@ -161,7 +163,7 @@ mod tests {
 
 	#[test]
 	fn test_quad_to_adds_curve_if_not_empty() {
-		let mut builder = RingBuilder::new();
+		let mut builder = RingBuilder::default();
 		builder.move_to(0.0, 0.0);
 		builder.quad_to(10.0, 10.0, 20.0, 0.0);
 		// The ring should now contain the subdivided curve points
@@ -176,7 +178,7 @@ mod tests {
 
 	#[test]
 	fn test_curve_to_when_empty_does_nothing() {
-		let mut builder = RingBuilder::new();
+		let mut builder = RingBuilder::default();
 		builder.curve_to(10.0, 10.0, 20.0, 20.0, 30.0, 0.0);
 		// Because ring is empty, curve_to should do nothing
 		assert!(builder.ring.is_empty());
@@ -184,7 +186,7 @@ mod tests {
 
 	#[test]
 	fn test_curve_to_adds_curve_if_not_empty() {
-		let mut builder = RingBuilder::new();
+		let mut builder = RingBuilder::default();
 		builder.move_to(0.0, 0.0);
 		builder.curve_to(10.0, 10.0, 20.0, 10.0, 30.0, 0.0);
 		// The ring should contain subdivided cubic points from (0,0) to (30,0).
@@ -196,7 +198,7 @@ mod tests {
 
 	#[test]
 	fn test_close_closes_current_ring() {
-		let mut builder = RingBuilder::new();
+		let mut builder = RingBuilder::default();
 		builder.move_to(0.0, 0.0);
 		builder.line_to(10.0, 0.0);
 		builder.line_to(20.0, 0.0);
@@ -220,7 +222,7 @@ mod tests {
 
 	#[test]
 	fn test_into_rings_moves_current_ring() {
-		let mut builder = RingBuilder::new();
+		let mut builder = RingBuilder::default();
 		builder.move_to(0.0, 0.0);
 		builder.line_to(1.0, 0.0);
 		builder.line_to(0.0, 2.0);

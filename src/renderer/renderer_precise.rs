@@ -1,6 +1,6 @@
 use super::{
 	rtree_segments::{min_distance_to_line_segment, SegmentValue},
-	RendererTrait, SdfGlyph, CUTOFF,
+	RenderResult, RendererTrait, CUTOFF,
 };
 use crate::geometry::{Point, Rings};
 use rstar::RTree;
@@ -10,7 +10,7 @@ pub struct RendererPrecise {}
 
 impl RendererTrait for RendererPrecise {
 	// https://github.com/mapbox/sdf-glyph-foundry/blob/6ed4f2099009fc8a1a324626345ceb29dcd5277c/include/mapbox/glyph_foundry_impl.hpp
-	fn render(&self, rings: Rings) -> Option<SdfGlyph> {
+	fn render(&self, rings: Rings) -> Option<RenderResult> {
 		let (rings, mut glyph) = Self::prepare(rings)?;
 
 		let width = glyph.width as usize;

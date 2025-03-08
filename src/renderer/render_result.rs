@@ -2,7 +2,7 @@ use super::BUFFER;
 use crate::protobuf::PbfGlyph;
 
 #[derive(Debug, Default)]
-pub struct SdfGlyph {
+pub struct RenderResult {
 	pub x0: i32,
 	pub x1: i32,
 	pub y0: i32,
@@ -14,7 +14,7 @@ pub struct SdfGlyph {
 	pub bitmap: Option<Vec<u8>>,
 }
 
-impl SdfGlyph {
+impl RenderResult {
 	pub fn into_pbf_glyph(self, id: u32, advance: u32) -> PbfGlyph {
 		PbfGlyph {
 			id,

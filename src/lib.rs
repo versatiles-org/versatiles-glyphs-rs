@@ -11,9 +11,6 @@ pub mod font;
 /// Geometric primitives and operations used for glyph outlines.
 pub mod geometry;
 
-/// High-level glyph representation and outline building.
-pub mod glyph;
-
 /// Protocol Buffers and their generated code for glyph data.
 pub mod protobuf;
 
