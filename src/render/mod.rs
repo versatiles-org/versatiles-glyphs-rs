@@ -20,5 +20,4 @@ pub use render_glyph::render_glyph;
 pub use renderer_dummy::RendererDummy;
 pub use renderer_precise::RendererPrecise;
 pub use result::RenderResult;
-pub use ring_builder::RingBuilder;
 pub use traits::RendererTrait;

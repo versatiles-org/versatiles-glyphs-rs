@@ -1,3 +1,5 @@
+//! Provides implementations of the [`Writer`](writer::Writer) trait for various output targets.
+
 #[cfg(test)]
 pub mod dummy;
 mod file;

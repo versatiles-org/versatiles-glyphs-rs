@@ -1,4 +1,4 @@
-use super::RingBuilder;
+use super::ring_builder::RingBuilder;
 use crate::{protobuf::PbfGlyph, render::RendererTrait};
 use ttf_parser::Face;
 

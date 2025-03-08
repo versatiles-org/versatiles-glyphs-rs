@@ -5,21 +5,76 @@ use std::{
 	time::Instant,
 };
 
+/// 1 KiB of zeros, used for padding data and finalizing the archive.
 const ZEROS_1K: [u8; 1024] = [0; 1024];
 
-/// A simple tar (POSIX.1-1988) archive writer
+/// A basic tar (POSIX.1-1988) archive writer that implements the [`Writer`] trait.
+///
+/// # Overview
+/// This writer sequentially appends files and directories to an in-progress
+/// tar archive. It accepts a generic `Write` output, making it flexible for
+/// writing to files, buffers, network streams, etc.
+///
+/// # Features
+/// - Generates minimal 512-byte headers containing filenames, file sizes,
+///   timestamps, and checksums.
+/// - Pads file data to 512-byte boundaries.
+/// - Finalizes the tar file with an additional 1024 bytes of zero padding
+///   as required by the format.
+///
+/// # Examples
+/// ```no_run
+/// use versatiles_glyphs::writer::tar::TarWriter;
+/// use versatiles_glyphs::writer::traits::Writer;
+/// use std::fs::File;
+///
+/// fn create_example_tar() -> Result<(), Box<dyn std::error::Error>> {
+///     let file = File::create("example.tar")?;
+///     let mut tar_writer = TarWriter::new(file);
+///
+///     tar_writer.write_directory("assets/")?;
+///
+///     let data = b"Hello, Tar!";
+///     tar_writer.write_file("assets/greeting.txt", data)?;
+///
+///     tar_writer.finish()?;
+///     Ok(())
+/// }
+/// ```
+///
+/// # Limitations
+/// - Does not handle extended attributes, large file sizes, or other modern
+///   tar features beyond POSIX.1-1988.
+/// - Directories must end with a slash (`"/"`).
 pub struct TarWriter<W: Write> {
+	/// A buffered writer that collects and writes tar data.
 	writer: BufWriter<W>,
 }
 
 impl<W: Write> TarWriter<W> {
+	/// Creates a new [`TarWriter`] wrapping the provided `writer`.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// # use versatiles_glyphs::writer::tar::TarWriter;
+	/// # use std::io::Cursor;
+	/// let buffer = Cursor::new(Vec::<u8>::new());
+	/// let tar_writer = TarWriter::new(buffer);
+	/// ```
 	pub fn new(writer: W) -> Self {
 		Self {
 			writer: BufWriter::new(writer),
 		}
 	}
 
-	/// Builds and writes a 512-byte tar header for a file/dir.
+	/// Builds and writes a 512-byte tar header for a file or directory.
+	///
+	/// # Parameters
+	/// - `path`: The path (file name or directory name).
+	/// - `size`: The size of the file in bytes.
+	/// - `mode`: The file mode (e.g., Unix permissions).
+	/// - `typeflag`: Indicates file (`b'0'`) or directory (`b'5'`).
 	fn write_header(&mut self, path: &str, size: u64, mode: u64, typeflag: u8) -> Result<()> {
 		let mut header = [0u8; 512];
 
@@ -48,7 +103,7 @@ impl<W: Write> TarWriter<W> {
 		header[257..263].copy_from_slice(b"ustar\0");
 		header[263..265].copy_from_slice(b"00");
 
-		// First, fill the checksum field (148..156) with spaces
+		// Fill the checksum field (148..156) with spaces
 		#[allow(clippy::needless_range_loop)]
 		for i in 148..156 {
 			header[i] = b' ';
@@ -64,6 +119,13 @@ impl<W: Write> TarWriter<W> {
 }
 
 impl<W: Write + Send + Sync> Writer for TarWriter<W> {
+	/// Writes `filename` and its associated `bytes` data as a file entry in the tar archive.
+	///
+	/// After writing the file contents, it pads to the next 512-byte boundary.
+	///
+	/// # Errors
+	///
+	/// Returns an error if writing the header or file data fails.
 	fn write_file(&mut self, filename: &str, bytes: &[u8]) -> Result<()> {
 		let size = bytes.len() as u64;
 		self.write_header(filename, size, 0o644, b'0')?;
@@ -79,12 +141,23 @@ impl<W: Write + Send + Sync> Writer for TarWriter<W> {
 		Ok(())
 	}
 
+	/// Writes a directory entry in the tar archive. The `dirname` must end with a slash.
+	///
+	/// # Errors
+	///
+	/// Returns an error if the `dirname` does not end with a slash or
+	/// if writing the header fails.
 	fn write_directory(&mut self, dirname: &str) -> Result<()> {
-		ensure!(dirname.ends_with("/"), "dirname must end with a slash");
+		ensure!(dirname.ends_with('/'), "dirname must end with a slash");
 		self.write_header(dirname, 0, 0o755, b'5')?;
 		Ok(())
 	}
 
+	/// Finalizes the tar archive by writing an extra 1024 bytes of zeros.
+	///
+	/// # Errors
+	///
+	/// Returns an error if the padding write fails.
 	fn finish(&mut self) -> Result<()> {
 		self.writer.write_all(&ZEROS_1K)?;
 		Ok(())
@@ -96,6 +169,8 @@ impl<W: Write + Send + Sync> Writer for TarWriter<W> {
 	}
 }
 
+/// Writes an octal representation of `val` into `buf`, ending with a space character.
+/// The buffer is filled from the right, and any remaining space on the left is filled with `0`.
 fn write_octal(buf: &mut [u8], mut val: u64) {
 	let len = buf.len();
 	let mut idx = len - 1; // one before the final space
@@ -107,6 +182,7 @@ fn write_octal(buf: &mut [u8], mut val: u64) {
 	}
 }
 
+/// Copies the bytes of `s` into `dest`, truncating if necessary.
 fn write_string(dest: &mut [u8], s: &str) {
 	let bytes = s.as_bytes();
 	let len = bytes.len().min(dest.len());
