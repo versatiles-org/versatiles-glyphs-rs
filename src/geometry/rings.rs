@@ -22,6 +22,7 @@ impl Default for Rings {
 	}
 }
 
+#[allow(dead_code)]
 impl Rings {
 	/// Creates an empty [`Rings`] collection with no [`Ring`]s.
 	pub fn new() -> Self {

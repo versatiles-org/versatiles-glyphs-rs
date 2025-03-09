@@ -1,11 +1,11 @@
-use anyhow::Result;
-use std::path::{self, PathBuf};
-use versatiles_glyphs::{
+use crate::{
 	font::FontManager,
 	render::Renderer,
 	utils::prepare_output_directory,
 	writer::{FileWriter, TarWriter, Writer},
 };
+use anyhow::Result;
+use std::path::{self, PathBuf};
 
 /// Subcommand arguments for merging font files.
 #[derive(clap::Args, Debug)]

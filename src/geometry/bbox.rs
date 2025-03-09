@@ -17,6 +17,7 @@ impl Default for BBox {
 	}
 }
 
+#[allow(dead_code)]
 impl BBox {
 	/// Creates a new, "empty" bounding box with `min` set to `[∞, ∞]`
 	/// and `max` set to `[-∞, -∞]`.

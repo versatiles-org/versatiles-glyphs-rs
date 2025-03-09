@@ -4,6 +4,12 @@
 //! font files into a directory or tar archive of glyphs.
 
 mod commands;
+mod font;
+mod geometry;
+mod protobuf;
+mod render;
+mod utils;
+mod writer;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};

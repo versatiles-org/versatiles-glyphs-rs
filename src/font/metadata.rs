@@ -10,6 +10,7 @@ use ttf_parser::{name_id, Face, PlatformId};
 
 use super::parse_font_name;
 
+#[allow(dead_code)]
 /// Stores extracted font properties such as `family`, `style`, and `weight`,
 /// along with a set of all supported codepoints.
 pub struct FontMetadata {

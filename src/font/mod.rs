@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 //! Font-handling module for VersaTiles Glyphs.
 //!
 //! This module offers:

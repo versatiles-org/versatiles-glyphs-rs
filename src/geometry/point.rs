@@ -10,6 +10,7 @@ pub struct Point {
 	pub y: f64,
 }
 
+#[allow(dead_code)]
 impl Point {
 	/// Creates a new [`Point`] from the given `x` and `y`.
 	pub fn new(x: f64, y: f64) -> Self {

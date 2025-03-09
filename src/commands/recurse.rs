@@ -1,14 +1,14 @@
+use crate::{
+	font::FontManager,
+	render::Renderer,
+	utils::prepare_output_directory,
+	writer::{FileWriter, TarWriter, Writer},
+};
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::{
 	fs,
 	path::{self, Path, PathBuf},
-};
-use versatiles_glyphs::{
-	font::FontManager,
-	render::Renderer,
-	utils::prepare_output_directory,
-	writer::{FileWriter, TarWriter, Writer},
 };
 
 /// Subcommand arguments for recursively scanning font files.
@@ -138,7 +138,7 @@ fn scan(path: &Path, font_manager: &mut FontManager) -> Result<()> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use versatiles_glyphs::font::FontWrapper;
+	use crate::font::FontWrapper;
 
 	fn get_names(font: &FontWrapper) -> Vec<String> {
 		let mut names = font
