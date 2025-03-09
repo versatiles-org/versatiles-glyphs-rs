@@ -1,4 +1,4 @@
-//! Provides implementations of the [`Writer`](writer::Writer) trait for various output targets.
+//! Writers for storing glyph data in files or tar archives.
 
 #[cfg(test)]
 mod dummy;

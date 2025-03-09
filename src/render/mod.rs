@@ -1,4 +1,4 @@
-//! Provides an interface for rendering glyph outlines into bitmap data.
+//! Rendering traits and implementations for generating SDF.
 //!
 //! # Overview
 //! This module defines constants and submodules related to glyph rendering

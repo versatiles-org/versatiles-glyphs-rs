@@ -1,4 +1,4 @@
-//! Utility functions and modules used throughout the application.
+//! Utility functions and structures for file paths, progress bars, etc.
 
 #[cfg(test)]
 mod decode_bitmap;

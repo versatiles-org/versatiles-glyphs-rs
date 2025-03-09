@@ -55,7 +55,7 @@ impl<'a> GlyphBlock<'a> {
 		)
 	}
 
-	/// Renders all glyphs in this block using the provided [`RendererTrait`] implementation.
+	/// Renders all glyphs in this block using the provided [`Renderer`].
 	///
 	/// A [`PbfGlyphs`] structure is created to store the glyph data, which is then serialized
 	/// into a `Vec<u8>`.

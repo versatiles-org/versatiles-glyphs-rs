@@ -1,4 +1,4 @@
-//! This module provides Protobuf-based data structures and utilities for glyph handling.
+//! Protocol Buffers and their generated code for glyph data.
 //!
 //! It contains structures for individual glyph data, font stacks, and methods for serializing
 //! or deserializing these structures as Protobuf-encoded data.

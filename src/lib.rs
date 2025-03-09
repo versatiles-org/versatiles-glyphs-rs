@@ -5,20 +5,9 @@
 //! generating metadata for fonts, making it easier to work with multiple font files
 //! in a single pipeline.
 
-/// Font parsing, management, and metadata.
 pub mod font;
-
-/// Geometric primitives and operations used for glyph outlines.
 pub mod geometry;
-
-/// Protocol Buffers and their generated code for glyph data.
 pub mod protobuf;
-
-/// Rendering traits and implementations for generating SDF.
 pub mod render;
-
-/// Utility functions and structures for file paths, progress bars, etc.
 pub mod utils;
-
-/// Writers for storing glyph data in files or tar archives.
 pub mod writer;
