@@ -6,18 +6,12 @@
 const BUFFER: i32 = 3;
 const CUTOFF: f64 = 0.25 * 256.0;
 
-mod render_glyph;
-#[cfg(test)]
+mod renderer;
 mod renderer_dummy;
 mod renderer_precise;
 mod result;
 mod ring_builder;
 mod rtree_segments;
-mod traits;
 
-pub use render_glyph::render_glyph;
-#[cfg(test)]
-pub use renderer_dummy::RendererDummy;
-pub use renderer_precise::RendererPrecise;
+pub use renderer::Renderer;
 pub use result::RenderResult;
-pub use traits::RendererTrait;

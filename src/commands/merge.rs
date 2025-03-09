@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::path::{self, PathBuf};
 use versatiles_glyphs::{
 	font::FontManager,
-	render::RendererPrecise,
+	render::Renderer,
 	utils::prepare_output_directory,
 	writer::{FileWriter, TarWriter, Writer},
 };
@@ -43,6 +43,10 @@ pub struct Subcommand {
 	/// Skip writing the `index.json` file.
 	#[arg(long)]
 	no_index: bool,
+
+	/// Hidden argument to allow specifying the dummy renderer.
+	#[arg(long, hide = true)]
+	dummy: bool,
 }
 
 /// Executes the merge subcommand logic.
@@ -69,8 +73,10 @@ pub fn run(args: &Subcommand) -> Result<()> {
 		Box::new(FileWriter::new(path::absolute(out_dir)?))
 	};
 
+	let renderer = Renderer::new(args.dummy);
+
 	// Render glyphs and optionally write index/family files.
-	font_manager.render_glyphs(&mut writer, &RendererPrecise {})?;
+	font_manager.render_glyphs(&mut writer, &renderer)?;
 	if !args.no_index {
 		font_manager.write_index_json(&mut writer)?;
 	}

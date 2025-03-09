@@ -6,7 +6,7 @@ use std::{
 };
 use versatiles_glyphs::{
 	font::FontManager,
-	render::RendererPrecise,
+	render::Renderer,
 	utils::prepare_output_directory,
 	writer::{FileWriter, TarWriter, Writer},
 };
@@ -47,6 +47,10 @@ pub struct Subcommand {
 	/// Skip writing the `index.json` file.
 	#[arg(long)]
 	no_index: bool,
+
+	/// Hidden argument to allow specifying the dummy renderer.
+	#[arg(long, hide = true)]
+	dummy: bool,
 }
 
 /// Describes the structure of a `fonts.json` for merged font sets.
@@ -81,7 +85,9 @@ pub fn run(args: &Subcommand) -> Result<()> {
 		Box::new(FileWriter::new(path::absolute(out_dir)?))
 	};
 
-	font_manager.render_glyphs(&mut writer, &RendererPrecise {})?;
+	let renderer = Renderer::new(args.dummy);
+
+	font_manager.render_glyphs(&mut writer, &renderer)?;
 	if !args.no_index {
 		font_manager.write_index_json(&mut writer)?;
 	}

@@ -49,6 +49,8 @@ impl FontFamily {
 /// spanned by the provided Unicode codepoints. Each 16-codepoint “block” is
 /// identified by `(codepoint >> 4)`—i.e., the upper bits beyond the last 4 bits.
 ///
+/// See also: https://www.unicode.org/Public/UCD/latest/ucd/Blocks.txt
+///
 /// # How It Works
 /// 1. Every codepoint `cp` is mapped to `cp >> 4`, grouping sets of 16 consecutive codepoints (e.g., `0x0000..=0x000F` = block `0x0`).
 /// 2. Consecutive block indices are merged into ranges. For instance, blocks `0,1,2,3` become `"0-3"`.

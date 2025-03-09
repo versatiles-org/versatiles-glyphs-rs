@@ -1,7 +1,7 @@
 use super::index_files::{build_font_families_json, build_index_json};
 use crate::{
 	font::{FontFileEntry, FontWrapper, GlyphBlock},
-	render::RendererTrait,
+	render::Renderer,
 	utils::get_progress_bar,
 	writer::Writer,
 };
@@ -68,11 +68,7 @@ impl<'a> FontManager<'a> {
 	/// writing each glyph block to the supplied writer.
 	///
 	/// Rendering is parallelized with `rayon` for performance.
-	pub fn render_glyphs(
-		&'a self,
-		writer: &mut Box<dyn Writer>,
-		renderer: &impl RendererTrait,
-	) -> Result<()> {
+	pub fn render_glyphs(&'a self, writer: &mut Box<dyn Writer>, renderer: &Renderer) -> Result<()> {
 		struct Todo<'block> {
 			name: String,
 			block: GlyphBlock<'block>,
@@ -138,7 +134,7 @@ fn name_to_id(name: &str) -> String {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{render::RendererDummy, writer::dummy::DummyWriter};
+	use crate::writer::dummy::DummyWriter;
 
 	fn get_test_paths() -> Vec<PathBuf> {
 		let d = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");
@@ -157,7 +153,7 @@ mod tests {
 
 		assert_eq!(manager.fonts.len(), 2);
 		let mut writer: Box<dyn Writer> = Box::new(DummyWriter::default());
-		manager.render_glyphs(&mut writer, &RendererDummy {})?;
+		manager.render_glyphs(&mut writer, &Renderer::new_dummy())?;
 
 		let mut files = writer.get_inner().unwrap().to_vec();
 		files.sort_unstable();

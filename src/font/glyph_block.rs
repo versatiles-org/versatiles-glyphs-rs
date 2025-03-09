@@ -1,8 +1,5 @@
 use super::file_entry::FontFileEntry;
-use crate::{
-	protobuf::PbfGlyphs,
-	render::{render_glyph, RendererTrait},
-};
+use crate::{protobuf::PbfGlyphs, render::Renderer};
 use anyhow::Result;
 use std::collections::HashMap;
 
@@ -66,12 +63,12 @@ impl<'a> GlyphBlock<'a> {
 	/// # Errors
 	///
 	/// Returns an error if glyph rendering fails.
-	pub fn render(&self, font_name: String, renderer: &impl RendererTrait) -> Result<Vec<u8>> {
+	pub fn render(&self, font_name: String, renderer: &Renderer) -> Result<Vec<u8>> {
 		let mut glyphs = PbfGlyphs::new(font_name, self.range());
 
 		for (char_index, font_entry) in &self.glyphs {
 			let codepoint = self.start_index + (*char_index as u32);
-			if let Some(glyph) = render_glyph(&font_entry.face, codepoint, renderer) {
+			if let Some(glyph) = renderer.render_glyph(&font_entry.face, codepoint) {
 				glyphs.push(glyph);
 			}
 		}
@@ -90,7 +87,6 @@ impl<'a> GlyphBlock<'a> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::render::RendererDummy;
 
 	const VALID_FONT: &[u8] = include_bytes!("../../testdata/Fira Sans - Regular.ttf");
 
@@ -129,7 +125,7 @@ mod tests {
 		let font_entry = create_font_file_entry();
 		block.set_glyph_font(65, &font_entry);
 
-		let render_result = block.render("TestFont".to_string(), &RendererDummy {});
+		let render_result = block.render("TestFont".to_string(), &Renderer::new_dummy());
 		assert!(render_result.is_ok());
 		let out_data = render_result.unwrap();
 		assert!(!out_data.is_empty());
