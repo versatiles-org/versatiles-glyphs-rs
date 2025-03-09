@@ -6,17 +6,18 @@ use crate::protobuf::PbfGlyph;
 #[allow(dead_code)]
 #[derive(Debug, Default)]
 pub struct RenderResult {
-	/// The minimum and maximum x-coordinates of the rendered glyph,
-	/// relative to the coordinate space used during rendering.
+	/// The minimum x-coordinates of the rendered glyph.
 	pub x0: i32,
+	/// The maximum x-coordinates of the rendered glyph.
 	pub x1: i32,
-	/// The minimum and maximum y-coordinates of the rendered glyph.
+	/// The minimum y-coordinates of the rendered glyph.
 	pub y0: i32,
+	/// The maximum y-coordinates of the rendered glyph.
 	pub y1: i32,
 
-	/// The overall width and height of the rendered bitmap,
-	/// including any buffer or padding.
+	/// The width of the rendered bitmap, including any buffer or padding.
 	pub width: u32,
+	/// The height of the rendered bitmap, including any buffer or padding.
 	pub height: u32,
 
 	/// The rendered bitmap data, if available.

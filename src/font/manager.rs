@@ -19,10 +19,12 @@ use std::{
 pub struct FontManager<'a> {
 	/// Mapping from a font identifier to a [`FontWrapper`].
 	pub fonts: HashMap<String, FontWrapper<'a>>,
+	/// Whether to parallelize rendering operations.
 	pub parallel: bool,
 }
 
 impl<'a> FontManager<'a> {
+	/// Creates a new `FontManager` with the specified parallel rendering setting.
 	pub fn new(parallel: bool) -> Self {
 		Self {
 			fonts: HashMap::new(),

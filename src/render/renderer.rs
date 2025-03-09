@@ -12,11 +12,13 @@ enum RendererMode {
 }
 
 #[derive(Debug, Clone)]
+/// A renderer for creating signed distance fields (SDF) from glyph outlines.
 pub struct Renderer {
 	mode: RendererMode,
 }
 
 impl Renderer {
+	/// Creates a new renderer with the specified mode.
 	pub fn new(dummy: bool) -> Self {
 		if dummy {
 			Renderer::new_dummy()
@@ -24,11 +26,13 @@ impl Renderer {
 			Renderer::new_precise()
 		}
 	}
+	/// Creates a new renderer with the precise mode.
 	pub fn new_precise() -> Self {
 		Renderer {
 			mode: RendererMode::Precise,
 		}
 	}
+	/// Creates a new renderer with the dummy mode.
 	pub fn new_dummy() -> Self {
 		Renderer {
 			mode: RendererMode::Dummy,
