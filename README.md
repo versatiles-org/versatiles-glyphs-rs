@@ -113,7 +113,7 @@ You can find the latest documentation at [docs.rs/versatiles_glyphs](https://doc
 - Font files of the same font (e.g. when a font is split into multiple files, each for a different language) are combined in a [`FontWrapper`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontWrapper.html).
 - The [`FontManager`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontManager.html) can [render all glyphs and write them](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontManager.html#method.render_glyphs) to one of two [`Writer`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/writer/trait.Writer.html)s: [`FileWriter`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/writer/struct.FileWriter.html) or [`TarWriter`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/writer/struct.TarWriter.html)
 - Glyphs are rendered serially per [`GlyphBlock`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.GlyphBlock.html). Each block contains a maximum of 256 glyphs. The blocks are rendered in parallel.
-- A single glyph is rendered with [`render_glyph`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/render/fn.render_glyph.html) using [`RendererPrecise`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/render/struct.RendererPrecise.html).
+- A single glyph is rendered with [`render_glyph`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/render/struct.Renderer.html#method.render_glyph) from [`Renderer::new_precise()`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/render/struct.Renderer.html#method.new_precise).
 
 ### Font Metrics & Precision
 

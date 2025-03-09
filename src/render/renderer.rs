@@ -32,7 +32,7 @@ impl Renderer {
 			mode: RendererMode::Precise,
 		}
 	}
-	/// Creates a new renderer with the dummy mode.
+	/// Creates a new renderer with the dummy mode. This mode generates empty bitmaps and is used for testing.
 	pub fn new_dummy() -> Self {
 		Renderer {
 			mode: RendererMode::Dummy,
