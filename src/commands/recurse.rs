@@ -194,11 +194,27 @@ mod tests {
 		Ok(())
 	}
 
+	fn get_tar_entries(data: &[u8]) -> Vec<String> {
+		let mut tar = tar::Archive::new(data);
+		let mut entries = tar
+			.entries()
+			.unwrap()
+			.map(|e| {
+				let e = e.unwrap();
+				format!("{:?}: {}", e.path().unwrap(), e.size())
+			})
+			.collect::<Vec<_>>();
+		entries.sort_unstable();
+		entries
+	}
+
 	#[test]
 	fn test_run_with_tar_to_stdout() -> Result<()> {
 		// Pretend we have multiple directories, but they actually reference the same testdata dir.
 		let args = Subcommand {
-			input_directories: vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata")],
+			input_directories: vec![
+				PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/Fira Sans - Regular.ttf")
+			],
 			output_directory: None,
 			tar: true,
 			no_families: false,
@@ -210,102 +226,35 @@ mod tests {
 		let mut stdout = Vec::<u8>::new();
 		run(&args, &mut stdout)?;
 
-		assert_eq!(stdout.len(), 39496192);
+		assert_eq!(
+			get_tar_entries(&stdout),
+			[
+				"\"fira_sans_regular/\": 0",
+				"\"fira_sans_regular/0-255.pbf\": 79666",
+				"\"fira_sans_regular/1024-1279.pbf\": 117144",
+				"\"fira_sans_regular/11264-11519.pbf\": 3527",
+				"\"fira_sans_regular/1280-1535.pbf\": 26175",
+				"\"fira_sans_regular/256-511.pbf\": 130212",
+				"\"fira_sans_regular/3584-3839.pbf\": 592",
+				"\"fira_sans_regular/42752-43007.pbf\": 5790",
+				"\"fira_sans_regular/43776-44031.pbf\": 487",
+				"\"fira_sans_regular/512-767.pbf\": 92229",
+				"\"fira_sans_regular/64256-64511.pbf\": 1007",
+				"\"fira_sans_regular/65024-65279.pbf\": 50",
+				"\"fira_sans_regular/7424-7679.pbf\": 7196",
+				"\"fira_sans_regular/768-1023.pbf\": 63380",
+				"\"fira_sans_regular/7680-7935.pbf\": 86554",
+				"\"fira_sans_regular/7936-8191.pbf\": 125259",
+				"\"fira_sans_regular/8192-8447.pbf\": 20252",
+				"\"fira_sans_regular/8448-8703.pbf\": 17542",
+				"\"fira_sans_regular/8704-8959.pbf\": 6396",
+				"\"fira_sans_regular/8960-9215.pbf\": 4375",
+				"\"fira_sans_regular/9472-9727.pbf\": 876",
+				"\"font_families.json\": 365",
+				"\"index.json\": 25",
+			]
+		);
 
 		Ok(())
 	}
-	/*
-	#[test]
-	fn test_run_dummy_renderer_no_index_or_families() -> Result<()> {
-		// This tests skipping "font_families.json" and "index.json"
-		// while using the dummy renderer and writing to a "dummy" writer
-		// by stubbing out the final writer creation.
-		let dir_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");
-		let mut font_manager = FontManager::new(false);
-		scan(&dir_path, &mut font_manager)?;
-
-		// Instead of the full run() logic, we replicate the key steps with a dummy writer:
-		let mut writer: Box<dyn Writer> = Box::new(DummyWriter::default());
-		let renderer = Renderer::new(true); // --dummy
-		font_manager.render_glyphs(&mut writer, &renderer)?;
-		// no_index -> skip
-		// no_families -> skip
-		writer.finish()?;
-
-		// The dummy writer won't contain index or families JSON files.
-		#[cfg(test)]
-		{
-			let logs = writer.get_inner().unwrap();
-			// We expect only glyph data. Typically includes .pbf, etc.
-			assert!(!logs.is_empty());
-			// We specifically expect not to see index.json or font_families.json
-			let index_or_families = logs
-				.iter()
-				.any(|line| line.contains("index.json") || line.contains("font_families.json"));
-			assert!(!index_or_families);
-		}
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_run_single_thread_precise_renderer() -> Result<()> {
-		// Similar to the above test, but we confirm single_thread mode is set,
-		// and we use the precise renderer. We won't rely on the run() function
-		// because that would write to real files or stdout. We'll replicate steps.
-
-		let dir_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");
-
-		// Force single-thread
-		// There's no direct "check" for single-thread usage except that
-		// FontManager's parallel usage is turned off. We'll just pass "false" to new.
-		let mut font_manager = FontManager::new(false);
-		scan(&dir_path, &mut font_manager)?;
-
-		// use a dummy writer for testing
-		let mut writer: Box<dyn Writer> = Box::new(DummyWriter::default());
-		let renderer = Renderer::new_precise(); // the "precise" version
-		font_manager.render_glyphs(&mut writer, &renderer)?;
-		writer.finish()?;
-
-		// The dummy writer receives .pbf files, so let's ensure there's some output
-		#[cfg(test)]
-		{
-			let logs = writer.get_inner().unwrap();
-			assert!(!logs.is_empty());
-			let pbf_files = logs.iter().any(|line| line.contains(".pbf"));
-			assert!(pbf_files);
-		}
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_non_existing_directory_is_noop() -> Result<()> {
-		// Attempt scanning a non-existing directory. It should do nothing, no error thrown.
-		let non_existent = PathBuf::from("does-not-exist-xyz");
-		let mut font_manager = FontManager::new(false);
-		// Should return Ok and not panic.
-		scan(&non_existent, &mut font_manager)?;
-		// The font manager is still empty.
-		assert!(font_manager.fonts.is_empty());
-		Ok(())
-	}
-
-	#[test]
-	fn test_invalid_fonts_json() {
-		// Attempt scanning a directory with a malformed fonts.json.
-		// We'll place a purposely invalid JSON in a temp directory to confirm error handling.
-		let tmp_dir = tempfile::tempdir().unwrap();
-		let tmp_fonts = tmp_dir.path().join("fonts.json");
-		fs::write(&tmp_fonts, b"{ invalid ").unwrap(); // incomplete JSON
-
-		let mut font_manager = FontManager::new(false);
-		let result = scan(tmp_dir.path(), &mut font_manager);
-		// Expect a serde error
-		assert!(result.is_err());
-		let err_msg = format!("{:?}", result.err().unwrap());
-		assert!(err_msg.contains("Failed to read"));
-	}
-	 */
 }

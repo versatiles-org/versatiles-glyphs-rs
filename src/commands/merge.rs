@@ -90,3 +90,72 @@ pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static))
 
 	Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	fn get_tar_entries(data: &[u8]) -> Vec<String> {
+		let mut tar = tar::Archive::new(data);
+		let mut entries = tar
+			.entries()
+			.unwrap()
+			.map(|e| {
+				let e = e.unwrap();
+				format!("{:?}: {}", e.path().unwrap(), e.size())
+			})
+			.collect::<Vec<_>>();
+		entries.sort_unstable();
+		entries
+	}
+
+	#[test]
+	fn test_run_with_tar_to_stdout() -> Result<()> {
+		// Pretend we have multiple directories, but they actually reference the same testdata dir.
+		let args = Subcommand {
+			input_files: vec![
+				PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/Fira Sans - Regular.ttf")
+			],
+			output_directory: None,
+			tar: true,
+			no_families: false,
+			no_index: false,
+			dummy: true,
+			single_thread: false,
+		};
+
+		let mut stdout = Vec::<u8>::new();
+		run(&args, &mut stdout)?;
+
+		assert_eq!(
+			get_tar_entries(&stdout),
+			[
+				"\"fira_sans_regular/\": 0",
+				"\"fira_sans_regular/0-255.pbf\": 79666",
+				"\"fira_sans_regular/1024-1279.pbf\": 117144",
+				"\"fira_sans_regular/11264-11519.pbf\": 3527",
+				"\"fira_sans_regular/1280-1535.pbf\": 26175",
+				"\"fira_sans_regular/256-511.pbf\": 130212",
+				"\"fira_sans_regular/3584-3839.pbf\": 592",
+				"\"fira_sans_regular/42752-43007.pbf\": 5790",
+				"\"fira_sans_regular/43776-44031.pbf\": 487",
+				"\"fira_sans_regular/512-767.pbf\": 92229",
+				"\"fira_sans_regular/64256-64511.pbf\": 1007",
+				"\"fira_sans_regular/65024-65279.pbf\": 50",
+				"\"fira_sans_regular/7424-7679.pbf\": 7196",
+				"\"fira_sans_regular/768-1023.pbf\": 63380",
+				"\"fira_sans_regular/7680-7935.pbf\": 86554",
+				"\"fira_sans_regular/7936-8191.pbf\": 125259",
+				"\"fira_sans_regular/8192-8447.pbf\": 20252",
+				"\"fira_sans_regular/8448-8703.pbf\": 17542",
+				"\"fira_sans_regular/8704-8959.pbf\": 6396",
+				"\"fira_sans_regular/8960-9215.pbf\": 4375",
+				"\"fira_sans_regular/9472-9727.pbf\": 876",
+				"\"font_families.json\": 365",
+				"\"index.json\": 25",
+			]
+		);
+
+		Ok(())
+	}
+}
