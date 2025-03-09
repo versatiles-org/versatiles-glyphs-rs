@@ -47,6 +47,10 @@ pub struct Subcommand {
 	/// Hidden argument to allow specifying the dummy renderer.
 	#[arg(long, hide = true)]
 	dummy: bool,
+
+	/// Hidden argument to render glyphs in just a single thread.
+	#[arg(long, hide = true)]
+	single_thread: bool,
 }
 
 /// Executes the merge subcommand logic.
@@ -54,7 +58,7 @@ pub struct Subcommand {
 /// Collects fonts, initializes a [`FontManager`], and writes glyph data
 /// either to a directory or stdout tar.
 pub fn run(args: &Subcommand) -> Result<()> {
-	let mut font_manager = FontManager::default();
+	let mut font_manager = FontManager::new(!args.single_thread);
 
 	// Canonicalize all input paths before adding to the FontManager.
 	let input_paths: Vec<PathBuf> = args

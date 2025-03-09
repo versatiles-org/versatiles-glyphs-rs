@@ -16,13 +16,20 @@ use std::{
 
 /// Manages a collection of fonts and provides methods to render glyphs
 /// and write metadata (index/families) files.
-#[derive(Default)]
 pub struct FontManager<'a> {
 	/// Mapping from a font identifier to a [`FontWrapper`].
 	pub fonts: HashMap<String, FontWrapper<'a>>,
+	pub parallel: bool,
 }
 
 impl<'a> FontManager<'a> {
+	pub fn new(parallel: bool) -> Self {
+		Self {
+			fonts: HashMap::new(),
+			parallel,
+		}
+	}
+
 	/// Adds a single font file to the manager by path.
 	///
 	/// The font name is normalized to form a key used in [`self.fonts`].
@@ -91,8 +98,7 @@ impl<'a> FontManager<'a> {
 		let progress = get_progress_bar(total_glyphs);
 		let writer_mutex = Mutex::new(writer);
 
-		// Parallel iteration for rendering.
-		tasks.par_iter().for_each(|todo| {
+		let op = |todo: &Todo| {
 			let file_name = format!("{}/{}", todo.name, todo.block.filename());
 			let data = todo.block.render(todo.name.clone(), renderer).unwrap();
 
@@ -104,7 +110,13 @@ impl<'a> FontManager<'a> {
 				.unwrap();
 
 			progress.inc(todo.block.len() as u64);
-		});
+		};
+
+		if self.parallel {
+			tasks.par_iter().for_each(op);
+		} else {
+			tasks.iter().for_each(op);
+		}
 
 		progress.finish();
 		Ok(())
@@ -148,7 +160,7 @@ mod tests {
 
 	#[test]
 	fn test_render_glyphs() -> Result<()> {
-		let mut manager = FontManager::default();
+		let mut manager = FontManager::new(false);
 		manager.add_paths(&get_test_paths())?;
 
 		assert_eq!(manager.fonts.len(), 2);
@@ -227,7 +239,7 @@ mod tests {
 
 	#[test]
 	fn test_write_families_json() -> Result<()> {
-		let mut manager = FontManager::default();
+		let mut manager = FontManager::new(false);
 		manager.add_paths(&get_test_paths())?;
 
 		assert_eq!(manager.fonts.len(), 2);
@@ -247,7 +259,7 @@ mod tests {
 
 	#[test]
 	fn test_write_index_json() -> Result<()> {
-		let mut manager = FontManager::default();
+		let mut manager = FontManager::new(false);
 		manager.add_paths(&get_test_paths())?;
 
 		assert_eq!(manager.fonts.len(), 2);

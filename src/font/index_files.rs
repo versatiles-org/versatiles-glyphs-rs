@@ -146,7 +146,7 @@ mod tests {
 
 	#[test]
 	fn test_build_index_json() -> Result<()> {
-		let mut manager = FontManager::default();
+		let mut manager = FontManager::new(false);
 		manager.add_paths(&[
 			PathBuf::from("./testdata/Fira Sans - Regular.ttf"),
 			PathBuf::from("./testdata/Noto Sans/Noto Sans - Regular.ttf"),
@@ -169,7 +169,7 @@ mod tests {
 
 	#[test]
 	fn test_build_font_families_json() -> Result<()> {
-		let mut manager = FontManager::default();
+		let mut manager = FontManager::new(false);
 		manager.add_paths(&[
 			PathBuf::from("./testdata/Fira Sans - Regular.ttf"),
 			PathBuf::from("./testdata/Noto Sans/Noto Sans - Regular.ttf"),

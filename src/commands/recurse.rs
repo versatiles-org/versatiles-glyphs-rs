@@ -51,6 +51,10 @@ pub struct Subcommand {
 	/// Hidden argument to allow specifying the dummy renderer.
 	#[arg(long, hide = true)]
 	dummy: bool,
+
+	/// Hidden argument to render glyphs in just a single thread.
+	#[arg(long, hide = true)]
+	single_thread: bool,
 }
 
 /// Describes the structure of a `fonts.json` for merged font sets.
@@ -68,7 +72,7 @@ struct FontConfig {
 /// merges fonts into a [`FontManager`]. The glyph data is written
 /// either to a directory or stdout tar.
 pub fn run(args: &Subcommand) -> Result<()> {
-	let mut font_manager = FontManager::default();
+	let mut font_manager = FontManager::new(!args.single_thread);
 
 	for dir in &args.input_directories {
 		let canonical = path::absolute(dir)?.canonicalize()?;
@@ -149,7 +153,7 @@ mod tests {
 	#[test]
 	fn test_scan() -> Result<()> {
 		let dir_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");
-		let mut font_manager = FontManager::default();
+		let mut font_manager = FontManager::new(false);
 		scan(&dir_path, &mut font_manager)?;
 
 		let mut keys = font_manager.fonts.keys().collect::<Vec<_>>();
