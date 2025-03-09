@@ -1,11 +1,9 @@
-use crate::{
-	font::FontManager,
-	render::Renderer,
-	utils::prepare_output_directory,
-	writer::{FileWriter, TarWriter, Writer},
-};
+use crate::{font::FontManager, render::Renderer, utils::prepare_output_directory, writer::Writer};
 use anyhow::Result;
-use std::path::{self, PathBuf};
+use std::{
+	io::Write,
+	path::{self, PathBuf},
+};
 
 /// Subcommand arguments for merging font files.
 #[derive(clap::Args, Debug)]
@@ -57,7 +55,7 @@ pub struct Subcommand {
 ///
 /// Collects fonts, initializes a [`FontManager`], and writes glyph data
 /// either to a directory or stdout tar.
-pub fn run(args: &Subcommand) -> Result<()> {
+pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static)) -> Result<()> {
 	let mut font_manager = FontManager::new(!args.single_thread);
 
 	// Canonicalize all input paths before adding to the FontManager.
@@ -68,13 +66,13 @@ pub fn run(args: &Subcommand) -> Result<()> {
 		.collect::<Result<Vec<_>>>()?;
 	font_manager.add_paths(&input_paths)?;
 
-	let mut writer: Box<dyn Writer> = if args.tar {
+	let mut writer = if args.tar {
 		eprintln!("Rendering glyphs as tar to stdout.");
-		Box::new(TarWriter::new(std::io::stdout()))
+		Writer::new_tar(stdout)
 	} else {
 		let out_dir = prepare_output_directory(args.output_directory.as_deref().unwrap_or("output"))?;
 		eprintln!("Rendering glyphs to directory: {:?}", out_dir);
-		Box::new(FileWriter::new(path::absolute(out_dir)?))
+		Writer::new_file(path::absolute(out_dir)?)
 	};
 
 	let renderer = Renderer::new(args.dummy);
@@ -89,5 +87,6 @@ pub fn run(args: &Subcommand) -> Result<()> {
 	}
 
 	writer.finish()?;
+
 	Ok(())
 }

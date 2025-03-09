@@ -35,7 +35,8 @@ enum Commands {
 fn main() -> Result<()> {
 	let cli = Cli::parse();
 	match &cli.command {
-		Commands::Merge(args) => commands::merge::run(args),
-		Commands::Recurse(args) => commands::recurse::run(args),
-	}
+		Commands::Merge(args) => commands::merge::run(args, &mut std::io::stdout())?,
+		Commands::Recurse(args) => commands::recurse::run(args, &mut std::io::stdout())?,
+	};
+	Ok(())
 }

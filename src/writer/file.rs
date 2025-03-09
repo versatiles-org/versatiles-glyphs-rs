@@ -1,4 +1,4 @@
-use super::traits::Writer;
+use super::WriterTrait;
 use anyhow::{Context, Result};
 use std::{fs::create_dir_all, path::PathBuf};
 
@@ -29,7 +29,7 @@ impl FileWriter {
 	}
 }
 
-impl Writer for FileWriter {
+impl WriterTrait for FileWriter {
 	/// Creates (or overwrites) a file with the given `file_name`
 	/// under the writer's root folder, writing the provided `bytes`.
 	///

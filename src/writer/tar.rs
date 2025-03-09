@@ -1,4 +1,4 @@
-use super::traits::Writer;
+use super::WriterTrait;
 use anyhow::{ensure, Result};
 use std::{
 	io::{BufWriter, Write},
@@ -118,7 +118,7 @@ impl<W: Write> TarWriter<W> {
 	}
 }
 
-impl<W: Write + Send + Sync> Writer for TarWriter<W> {
+impl<W: Write + Send + Sync> WriterTrait for TarWriter<W> {
 	/// Writes `filename` and its associated `bytes` data as a file entry in the tar archive.
 	///
 	/// After writing the file contents, it pads to the next 512-byte boundary.
@@ -160,6 +160,7 @@ impl<W: Write + Send + Sync> Writer for TarWriter<W> {
 	/// Returns an error if the padding write fails.
 	fn finish(&mut self) -> Result<()> {
 		self.writer.write_all(&ZEROS_1K)?;
+		self.writer.flush()?;
 		Ok(())
 	}
 

@@ -1,4 +1,4 @@
-use super::traits::Writer;
+use super::WriterTrait;
 use anyhow::Result;
 use regex_lite::Regex;
 
@@ -15,7 +15,7 @@ pub struct DummyWriter {
 	data: Vec<String>,
 }
 
-impl Writer for DummyWriter {
+impl WriterTrait for DummyWriter {
 	/// Simulates writing a file by recording either the file name
 	/// and its JSON content (condensed), or the file name with
 	/// the number of bytes.

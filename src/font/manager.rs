@@ -75,7 +75,7 @@ impl<'a> FontManager<'a> {
 	/// writing each glyph block to the supplied writer.
 	///
 	/// Rendering is parallelized with `rayon` for performance.
-	pub fn render_glyphs(&'a self, writer: &mut Box<dyn Writer>, renderer: &Renderer) -> Result<()> {
+	pub fn render_glyphs(&'a self, writer: &mut Writer, renderer: &Renderer) -> Result<()> {
 		struct Todo<'block> {
 			name: String,
 			block: GlyphBlock<'block>,
@@ -123,13 +123,13 @@ impl<'a> FontManager<'a> {
 	}
 
 	/// Writes an index of all font IDs to `index.json`.
-	pub fn write_index_json(&self, writer: &mut Box<dyn Writer>) -> Result<()> {
+	pub fn write_index_json(&self, writer: &mut Writer) -> Result<()> {
 		let content = build_index_json(self.fonts.keys())?;
 		writer.write_file("index.json", &content)
 	}
 
 	/// Writes a list of font families and their styles/weights to `font_families.json`.
-	pub fn write_families_json(&self, writer: &mut Box<dyn Writer>) -> Result<()> {
+	pub fn write_families_json(&self, writer: &mut Writer) -> Result<()> {
 		let content = build_font_families_json(self.fonts.iter())?;
 		writer.write_file("font_families.json", &content)
 	}
@@ -146,7 +146,6 @@ fn name_to_id(name: &str) -> String {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::writer::dummy::DummyWriter;
 
 	fn get_test_paths() -> Vec<PathBuf> {
 		let d = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");
@@ -164,7 +163,7 @@ mod tests {
 		manager.add_paths(&get_test_paths())?;
 
 		assert_eq!(manager.fonts.len(), 2);
-		let mut writer: Box<dyn Writer> = Box::new(DummyWriter::default());
+		let mut writer = Writer::new_dummy();
 		manager.render_glyphs(&mut writer, &Renderer::new_dummy())?;
 
 		let mut files = writer.get_inner().unwrap().to_vec();
@@ -243,7 +242,7 @@ mod tests {
 		manager.add_paths(&get_test_paths())?;
 
 		assert_eq!(manager.fonts.len(), 2);
-		let mut writer: Box<dyn Writer> = Box::new(DummyWriter::default());
+		let mut writer = Writer::new_dummy();
 		manager.write_families_json(&mut writer)?;
 
 		let mut files = writer.get_inner().unwrap().to_vec();
@@ -263,7 +262,7 @@ mod tests {
 		manager.add_paths(&get_test_paths())?;
 
 		assert_eq!(manager.fonts.len(), 2);
-		let mut writer: Box<dyn Writer> = Box::new(DummyWriter::default());
+		let mut writer = Writer::new_dummy();
 		manager.write_index_json(&mut writer)?;
 
 		let mut files = writer.get_inner().unwrap().to_vec();
