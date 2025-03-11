@@ -1,4 +1,4 @@
-use super::glyph::Glyph;
+use super::glyph::PbfGlyph;
 use prost::{alloc, Message};
 
 /// A collection of glyph information for a particular fontstack.
@@ -21,7 +21,7 @@ pub struct Fontstack {
 	/// A list of [`Glyph`] structs describing individual glyph data,
 	/// such as their bitmap, dimensions, offsets, and advance width.
 	#[prost(message, repeated, tag = "3")]
-	pub glyphs: alloc::vec::Vec<Glyph>,
+	pub glyphs: alloc::vec::Vec<PbfGlyph>,
 }
 
 impl Fontstack {
@@ -65,7 +65,7 @@ mod tests {
 		let mut fontstack = Fontstack::new("TestStack".to_string(), "100-200".to_string());
 
 		// Create a few glyphs
-		let glyph_a = Glyph {
+		let glyph_a = PbfGlyph {
 			id: 65,
 			bitmap: Some(vec![1, 2, 3]),
 			width: 12,
@@ -74,7 +74,7 @@ mod tests {
 			top: 8,
 			advance: 14,
 		};
-		let glyph_b = Glyph {
+		let glyph_b = PbfGlyph {
 			id: 66,
 			bitmap: None,
 			width: 10,
@@ -92,7 +92,7 @@ mod tests {
 
 		assert_eq!(
 			format!("{decoded_fontstack:?}"),
-			 "Fontstack { name: \"TestStack\", range: \"100-200\", glyphs: [Glyph { id: 65, bitmap: Some([1, 2, 3]), width: 12, height: 15, left: -1, top: 8, advance: 14 }, Glyph { id: 66, bitmap: None, width: 10, height: 11, left: 0, top: 5, advance: 12 }] }"
+			 "Fontstack { name: \"TestStack\", range: \"100-200\", glyphs: [PbfGlyph { id: 65, bitmap: Some([1, 2, 3]), width: 12, height: 15, left: -1, top: 8, advance: 14 }, PbfGlyph { id: 66, bitmap: None, width: 10, height: 11, left: 0, top: 5, advance: 12 }] }"
 		);
 	}
 }
