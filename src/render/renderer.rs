@@ -2,7 +2,10 @@ use super::{
 	renderer_dummy::renderer_dummy, renderer_precise::renderer_precise, ring_builder::RingBuilder,
 	RenderResult, BUFFER,
 };
-use crate::{geometry::Rings, protobuf::PbfGlyph};
+use crate::{
+	geometry::{Point, Rings},
+	protobuf::PbfGlyph,
+};
 use ttf_parser::Face;
 
 #[derive(Debug, Clone)]
@@ -97,13 +100,18 @@ impl Renderer {
 		face.outline_glyph(glyph_id, &mut builder);
 		let mut rings = builder.into_rings();
 
-		let advance = (face.glyph_hor_advance(glyph_id).unwrap() as f64 * scale).round() as u32;
+		let advance_float = face.glyph_hor_advance(glyph_id).unwrap() as f64 * scale * 0.95;
+		let advance = advance_float.round() as u32;
 
 		if rings.is_empty() {
 			return Some(PbfGlyph::empty(index, advance));
 		}
 
 		rings.scale(scale);
+
+		// Center the glyph to compensate for the rounding error
+		let dx = (advance as f64 - advance_float) / 2.0;
+		rings.translate(&Point::new(dx, 0.0));
 
 		let mut glyph = if let Some(g) = self.prepare_glyph(&rings) {
 			g
