@@ -69,6 +69,8 @@ impl PbfGlyphs {
 		Ok(out_buf)
 	}
 
+	/// Consumes this instance, returning a vector of all [`PbfGlyph`] instances
+	/// contained within the wrapped `Fontstack`.
 	pub fn into_glyphs(self) -> Vec<PbfGlyph> {
 		self.stacks.into_iter().flat_map(|fs| fs.glyphs).collect()
 	}

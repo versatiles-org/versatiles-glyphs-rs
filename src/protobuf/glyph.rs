@@ -6,7 +6,7 @@ use prost::{alloc, Message};
 /// that holds its Signed Distance Field data. The dimensions and metrics (width,
 /// height, left, top, and advance) describe how this glyph is displayed and placed
 /// in a layout.
-#[derive(Clone, PartialEq, Message, PartialOrd, Eq)]
+#[derive(Clone, PartialEq, Message, Eq)]
 pub struct PbfGlyph {
 	/// The numeric identifier corresponding to this glyph.
 	#[prost(uint32, required, tag = "1")]
@@ -73,6 +73,12 @@ impl PbfGlyph {
 impl Ord for PbfGlyph {
 	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
 		self.id.cmp(&other.id)
+	}
+}
+
+impl PartialOrd for PbfGlyph {
+	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+		Some(self.cmp(other))
 	}
 }
 

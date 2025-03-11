@@ -6,8 +6,8 @@ use std::{fs, io::Write, path::PathBuf};
 
 #[derive(Clone, Debug, ValueEnum)]
 enum Format {
-	CSV,
-	TSV,
+	Csv,
+	Tsv,
 }
 
 /// Subcommand arguments for recursively scanning font files.
@@ -47,8 +47,8 @@ pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static))
 			stdout,
 			"{}",
 			match args.format {
-				Format::CSV => out.join(","),
-				Format::TSV => out.join("\t"),
+				Format::Csv => out.join(","),
+				Format::Tsv => out.join("\t"),
 			}
 		)
 	};
