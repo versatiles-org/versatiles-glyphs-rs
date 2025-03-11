@@ -34,7 +34,7 @@ impl RenderResult {
 	/// # Examples
 	///
 	/// ```
-	/// use versatiles_glyphs::renderer::render_result::RenderResult;
+	/// use versatiles_glyphs::render::RenderResult;
 	/// use versatiles_glyphs::protobuf::PbfGlyph;
 	///
 	/// let render = RenderResult {

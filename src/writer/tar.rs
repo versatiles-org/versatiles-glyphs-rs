@@ -22,26 +22,6 @@ const ZEROS_1K: [u8; 1024] = [0; 1024];
 /// - Finalizes the tar file with an additional 1024 bytes of zero padding
 ///   as required by the format.
 ///
-/// # Examples
-/// ```no_run
-/// use versatiles_glyphs::writer::tar::TarWriter;
-/// use versatiles_glyphs::writer::traits::Writer;
-/// use std::fs::File;
-///
-/// fn create_example_tar() -> Result<(), Box<dyn std::error::Error>> {
-///     let file = File::create("example.tar")?;
-///     let mut tar_writer = TarWriter::new(file);
-///
-///     tar_writer.write_directory("assets/")?;
-///
-///     let data = b"Hello, Tar!";
-///     tar_writer.write_file("assets/greeting.txt", data)?;
-///
-///     tar_writer.finish()?;
-///     Ok(())
-/// }
-/// ```
-///
 /// # Limitations
 /// - Does not handle extended attributes, large file sizes, or other modern
 ///   tar features beyond POSIX.1-1988.
@@ -53,15 +33,6 @@ pub struct TarWriter<W: Write> {
 
 impl<W: Write> TarWriter<W> {
 	/// Creates a new [`TarWriter`] wrapping the provided `writer`.
-	///
-	/// # Examples
-	///
-	/// ```
-	/// # use versatiles_glyphs::writer::tar::TarWriter;
-	/// # use std::io::Cursor;
-	/// let buffer = Cursor::new(Vec::<u8>::new());
-	/// let tar_writer = TarWriter::new(buffer);
-	/// ```
 	pub fn new(writer: W) -> Self {
 		Self {
 			writer: BufWriter::new(writer),

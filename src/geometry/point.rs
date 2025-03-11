@@ -20,7 +20,7 @@ impl Point {
 	/// Returns the midpoint between `self` and another [`Point`].
 	///
 	/// ```
-	/// # use versatiles_glyphs::geometry::point::Point;
+	/// # use versatiles_glyphs::geometry::Point;
 	/// let p1 = Point::new(0.0, 0.0);
 	/// let p2 = Point::new(4.0, 6.0);
 	/// let mid = p1.midpoint(&p2);
@@ -45,7 +45,7 @@ impl Point {
 	/// Returns a copy of this [`Point`] with its coordinates inverted (`-x`, `-y`).
 	///
 	/// ```
-	/// # use versatiles_glyphs::geometry::point::Point;
+	/// # use versatiles_glyphs::geometry::Point;
 	/// let p = Point::new(2.0, -3.0).inverted();
 	/// assert_eq!(p, Point::new(-2.0, 3.0));
 	/// ```
@@ -58,7 +58,7 @@ impl Point {
 	/// Returns a new [`Point`] by translating `self` with an offset, consuming `self`.
 	///
 	/// ```
-	/// # use versatiles_glyphs::geometry::point::Point;
+	/// # use versatiles_glyphs::geometry::Point;
 	/// let original = Point::new(1.0, 2.0);
 	/// let offset = Point::new(3.5, -0.5);
 	/// let new_p = original.translated(&offset);
@@ -73,7 +73,7 @@ impl Point {
 	/// Translates this [`Point`] in place.
 	///
 	/// ```
-	/// # use versatiles_glyphs::geometry::point::Point;
+	/// # use versatiles_glyphs::geometry::Point;
 	/// let mut p = Point::new(2.0, 3.0);
 	/// let offset = Point::new(-2.0, 1.0);
 	/// p.translate(&offset);
@@ -87,7 +87,7 @@ impl Point {
 	/// Scales this [`Point`] in place by the specified factor.
 	///
 	/// ```
-	/// # use versatiles_glyphs::geometry::point::Point;
+	/// # use versatiles_glyphs::geometry::Point;
 	/// let mut p = Point::new(2.0, 3.0);
 	/// p.scale(4.0);
 	/// assert_eq!(p, Point::new(8.0, 12.0));

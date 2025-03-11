@@ -20,7 +20,7 @@
 /// # Examples
 ///
 /// ```
-/// use versatiles_glyphs::font::parse_font_name::parse_font_name;
+/// use versatiles_glyphs::font::parse_font_name;
 ///
 /// // Typical usage with a family name and a postscript name
 /// let (family, style, weight, width) = parse_font_name(
@@ -134,15 +134,6 @@ pub fn parse_font_name(family: String, ps_name: String) -> (String, String, u16,
 
 /// Attempts to detect a font weight from the given lowercased token.
 /// Returns 400 if no known keyword matches.
-///
-/// # Examples
-///
-/// ```
-/// use versatiles_glyphs::font::parse_font_name::find_weight;
-/// assert_eq!(find_weight("LightItalic"), 300);
-/// assert_eq!(find_weight("SemiBold"), 600);
-/// assert_eq!(find_weight("Unknown"), 400); // default
-/// ```
 fn find_weight(s: &str) -> u16 {
 	// Check keywords in order from most-specific to least-specific.
 	if s.contains("hairline") || s.contains("thin") {

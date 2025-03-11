@@ -50,9 +50,9 @@ impl PbfGlyph {
 	/// # Examples
 	///
 	/// ```
-	/// use versatiles_glyphs::protobuf::Glyph;
+	/// use versatiles_glyphs::protobuf::PbfGlyph;
 	///
-	/// let glyph = Glyph::empty(42, 100);
+	/// let glyph = PbfGlyph::empty(42, 100);
 	/// assert_eq!(glyph.id, 42);
 	/// assert_eq!(glyph.advance, 100);
 	/// assert!(glyph.bitmap.is_none());

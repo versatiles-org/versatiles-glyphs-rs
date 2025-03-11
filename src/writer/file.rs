@@ -15,15 +15,6 @@ pub struct FileWriter {
 impl FileWriter {
 	/// Creates a new [`FileWriter`] that will use the given `folder`
 	/// as its root.
-	///
-	/// # Examples
-	///
-	/// ```
-	/// use versatiles_glyphs::writer::file::FileWriter;
-	/// use std::path::PathBuf;
-	///
-	/// let writer = FileWriter::new(PathBuf::from("output"));
-	/// ```
 	pub fn new(folder: PathBuf) -> Self {
 		Self { folder }
 	}

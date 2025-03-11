@@ -228,8 +228,8 @@ where
 	///
 	/// This lets you do:
 	/// ```
-	/// # use versatiles_glyphs::geometry::point::Point;
-	/// # use versatiles_glyphs::geometry::ring::Ring;
+	/// # use versatiles_glyphs::geometry::Point;
+	/// # use versatiles_glyphs::geometry::Ring;
 	/// let ring: Ring = vec![(0.0, 0.0), (1.0, 0.0)].into();
 	/// assert_eq!(ring.len(), 2);
 	/// ```

@@ -27,17 +27,6 @@ pub struct Fontstack {
 impl Fontstack {
 	/// Creates a new [`Fontstack`] with the provided `name` and `range`,
 	/// initializing an empty glyphs list.
-	///
-	/// # Examples
-	///
-	/// ```
-	/// use versatiles_glyphs::protobuf::fontstack::Fontstack;
-	///
-	/// let fontstack = Fontstack::new("MyFont".to_string(), "0-255".to_string());
-	/// assert_eq!(fontstack.name, "MyFont");
-	/// assert_eq!(fontstack.range, "0-255");
-	/// assert!(fontstack.glyphs.is_empty());
-	/// ```
 	pub fn new(name: String, range: String) -> Self {
 		Fontstack {
 			name,

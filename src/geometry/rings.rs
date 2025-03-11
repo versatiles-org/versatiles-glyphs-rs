@@ -103,13 +103,14 @@ where
 	///
 	/// For example:
 	/// ```
+	/// use versatiles_glyphs::geometry::Rings;
 	/// // Each sub-vector can become a Ring,
 	/// // which in turn is constructed from Points or tuples.
 	/// let all_rings = vec![
 	///     vec![(0.0, 0.0), (1.0, 0.0)],
 	///     vec![(2.0, 2.0), (3.0, 2.0)],
 	/// ];
-	/// let rings: Rings = all_rings.into();
+	/// let rings = Rings::from(all_rings);
 	/// assert_eq!(rings.len(), 2);
 	/// ```
 	fn from(rings: Vec<T>) -> Self {

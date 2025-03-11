@@ -55,10 +55,10 @@ impl PbfGlyphs {
 	/// # Examples
 	///
 	/// ```
-	/// use versatiles_glyphs::protobuf::{glyph::Glyph, pbf_glyphs::PbfGlyphs};
+	/// use versatiles_glyphs::protobuf::{PbfGlyph, PbfGlyphs};
 	///
 	/// let mut pbf = PbfGlyphs::new("MyFont".to_string(), "0-255".to_string());
-	/// pbf.push(Glyph::empty(42, 12));
+	/// pbf.push(PbfGlyph::empty(42, 12));
 	///
 	/// let bytes = pbf.into_vec().unwrap();
 	/// assert!(!bytes.is_empty());

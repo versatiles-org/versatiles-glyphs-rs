@@ -19,8 +19,8 @@ impl<'a> Segment<'a> {
 	/// Creates a new line segment from two references to [`Point`]s.
 	///
 	/// ```
-	/// # use versatiles_glyphs::geometry::point::Point;
-	/// # use versatiles_glyphs::geometry::segment::Segment;
+	/// # use versatiles_glyphs::geometry::Point;
+	/// # use versatiles_glyphs::geometry::Segment;
 	/// let start = Point::new(1.0, 2.0);
 	/// let end = Point::new(3.0, 4.0);
 	/// let segment = Segment::new(&start, &end);
@@ -40,8 +40,8 @@ impl<'a> Segment<'a> {
 	/// # Examples
 	///
 	/// ```
-	/// # use versatiles_glyphs::geometry::point::Point;
-	/// # use versatiles_glyphs::geometry::segment::Segment;
+	/// # use versatiles_glyphs::geometry::Point;
+	/// # use versatiles_glyphs::geometry::Segment;
 	/// let start = Point::new(0.0, 0.0);
 	/// let end = Point::new(10.0, 0.0);
 	/// let seg = Segment::new(&start, &end);
@@ -81,8 +81,8 @@ impl<'a> Segment<'a> {
 	/// # Examples
 	///
 	/// ```
-	/// # use versatiles_glyphs::geometry::point::Point;
-	/// # use versatiles_glyphs::geometry::segment::Segment;
+	/// # use versatiles_glyphs::geometry::Point;
+	/// # use versatiles_glyphs::geometry::Segment;
 	/// let start = Point::new(0.0, 0.0);
 	/// let end = Point::new(5.0, 0.0);
 	/// let seg = Segment::new(&start, &end);
