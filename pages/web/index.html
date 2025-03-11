@@ -18,6 +18,9 @@
 			url.hash = ''
 			style.glyphs = url.href + '/{fontstack}/{range}.pbf'
 			//style.glyphs = 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
+			//style.glyphs = 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf'
+			const fontname = 'noto_sans_regular'
+			//const fontname = 'Noto Sans Regular';
 
 			style.sources.testdata = {
 				type: 'geojson',
@@ -67,7 +70,7 @@
 					'text-field': '{text}',
 					'text-size': getExp(10),
 					'text-overlap': 'always',
-					'text-font': ['noto_sans_regular'],
+					'text-font': [fontname],
 					'text-anchor': 'left',
 					'text-justify': 'left',
 				},
@@ -94,13 +97,15 @@
 			const map = new maplibregl.Map({
 				container: 'map',
 				style,
-				//hash: true,
 				maxzoom: 16,
 				bounds: [
 					[-0.1, -2.5],
 					[2.5, 0.2],
 				],
 			})
+
+			// enable hash separately so it doesn't change the url directly on load
+			new maplibregl.Hash().addTo(map)
 		</script>
 	</body>
 </html>
