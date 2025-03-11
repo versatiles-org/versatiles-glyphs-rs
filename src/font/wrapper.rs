@@ -44,6 +44,9 @@ impl<'a> FontWrapper<'a> {
 	/// covering a particular range of Unicode codepoints.
 	pub fn get_blocks(&'a self) -> Vec<GlyphBlock<'a>> {
 		let mut blocks = HashMap::<u32, GlyphBlock<'a>>::new();
+		for i in 0..256 {
+			blocks.insert(i, GlyphBlock::new(i * GLYPH_BLOCK_SIZE));
+		}
 
 		// For each file, for each codepoint, place the codepoint into its corresponding block.
 		for font_file in &self.files {

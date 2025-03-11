@@ -98,7 +98,7 @@ impl TryFrom<&Face<'_>> for FontMetadata {
 		let table = face.tables().cmap.expect("Font has no cmap table");
 
 		for subtable in table.subtables.into_iter() {
-			if subtable.platform_id != PlatformId::Unicode {
+			if !subtable.is_unicode() {
 				continue;
 			}
 			subtable.codepoints(|cp| codepoints.push(cp));
