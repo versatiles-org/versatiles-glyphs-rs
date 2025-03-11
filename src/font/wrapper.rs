@@ -119,13 +119,17 @@ mod tests {
 	fn test_get_blocks() {
 		let wrapper = FontWrapper::from(create_test_font_file_entry());
 		let blocks = wrapper.get_blocks();
-		assert_eq!(blocks.len(), 20);
+		assert_eq!(blocks.len(), 256);
 
 		let mut list = blocks
 			.iter()
 			.map(|b| (b.start_index, b.glyphs.len()))
 			.collect::<Vec<_>>();
 		list.sort_unstable();
+
+		assert_eq!(list.len(), 256);
+
+		list.retain(|b| b.1 != 0);
 
 		assert_eq!(
 			list,

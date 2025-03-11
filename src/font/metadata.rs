@@ -5,7 +5,10 @@
 //! information from a [`ttf_parser::Face`].
 
 use anyhow::Result;
-use std::{collections::HashMap, fmt::Debug};
+use std::{
+	collections::{HashMap, HashSet},
+	fmt::Debug,
+};
 use ttf_parser::{name_id, Face, PlatformId};
 
 use super::parse_font_name;
@@ -94,15 +97,19 @@ impl TryFrom<&Face<'_>> for FontMetadata {
 		let (family, style, weight, width) =
 			parse_font_name(name.clone(), get(name_id::POST_SCRIPT_NAME));
 
-		let mut codepoints = Vec::new();
+		let mut codepoints = HashSet::<u32>::new();
 		let table = face.tables().cmap.expect("Font has no cmap table");
-
 		for subtable in table.subtables.into_iter() {
-			if !subtable.is_unicode() {
-				continue;
+			if subtable.is_unicode() {
+				subtable.codepoints(|cp| {
+					if subtable.glyph_index(cp).is_some() {
+						codepoints.insert(cp);
+					}
+				});
 			}
-			subtable.codepoints(|cp| codepoints.push(cp));
 		}
+		let mut codepoints = codepoints.into_iter().collect::<Vec<u32>>();
+		codepoints.sort_unstable();
 
 		let metadata = FontMetadata {
 			name,
@@ -138,6 +145,6 @@ mod tests {
 		let metadata = FontMetadata::try_from(&face).unwrap();
 		assert_eq!(metadata.family, "Noto Sans");
 		assert_eq!(metadata.generate_name(), "Noto Sans Regular");
-		assert_eq!(metadata.codepoints.len(), 6100);
+		assert_eq!(metadata.codepoints.len(), 3094);
 	}
 }

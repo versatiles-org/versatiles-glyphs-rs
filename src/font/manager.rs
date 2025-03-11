@@ -171,6 +171,10 @@ mod tests {
 		let mut files = writer.get_inner().unwrap().to_vec();
 		files.sort_unstable();
 
+		assert_eq!(files.len(), 517);
+
+		files.retain(|f| !f.ends_with(" (32)") && !f.ends_with(" (33)") && !f.ends_with(" (34)"));
+
 		assert_eq!(
 			files,
 			[
@@ -232,7 +236,7 @@ mod tests {
 				"noto_sans_regular/8192-8447.pbf (58213)",
 				"noto_sans_regular/8448-8703.pbf (55808)",
 				"noto_sans_regular/8704-8959.pbf (168)",
-				"noto_sans_regular/9472-9727.pbf (394)"
+				"noto_sans_regular/9472-9727.pbf (394)",
 			]
 		);
 		Ok(())

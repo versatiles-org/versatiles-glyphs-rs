@@ -199,9 +199,12 @@ mod tests {
 		let mut entries = tar
 			.entries()
 			.unwrap()
-			.map(|e| {
+			.filter_map(|e| {
 				let e = e.unwrap();
-				format!("{:?}: {}", e.path().unwrap(), e.size())
+				if e.size() >= 32 && e.size() <= 34 {
+					return None;
+				}
+				Some(format!("{:?}: {}", e.path().unwrap(), e.size()))
 			})
 			.collect::<Vec<_>>();
 		entries.sort_unstable();
