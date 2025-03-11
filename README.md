@@ -19,11 +19,14 @@
 
 There are numerous glyph rendering projects — e.g., [font-maker](https://github.com/maplibre/font-maker), [fontnik](https://github.com/mapbox/fontnik), [node-fontnik](https://github.com/mapbox/node-fontnik), [sdf_font_tools](https://github.com/stadiamaps/sdf_font_tools), [sdf-glyph-foundry](https://github.com/mapbox/sdf-glyph-foundry), and [TinySDF](https://github.com/mapbox/tiny-sdf). However, many have tradeoffs such as low rendering precision, unmaintained code, or "unfavourable architecture".
 
-**VersaTiles Glyphs**:
-- Renders SDF with maximum precision directly from the raw vector data.
-- Renders also bezier curves with high precision.
-- No external wrappers or complicated build steps.
-- Actively maintained, welcomes contributions.
+VersaTiles Glyphs tries to:
+- Render SDF with maximum accuracy.
+- Render directly from the raw vector data - without intermediate rasterisation like TinySDF.
+- Render Bezier curves with more than enough line segments.
+- Compensates for rounding errors by shifting the glyphs by sub-pixel distances in the right direction, since the PBF values for `left`, `top` and `advance` must be integers.
+- Have no wrappers of external, unmaintained code.
+- Have simple and straightforward build steps.
+- Be actively maintained, any contributions are welcome.
 
 ## Installation
 
@@ -37,7 +40,7 @@ curl -Ls "https://github.com/versatiles-org/versatiles-glyphs-rs/raw/refs/heads/
 
 ### 2. Via Cargo
 
-Install from crates.io using Rust’s package manager:
+Install from [crates.io](https://crates.io/crates/versatiles_glyphs) using the Rust package manager:
 
 ```bash
 cargo install versatiles_glyphs
@@ -45,7 +48,7 @@ cargo install versatiles_glyphs
 
 ### 3. From Source
 
-To build the latest (potentially unreleased) version:
+To build the latest (potentially prereleased) version:
 
 ```bash
 git clone https://github.com/versatiles-org/versatiles-glyphs-rs.git
@@ -53,11 +56,11 @@ cd versatiles-glyphs-rs
 cargo build --release
 ```
 
-The compiled binary will be located at target/release/versatiles_glyphs.
+The compiled binary will be located at `target/release/versatiles_glyphs`.
 
 ## Usage
 
-`versatiles_glyphs` provides two main subcommands: `recurse` and `merge`.
+`versatiles_glyphs` provides three main subcommands: `recurse`, `merge`, `debug`.
 
 ### Subcommand: `recurse`
 
@@ -69,7 +72,7 @@ versatiles_glyphs recurse ./font/
 
 If a directory contains a `fonts.json` (like [this example](https://github.com/versatiles-org/versatiles-fonts/blob/main/fonts/Noto%20Sans/fonts.json)), it uses the files from that JSON instead of a raw file scan.
 
-Output follows the [frontend specification](https://docs.versatiles.org/compendium/specification_frontend.html#folder-assets-glyphs):
+Output follows the [VersaTiles frontend specification](https://docs.versatiles.org/compendium/specification_frontend.html#folder-assets-glyphs):
 
 <pre>
 📂 glyphs/
@@ -82,7 +85,7 @@ Output follows the [frontend specification](https://docs.versatiles.org/compendi
 Specify an output directory with `-o` or `--output-directory`:
 
 ```bash
-versatiles_glyphs recurse ./font/ -o glyphs
+versatiles_glyphs recurse ./font/ -o ../web/glyphs
 ```
 
 Generate a TAR archive instead of directories, with `-t` or `--tar`:
@@ -101,6 +104,19 @@ versatiles_glyphs merge ./font/
 
 It supports the same `--output-directory` and `--tar` options.
 
+### Subcommand: `debug`
+
+Loads an existing directory of `*.pbf` files and returns an overview of all glyphs as CSV or TSV:
+
+```bash
+versatiles_glyphs debug glyphs/noto_sans_regular
+```
+
+The returned columns are:
+```text
+codepoint,width,height,left,top,advance,bitmap_size
+```
+
 ## Development Notes
 
 ### Documentation
@@ -118,6 +134,7 @@ You can find the latest documentation at [docs.rs/versatiles_glyphs](https://doc
 ### Font Metrics & Precision
 
 Since no official SDF-glyph spec for all metrics could be found, most references come from:
+
 - [sdf-glyph-foundry](https://github.com/mapbox/sdf-glyph-foundry/blob/master/include/mapbox/glyph_foundry_impl.hpp)
 - [fontnik](https://github.com/mapbox/fontnik/blob/master/lib/sdf.js)
 - [tiny-sdf](https://github.com/mapbox/tiny-sdf)
@@ -129,9 +146,10 @@ Every new release is showcased at [versatiles.org/versatiles-glyphs-rs](https://
 If you’d like to expand or alter characters tested, [edit these lines](https://github.com/versatiles-org/versatiles-glyphs-rs/blob/main/pages/web/index.html#L27).
 
 ### Local Web Testing
-1.	Run the build script: `./pages/build.sh`
-2.	Serve the `./pages/web/` directory (e.g., using `npx http-server -sc0`, `python3 -m http.server` or `cargo install basic-http-server`)
-3.	Visit it in your browser to check changes.
+
+1. Run the build script: `./pages/build.sh`
+2. Serve the `./pages/web/` directory (e.g., using `npx http-server -sc0`, `python3 -m http.server` or `cargo install basic-http-server`)
+3. Visit it in your browser to check changes.
 
 ## Contributing
 
