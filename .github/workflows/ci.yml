@@ -47,11 +47,14 @@ jobs:
       - name: Run check
         run: cargo check --all-features --all-targets
 
-      - name: Run clippy /
+      - name: Run clippy
         run: cargo clippy --all-features --all-targets -- -D warnings
 
-      - name: Run test /
+      - name: Run test
         run: cargo test --all-features --all-targets
+
+      - name: Run test doc
+        run: cargo test --doc
 
       - name: Install Cargo Coverage
         uses: taiki-e/install-action@cargo-llvm-cov

@@ -18,13 +18,20 @@ fi
 echo "cargo clippy"
 result=$(CARGO_TERM_COLOR=always cargo clippy --all-features --all-targets -- -W missing_docs -D warnings 2>&1)
 if [ $? -ne 0 ]; then
-	echo -e "$result\nERROR DURING: cargo clippy $1"
+	echo -e "$result\nERROR DURING: cargo clippy:\n$1"
 	exit 1
 fi
 
 echo "cargo test"
 result=$(CARGO_TERM_COLOR=always cargo test --all-features --all-targets 2>&1)
 if [ $? -ne 0 ]; then
-	echo -e "$result\nERROR DURING: cargo test $1"
+	echo -e "$result\nERROR DURING: cargo test:\n$1"
+	exit 1
+fi
+
+echo "cargo test doc"
+result=$(CARGO_TERM_COLOR=always cargo test --doc 2>&1)
+if [ $? -ne 0 ]; then
+	echo -e "$result\nERROR DURING: cargo test --doc:\n$1"
 	exit 1
 fi
