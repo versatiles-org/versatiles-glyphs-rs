@@ -30,11 +30,14 @@ enum Commands {
 	Merge(commands::merge::Subcommand),
 	/// Recurse subcommand.
 	Recurse(commands::recurse::Subcommand),
+	/// Merge subcommand.
+	Debug(commands::debug::Subcommand),
 }
 
 fn main() -> Result<()> {
 	let cli = Cli::parse();
 	match &cli.command {
+		Commands::Debug(args) => commands::debug::run(args, &mut std::io::stdout())?,
 		Commands::Merge(args) => commands::merge::run(args, &mut std::io::stdout())?,
 		Commands::Recurse(args) => commands::recurse::run(args, &mut std::io::stdout())?,
 	};

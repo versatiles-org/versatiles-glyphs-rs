@@ -68,6 +68,10 @@ impl PbfGlyphs {
 		self.encode(&mut out_buf)?;
 		Ok(out_buf)
 	}
+
+	pub fn into_glyphs(self) -> Vec<PbfGlyph> {
+		self.stacks.into_iter().flat_map(|fs| fs.glyphs).collect()
+	}
 }
 
 impl From<Fontstack> for PbfGlyphs {

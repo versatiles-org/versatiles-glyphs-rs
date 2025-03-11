@@ -1,54 +1,104 @@
-use std::collections::HashSet;
-use anyhow::{Context, Result};
-use sdf_glyphs::{composite, load_font_metadata, range_glyphs};
-use ttf_parser::Face;
+use crate::protobuf::PbfGlyphs;
+use anyhow::{bail, Context, Result};
+use clap::ValueEnum;
+use prost::Message;
+use std::{fs, io::Write, path::PathBuf};
 
-#[derive(clap::Args, Debug)]
-#[command(arg_required_else_help = true, disable_version_flag = true)]
-pub struct Subcommand {
-	#[arg()]
-	input_directory: String,
+#[derive(Clone, Debug, ValueEnum)]
+enum Format {
+	CSV,
+	TSV,
 }
 
-pub fn run(arguments: &Subcommand) -> Result<()> {
-	println!("Hello, world! This is a pure-Rust skeleton port of glyphs.cpp.");
+/// Subcommand arguments for recursively scanning font files.
+#[derive(clap::Args, Debug)]
+#[command(arg_required_else_help = true)]
+/// Recursively scans directories for `.ttf` or `.otf` files and converts them.
+///
+/// If a directory contains a "fonts.json" file, it will be used to configure the conversion.
+/// A "fonts.json" has the structure: { name: string, sources: string[] }[] where:
+///   - name: the name of the font, like "Noto Sans Regular".
+///   - sources: the list of font files to merge, relative to the directory.
+///
+/// # Examples
+///
+/// ```bash
+/// versatiles_glyphs recurse -o glyphs my_font_directory
+/// versatiles_glyphs recurse -t another_directory
+/// ```
+pub struct Subcommand {
+	/// Directories to scan for font files.
+	#[arg()]
+	glyph_directory: PathBuf,
 
-	// read file into memory
-	let font_data = std::fs::read(&arguments.input_file)?;
+	#[arg(short, long, default_value = "csv")]
+	format: Format,
+}
 
-	// Suppose you have font bytes in memory:
-	let face = Face::parse(&font_data, 0).context("Could not parse font data")?;
+pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static)) -> Result<()> {
+	let glyph_directory = &args.glyph_directory;
 
-	// 1) LOAD
-	let metadata = load_font_metadata(&face)?;
-	println!(
-		"Loaded face: {} / style: {:?}; codepoints={}",
-		metadata.family_name,
-		metadata.style_name,
-		metadata.codepoints.len()
-	);
-
-	let groups = HashSet<u32>::new();
-	metadata
-		.codepoints
-		.iter()
-		.for_each(|cp| groups.insert(cp / 256));
-
-	for  group in groups.iter() {
-
+	if !glyph_directory.exists() {
+		bail!("Directory does not exist: {:?}", glyph_directory);
 	}
 
-	const start_code: char = 32;
+	let mut write = |out: [String; 7]| {
+		writeln!(
+			stdout,
+			"{}",
+			match args.format {
+				Format::CSV => out.join(","),
+				Format::TSV => out.join("\t"),
+			}
+		)
+	};
 
-	// 2) RANGE
-	let start_code = 32 as char;
-	let end_code = 128 as char;
-	let pbf_data = range_glyphs(&face, start_code, end_code)?;
-	println!("Generated PBF of length: {}", pbf_data.len());
+	write([
+		String::from("codepoint"),
+		String::from("width"),
+		String::from("height"),
+		String::from("left"),
+		String::from("top"),
+		String::from("advance"),
+		String::from("bitmap_size"),
+	])?;
 
-	// 3) COMPOSITE multiple buffers
-	let composite_data = composite(&[pbf_data])?;
-	println!("Composite PBF of length: {}", composite_data.len());
+	for i in 0..256 {
+		let start = i * 256;
+		let end = start + 255;
+		let filename = glyph_directory.join(format!("{}-{}.pbf", start, end));
+		let buf = fs::read(&filename).with_context(|| format!("Failed to read {filename:?}"))?;
+		let mut glyphs = PbfGlyphs::decode(buf.as_slice())
+			.with_context(|| format!("Failed to decode {filename:?}"))?
+			.into_glyphs();
+
+		glyphs.sort_unstable();
+
+		for glyph in glyphs {
+			write([
+				glyph.id.to_string(),
+				glyph.width.to_string(),
+				glyph.height.to_string(),
+				glyph.left.to_string(),
+				glyph.top.to_string(),
+				glyph.advance.to_string(),
+				glyph
+					.bitmap
+					.as_ref()
+					.map_or("0".to_string(), |b| b.len().to_string()),
+			])?;
+		}
+	}
 
 	Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn test_run_with_csv() -> Result<()> {
+		Ok(())
+	}
 }
