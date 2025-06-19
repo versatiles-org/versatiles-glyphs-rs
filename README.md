@@ -35,7 +35,7 @@ VersaTiles Glyphs tries to:
 Use a single shell command to download and install the latest precompiled binary:
 
 ```bash
-curl -Ls "https://github.com/versatiles-org/versatiles-glyphs-rs/raw/refs/heads/main/scripts/install.sh" | sh
+curl -Ls "https://github.com/versatiles-org/versatiles-glyphs-rs/raw/refs/heads/main/scripts/install.sh" | sudo sh
 ```
 
 ### 2. Via Cargo
