@@ -72,7 +72,7 @@ pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static))
 
 	for dir in &args.input_directories {
 		let canonical = path::absolute(dir)?.canonicalize()?;
-		eprintln!("Scanning directory: {:?}", canonical);
+		eprintln!("Scanning directory: {canonical:?}");
 		scan(&canonical, &mut font_manager)?;
 	}
 
@@ -81,7 +81,7 @@ pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static))
 		Writer::new_tar(stdout)
 	} else {
 		let out_dir = prepare_output_directory(args.output_directory.as_deref().unwrap_or("output"))?;
-		eprintln!("Rendering glyphs to directory: {:?}", out_dir);
+		eprintln!("Rendering glyphs to directory: {out_dir:?}");
 		Writer::new_file(path::absolute(out_dir)?)
 	};
 
@@ -111,7 +111,7 @@ fn scan(path: &Path, font_manager: &mut FontManager) -> Result<()> {
 		let font_file = path.join("fonts.json");
 		if font_file.exists() {
 			let data =
-				fs::read(&font_file).with_context(|| format!("Failed to read {:?}", font_file))?;
+				fs::read(&font_file).with_context(|| format!("Failed to read {font_file:?}"))?;
 			let configs = serde_json::from_slice::<Vec<FontConfig>>(&data)?;
 
 			for c in configs {

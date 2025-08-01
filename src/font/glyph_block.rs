@@ -116,7 +116,7 @@ mod tests {
 
 		let expected_range = format!("{}-{}", start_index, start_index + GLYPH_BLOCK_SIZE - 1);
 		assert_eq!(block.range(), expected_range);
-		assert_eq!(block.filename(), format!("{}.pbf", expected_range));
+		assert_eq!(block.filename(), format!("{expected_range}.pbf"));
 	}
 
 	#[test]

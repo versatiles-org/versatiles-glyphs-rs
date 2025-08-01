@@ -89,9 +89,9 @@ fn encode_codeblocks(codepoints: &[u32]) -> String {
 		.iter()
 		.map(|&(s, e)| {
 			if s == e {
-				format!("{:X}", s)
+				format!("{s:X}")
 			} else {
-				format!("{:X}-{:X}", s, e)
+				format!("{s:X}-{e:X}")
 			}
 		})
 		.collect::<Vec<_>>()

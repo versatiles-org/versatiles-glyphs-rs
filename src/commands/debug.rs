@@ -66,7 +66,7 @@ pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static))
 	for i in 0..256 {
 		let start = i * 256;
 		let end = start + 255;
-		let filename = glyph_directory.join(format!("{}-{}.pbf", start, end));
+		let filename = glyph_directory.join(format!("{start}-{end}.pbf"));
 		let buf = fs::read(&filename).with_context(|| format!("Failed to read {filename:?}"))?;
 		let mut glyphs = PbfGlyphs::decode(buf.as_slice())
 			.with_context(|| format!("Failed to decode {filename:?}"))?

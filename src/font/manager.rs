@@ -86,7 +86,7 @@ impl<'a> FontManager<'a> {
 		// Collect all blocks from every font.
 		let mut tasks = Vec::new();
 		for (name, font) in &self.fonts {
-			writer.write_directory(&format!("{}/", name))?;
+			writer.write_directory(&format!("{name}/"))?;
 			for block in font.get_blocks() {
 				tasks.push(Todo {
 					name: name.clone(),

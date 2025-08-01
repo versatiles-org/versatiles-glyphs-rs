@@ -110,7 +110,7 @@ mod tests {
 		let wrapper = FontWrapper::from(create_test_font_file_entry());
 		let metadata = wrapper.get_metadata();
 		assert_eq!(
-            format!("{:?}", metadata),
+            format!("{metadata:?}", ),
             "FontMetadata { family: Fira Sans, style: normal, weight: 400, width: normal, codepoints: 1686 }"
         );
 	}

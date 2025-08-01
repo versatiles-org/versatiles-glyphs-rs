@@ -71,7 +71,7 @@ pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static))
 		Writer::new_tar(stdout)
 	} else {
 		let out_dir = prepare_output_directory(args.output_directory.as_deref().unwrap_or("output"))?;
-		eprintln!("Rendering glyphs to directory: {:?}", out_dir);
+		eprintln!("Rendering glyphs to directory: {out_dir:?}");
 		Writer::new_file(path::absolute(out_dir)?)
 	};
 
