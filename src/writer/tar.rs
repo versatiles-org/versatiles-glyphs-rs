@@ -2,7 +2,7 @@ use super::WriterTrait;
 use anyhow::{ensure, Result};
 use std::{
 	io::{BufWriter, Write},
-	time::Instant,
+	time::{SystemTime, UNIX_EPOCH},
 };
 
 /// 1 KiB of zeros, used for padding data and finalizing the archive.
@@ -65,7 +65,11 @@ impl<W: Write> TarWriter<W> {
 		write_octal(&mut header[124..136], size);
 
 		// Last modification time in numeric Unix time (octal, bytes 136..148)
-		write_octal(&mut header[136..148], Instant::now().elapsed().as_secs());
+		let mtime = SystemTime::now()
+			.duration_since(UNIX_EPOCH)
+			.unwrap_or_default()
+			.as_secs();
+		write_octal(&mut header[136..148], mtime);
 
 		// Type flag (file= '0', directory= '5'), byte 156
 		header[156] = typeflag;
