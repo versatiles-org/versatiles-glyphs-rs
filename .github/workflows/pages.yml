@@ -2,6 +2,8 @@ name: Generate Pages
 
 permissions:
   contents: write
+  id-token: write
+  pages: write
 
 on:
   workflow_call:
@@ -51,8 +53,8 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     permissions:
-      pages: write
       id-token: write
+      pages: write
 
     environment:
       name: github-pages
