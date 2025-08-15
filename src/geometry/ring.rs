@@ -94,7 +94,7 @@ impl Ring {
 	///
 	/// This does not automatically close the ring. Therefore, if you want a fully closed
 	/// set of segments (e.g., a polygon), call [`close()`](Self::close) first.
-	pub fn get_segments(&self) -> Vec<Segment> {
+	pub fn get_segments(&self) -> Vec<Segment<'_>> {
 		self
 			.points
 			.iter()

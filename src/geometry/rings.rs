@@ -72,7 +72,7 @@ impl Rings {
 	/// Returns all [`Segment`]s from all [`Ring`]s in this collection.
 	///
 	/// Consecutive points in each ring form a segment, and the rings are processed in order.
-	pub fn get_segments(&self) -> Vec<Segment> {
+	pub fn get_segments(&self) -> Vec<Segment<'_>> {
 		self
 			.rings
 			.iter()
