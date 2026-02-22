@@ -44,9 +44,6 @@ impl<'a> FontWrapper<'a> {
 	/// covering a particular range of Unicode codepoints.
 	pub fn get_blocks(&'a self) -> Vec<GlyphBlock<'a>> {
 		let mut blocks = HashMap::<u32, GlyphBlock<'a>>::new();
-		for i in 0..256 {
-			blocks.insert(i, GlyphBlock::new(i * GLYPH_BLOCK_SIZE));
-		}
 
 		// For each file, for each codepoint, place the codepoint into its corresponding block.
 		for font_file in &self.files {
@@ -119,17 +116,12 @@ mod tests {
 	fn test_get_blocks() {
 		let wrapper = FontWrapper::from(create_test_font_file_entry());
 		let blocks = wrapper.get_blocks();
-		assert_eq!(blocks.len(), 256);
 
 		let mut list = blocks
 			.iter()
 			.map(|b| (b.start_index, b.glyphs.len()))
 			.collect::<Vec<_>>();
 		list.sort_unstable();
-
-		assert_eq!(list.len(), 256);
-
-		list.retain(|b| b.1 != 0);
 
 		assert_eq!(
 			list,
