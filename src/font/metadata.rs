@@ -98,7 +98,10 @@ impl TryFrom<&Face<'_>> for FontMetadata {
 			parse_font_name(name.clone(), get(name_id::POST_SCRIPT_NAME));
 
 		let mut codepoints = HashSet::<u32>::new();
-		let table = face.tables().cmap.expect("Font has no cmap table");
+		let table = face
+			.tables()
+			.cmap
+			.ok_or_else(|| anyhow::anyhow!("Font has no cmap table"))?;
 		for subtable in table.subtables.into_iter() {
 			if subtable.is_unicode() {
 				subtable.codepoints(|cp| {
