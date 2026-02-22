@@ -7,15 +7,15 @@ use ttf_parser::Face;
 /// This structure is pinned to ensure safe references to the underlying font data.
 #[derive(Debug)]
 pub struct FontFileEntry<'a> {
-	/// Pinned raw font data buffer. Ensures the bytes won't be moved in memory.
-	#[allow(dead_code)]
-	data: Pin<Vec<u8>>,
-
 	/// The parsed [`Face`] containing information like glyph count, names, and metrics.
 	pub face: Face<'a>,
 
 	/// The metadata extracted from the font, such as name, style, and other descriptors.
 	pub metadata: FontMetadata,
+
+	/// Pinned raw font data buffer. Ensures the bytes won't be moved in memory.
+	#[allow(dead_code)]
+	data: Pin<Vec<u8>>,
 
 	/// Prevents movement of the struct after pinning.
 	_pin: PhantomPinned,
