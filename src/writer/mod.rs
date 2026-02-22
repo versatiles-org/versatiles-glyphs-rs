@@ -70,6 +70,6 @@ impl<'a> Writer<'a> {
 
 impl Drop for Writer<'_> {
 	fn drop(&mut self) {
-		self.finish().unwrap();
+		let _ = self.finish();
 	}
 }
