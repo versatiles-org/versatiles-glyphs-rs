@@ -48,20 +48,20 @@ overflow-checks = false
 strip = true
 
 [dependencies]
-anyhow = "1.0.99"
-clap = { version = "4.5.45", features = ["derive", "std"], optional = true }
-indicatif = "0.18.0"
-prost = "0.14.1"
+anyhow = "1.0.102"
+clap = { version = "4.5.60", features = ["derive", "std"], optional = true }
+indicatif = "0.18.4"
+prost = "0.14.3"
 rayon = "1.11.0"
-regex-lite = "0.1.6"
+regex-lite = "0.1.9"
 rstar = "0.12.2"
-serde = { version = "1.0.219", features = ["derive"], optional = true }
-serde_json = { version = "1.0.142", optional = true }
+serde = { version = "1.0.228", features = ["derive"], optional = true }
+serde_json = { version = "1.0.149", optional = true }
 ttf-parser = { version = "0.25.1", features = ["std"] }
 
 [dev-dependencies]
 tar = "0.4.44"
-tempfile = "3.20.0"
+tempfile = "3.25.0"
 
 [features]
 default = ["cli"]
