@@ -9,7 +9,7 @@ use std::{
 	collections::{HashMap, HashSet},
 	fmt::Debug,
 };
-use ttf_parser::{name_id, Face, PlatformId};
+use ttf_parser::{name_id, Face};
 
 use super::parse_font_name;
 
