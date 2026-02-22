@@ -171,9 +171,7 @@ mod tests {
 		let mut files = writer.get_inner().unwrap().to_vec();
 		files.sort_unstable();
 
-		assert_eq!(files.len(), 517);
-
-		files.retain(|f| !f.ends_with(" (32)") && !f.ends_with(" (33)") && !f.ends_with(" (34)"));
+		assert_eq!(files.len(), 59);
 
 		assert_eq!(
 			files,
