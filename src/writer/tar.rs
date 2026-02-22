@@ -79,10 +79,7 @@ impl<W: Write> TarWriter<W> {
 		header[263..265].copy_from_slice(b"00");
 
 		// Fill the checksum field (148..156) with spaces
-		#[allow(clippy::needless_range_loop)]
-		for i in 148..156 {
-			header[i] = b' ';
-		}
+		header[148..156].fill(b' ');
 
 		// Compute the header checksum
 		let csum: u32 = header.iter().map(|&b| b as u32).sum();
