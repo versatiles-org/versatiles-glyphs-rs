@@ -1,10 +1,8 @@
-[![Crates.io](https://img.shields.io/crates/v/versatiles_glyphs?label=crates.io)](https://crates.io/crates/versatiles_glyphs)
-[![Crates.io](https://img.shields.io/crates/d/versatiles_glyphs?label=downloads)](https://crates.io/crates/versatiles_glyphs)
-[![Code Coverage](https://codecov.io/gh/versatiles-org/versatiles-glyphs-rs/branch/main/graph/badge.svg?token=2eUtj8ick2)](https://codecov.io/gh/versatiles-org/versatiles-glyphs-rs)
-[![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/versatiles-org/versatiles-glyphs-rs/ci.yml)](https://github.com/versatiles-org/versatiles-glyphs-rs/actions/workflows/ci.yml)
+[![Crates.io version](https://img.shields.io/crates/v/versatiles_glyphs?label=crates.io)](https://crates.io/crates/versatiles_glyphs)
+[![Crates.io downloads](https://img.shields.io/crates/d/versatiles_glyphs?label=downloads)](https://crates.io/crates/versatiles_glyphs)
+[![Code coverage](https://codecov.io/gh/versatiles-org/versatiles-glyphs-rs/branch/main/graph/badge.svg?token=2eUtj8ick2)](https://codecov.io/gh/versatiles-org/versatiles-glyphs-rs)
+[![CI status](https://img.shields.io/github/actions/workflow/status/versatiles-org/versatiles-glyphs-rs/ci.yml)](https://github.com/versatiles-org/versatiles-glyphs-rs/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Unlicense-green)](https://unlicense.org/)
-
----
 
 # VersaTiles Glyphs
 
