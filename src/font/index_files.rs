@@ -127,7 +127,7 @@ pub fn build_font_families_json<'a>(
 ) -> Result<Vec<u8>> {
 	let mut family_map = HashMap::<String, FontFamily>::new();
 	for (id, font) in iter {
-		let meta = font.get_metadata();
+		let meta = font.get_metadata()?;
 		family_map
 			.entry(meta.family.to_string())
 			.or_insert_with(|| FontFamily::new(meta.family.to_string()))

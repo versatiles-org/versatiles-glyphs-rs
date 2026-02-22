@@ -62,10 +62,15 @@ impl<'a> FontWrapper<'a> {
 
 	/// Returns the [`FontMetadata`] of the first font file in this wrapper.
 	///
-	/// Assumes at least one file is present; if this wrapper is empty, calling
-	/// this function would panic.
-	pub fn get_metadata(&self) -> &FontMetadata {
-		&self.files.first().unwrap().metadata
+	/// # Errors
+	///
+	/// Returns an error if this wrapper has no files.
+	pub fn get_metadata(&self) -> Result<&FontMetadata> {
+		Ok(&self
+			.files
+			.first()
+			.context("FontWrapper has no files")?
+			.metadata)
 	}
 }
 
@@ -105,7 +110,7 @@ mod tests {
 	#[test]
 	fn test_add_file_and_get_metadata() {
 		let wrapper = FontWrapper::from(create_test_font_file_entry());
-		let metadata = wrapper.get_metadata();
+		let metadata = wrapper.get_metadata().unwrap();
 		assert_eq!(
             format!("{metadata:?}", ),
             "FontMetadata { family: Fira Sans, style: normal, weight: 400, width: normal, codepoints: 1686 }"
