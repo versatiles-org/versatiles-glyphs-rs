@@ -1,4 +1,3 @@
-#![allow(unused_imports)]
 //! Font parsing, management, and metadata.
 //!
 //! This module offers:
@@ -20,6 +19,7 @@ mod wrapper;
 
 pub use file_entry::FontFileEntry;
 pub use glyph_block::{GlyphBlock, GLYPH_BLOCK_SIZE};
+#[allow(unused_imports)]
 pub use index_files::{build_font_families_json, build_index_json};
 pub use manager::FontManager;
 pub use metadata::FontMetadata;
