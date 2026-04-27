@@ -1,6 +1,6 @@
 use super::{
 	rtree_segments::{min_distance_to_line_segment, SegmentValue},
-	RenderResult, CUTOFF,
+	RenderResult, CUTOFF, SDF_RADIUS,
 };
 use crate::geometry::{Point, Rings};
 use rstar::RTree;
@@ -22,8 +22,7 @@ pub fn renderer_precise(glyph: &mut RenderResult, rings: Rings) {
 
 	let mut bitmap = vec![0; width * height];
 
-	let max_radius = 8.0;
-	let radius_by_256 = 256.0 / max_radius;
+	let radius_by_256 = 256.0 / SDF_RADIUS;
 
 	let x0 = glyph.x0 as f64 + 0.5;
 	let y0 = glyph.y0 as f64 + 0.5;
@@ -68,7 +67,7 @@ pub fn renderer_precise(glyph: &mut RenderResult, rings: Rings) {
 			let inside = wn != 0;
 
 			let sample_pt = Point::new(px, py);
-			let mut d = min_distance_to_line_segment(&rtree, &sample_pt, &max_radius);
+			let mut d = min_distance_to_line_segment(&rtree, &sample_pt, &SDF_RADIUS);
 			if inside {
 				d = -d;
 			}

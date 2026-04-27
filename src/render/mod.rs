@@ -47,11 +47,22 @@
 //! `192 = 256 - 64` corresponds to "exactly on the outline", with values below
 //! falling off into the buffer and values above representing the interior.
 
+/// Glyph height in pixels per EM. The renderer scales every outline so this
+/// many pixels represent one EM unit before flattening to the integer grid.
+const GLYPH_SIZE: i32 = 24;
+
 /// Pixels of padding on every side of the glyph content area.
 ///
 /// See the module-level docs for the relationship between this constant and
-/// the SDF gradient radius (`max_radius` in `renderer_precise`).
+/// the SDF gradient radius ([`SDF_RADIUS`]).
 const BUFFER: i32 = 3;
+
+/// Maximum SDF gradient radius in pixels. `renderer_precise` computes signed
+/// distances out to this many pixels on either side of the outline; pixels
+/// farther than this from the outline are saturated to 0 (outside) or 255
+/// (inside). The maplibre/mapbox PBF format only stores [`BUFFER`] pixels of
+/// gradient (3 << 8), so distances 3..8 are clipped — see the module docs.
+const SDF_RADIUS: f64 = 8.0;
 
 /// SDF zero-crossing offset, in the 0..=255 byte range used by the bitmap.
 const CUTOFF: f64 = 0.25 * 256.0;

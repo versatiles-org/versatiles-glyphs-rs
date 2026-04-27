@@ -1,6 +1,6 @@
 use super::{
 	renderer_dummy::renderer_dummy, renderer_precise::renderer_precise, ring_builder::RingBuilder,
-	RenderResult, BUFFER,
+	RenderResult, BUFFER, GLYPH_SIZE,
 };
 use crate::{
 	geometry::{Point, Rings},
@@ -104,7 +104,7 @@ impl Renderer {
 		let cp = char::from_u32(index)?;
 
 		let glyph_id = face.glyph_index(cp)?;
-		let scale = 24.0 / face.units_per_em() as f64;
+		let scale = GLYPH_SIZE as f64 / face.units_per_em() as f64;
 
 		let mut builder = RingBuilder::default();
 		face.outline_glyph(glyph_id, &mut builder);
@@ -143,7 +143,7 @@ impl Renderer {
 		}
 
 		// Shift the SDF output to re-base the glyph
-		glyph.y1 -= 24;
+		glyph.y1 -= GLYPH_SIZE;
 
 		Some(glyph.into_pbf_glyph(index, advance))
 	}
