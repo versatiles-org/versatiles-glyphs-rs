@@ -93,12 +93,3 @@ pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static))
 	Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn test_run_with_csv() -> Result<()> {
-		Ok(())
-	}
-}
