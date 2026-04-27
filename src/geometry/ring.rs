@@ -192,6 +192,10 @@ impl Ring {
 	/// A positive non-zero winding number typically indicates the point
 	/// lies within the polygon. This function assumes the ring is intended
 	/// to be closed, so consider calling [`close()`](Self::close) first.
+	///
+	/// Backs [`Rings::contains_point`](super::Rings::contains_point); see
+	/// that method's docs for current internal usage.
+	#[allow(dead_code)]
 	pub fn winding_number(&self, pt: &Point) -> i32 {
 		let ring = &self.points;
 		if ring.len() < 2 {
@@ -222,6 +226,7 @@ impl Ring {
 /// Used by [`winding_number`](Ring::winding_number) to determine the orientation
 /// of point `p2` relative to the line segment from `p0` to `p1`.
 #[inline(always)]
+#[allow(dead_code)] // Reachable only through `winding_number`, which is currently dormant.
 fn cross_product(p0: &Point, p1: &Point, p2: &Point) -> f64 {
 	(p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y)
 }

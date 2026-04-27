@@ -3,12 +3,16 @@ use crate::protobuf::PbfGlyph;
 
 /// Holds intermediate results of the glyph rendering process,
 /// including bitmap dimensions and offset bounds.
-#[allow(dead_code)]
 #[derive(Debug, Default)]
 pub struct RenderResult {
 	/// The minimum x-coordinates of the rendered glyph.
 	pub x0: i32,
 	/// The maximum x-coordinates of the rendered glyph.
+	///
+	/// Populated by the renderer for completeness. Internal consumers derive
+	/// the right edge from `x0 + width` instead, so this field is unread
+	/// by the rendering pipeline; it remains as part of the public struct.
+	#[allow(dead_code)]
 	pub x1: i32,
 	/// The minimum y-coordinates of the rendered glyph.
 	pub y0: i32,

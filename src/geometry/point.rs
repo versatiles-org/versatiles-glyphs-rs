@@ -10,7 +10,6 @@ pub struct Point {
 	pub y: f64,
 }
 
-#[allow(dead_code)]
 impl Point {
 	/// Creates a new [`Point`] from the given `x` and `y`.
 	pub fn new(x: f64, y: f64) -> Self {
@@ -49,6 +48,7 @@ impl Point {
 	/// let p = Point::new(2.0, -3.0).inverted();
 	/// assert_eq!(p, Point::new(-2.0, 3.0));
 	/// ```
+	#[allow(dead_code)] // Public API; not used by the renderer pipeline today.
 	pub fn inverted(mut self) -> Self {
 		self.x = -self.x;
 		self.y = -self.y;
@@ -64,6 +64,7 @@ impl Point {
 	/// let new_p = original.translated(&offset);
 	/// assert_eq!(new_p, Point::new(4.5, 1.5));
 	/// ```
+	#[allow(dead_code)] // Public API; in-place `translate` is used internally instead.
 	pub fn translated(mut self, offset: &Point) -> Self {
 		self.x += offset.x;
 		self.y += offset.y;
@@ -98,6 +99,7 @@ impl Point {
 	}
 
 	/// Returns the coordinates of this [`Point`] as a tuple.
+	#[allow(dead_code)] // Public API; used heavily by geometry-module tests.
 	pub fn as_tuple(&self) -> (f64, f64) {
 		(self.x, self.y)
 	}

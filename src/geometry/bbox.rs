@@ -17,7 +17,6 @@ impl Default for BBox {
 	}
 }
 
-#[allow(dead_code)]
 impl BBox {
 	/// Creates a new, "empty" bounding box with `min` set to `[∞, ∞]`
 	/// and `max` set to `[-∞, -∞]`.
@@ -33,12 +32,14 @@ impl BBox {
 
 	/// Returns the width (`max.x - min.x`) of this bounding box,
 	/// ensuring it is non-negative.
+	#[allow(dead_code)] // Public API; only exercised by the bbox.rs unit tests.
 	pub fn width(&self) -> f64 {
 		(self.max.x - self.min.x).max(0.0)
 	}
 
 	/// Returns the height (`max.y - min.y`) of this bounding box,
 	/// ensuring it is non-negative.
+	#[allow(dead_code)] // Public API; only exercised by the bbox.rs unit tests.
 	pub fn height(&self) -> f64 {
 		(self.max.y - self.min.y).max(0.0)
 	}
@@ -82,6 +83,7 @@ impl BBox {
 	///
 	/// This is particularly useful when converting fractional coordinates
 	/// to discrete pixel coordinates in rendering or raster-based scenarios.
+	#[allow(dead_code)] // Public API; only exercised by the bbox.rs unit tests.
 	pub fn round(&mut self) {
 		self.min.x = self.min.x.round();
 		self.min.y = self.min.y.round();

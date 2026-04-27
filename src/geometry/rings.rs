@@ -22,7 +22,6 @@ impl Default for Rings {
 	}
 }
 
-#[allow(dead_code)]
 impl Rings {
 	/// Creates an empty [`Rings`] collection with no [`Ring`]s.
 	pub fn new() -> Self {
@@ -30,6 +29,7 @@ impl Rings {
 	}
 
 	/// Returns the number of [`Ring`]s in this collection.
+	#[allow(dead_code)] // Public API; pairs with `is_empty` per clippy convention.
 	pub fn len(&self) -> usize {
 		self.rings.len()
 	}
@@ -85,6 +85,11 @@ impl Rings {
 	///
 	/// If at least one ring encloses the point (non-zero winding),
 	/// this method returns `true`.
+	///
+	/// **Note:** `renderer_precise` uses a scanline winding sweep instead of
+	/// per-pixel calls to this method, so it has no internal users today. It
+	/// remains as part of the public geometry API.
+	#[allow(dead_code)]
 	pub fn contains_point(&self, pt: &Point) -> bool {
 		let mut winding_number = 0;
 		for ring in &self.rings {
