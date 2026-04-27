@@ -9,15 +9,17 @@ pub fn renderer_precise(glyph: &mut RenderResult, rings: Rings) {
 	let width = glyph.width as usize;
 	let height = glyph.height as usize;
 
-	// Build an R-tree of outline segments from the ring geometry.
-	let segments = rings
-		.get_segments()
-		.into_iter()
-		.map(SegmentValue::new)
-		.collect::<Vec<SegmentValue>>();
-	let rtree = RTree::bulk_load(segments);
+	// Pull the segments once; reuse for both the R-tree (distance lookup) and
+	// the per-row scanline winding (inside/outside lookup).
+	let segments = rings.get_segments();
+	let rtree = RTree::bulk_load(
+		segments
+			.iter()
+			.cloned()
+			.map(SegmentValue::new)
+			.collect::<Vec<SegmentValue>>(),
+	);
 
-	// Initialize the bitmap. We'll fill each pixel with the SDF value.
 	let mut bitmap = vec![0; width * height];
 
 	let max_radius = 8.0;
@@ -26,21 +28,51 @@ pub fn renderer_precise(glyph: &mut RenderResult, rings: Rings) {
 	let x0 = glyph.x0 as f64 + 0.5;
 	let y0 = glyph.y0 as f64 + 0.5;
 
-	// For each pixel in the bounding box, compute signed distance
-	// from the outline, then clamp the result to [0..255].
+	// Reused scratch space for crossings on the current row.
+	let mut crossings: Vec<(f64, i32)> = Vec::new();
+
 	for y in 0..height {
+		let py = y as f64 + y0;
+
+		// Collect signed x-crossings of the horizontal ray at y = py against
+		// every segment. Conventions match `Ring::winding_number`:
+		//   upward   crossing (s.y <= py < e.y) → +1
+		//   downward crossing (s.y >  py >= e.y) → -1
+		crossings.clear();
+		for seg in &segments {
+			let s = seg.start;
+			let e = seg.end;
+			if s.y <= py && e.y > py {
+				let t = (py - s.y) / (e.y - s.y);
+				crossings.push((s.x + t * (e.x - s.x), 1));
+			} else if s.y > py && e.y <= py {
+				let t = (py - s.y) / (e.y - s.y);
+				crossings.push((s.x + t * (e.x - s.x), -1));
+			}
+		}
+		crossings.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+
+		// Closed rings produce equal up/down crossings per row, so the initial
+		// winding number (counting all crossings as "to the right of px=-∞")
+		// sums to 0. As `px` sweeps right, each crossing we pass moves from
+		// "to the right" to "to the left", so we subtract its sign.
+		let mut wn: i32 = 0;
+		let mut idx = 0usize;
+
 		for x in 0..width {
-			let sample_pt = Point::new(x as f64 + x0, y as f64 + y0);
+			let px = x as f64 + x0;
+			while idx < crossings.len() && crossings[idx].0 <= px {
+				wn -= crossings[idx].1;
+				idx += 1;
+			}
+			let inside = wn != 0;
 
-			// Distance from the outline.
+			let sample_pt = Point::new(px, py);
 			let mut d = min_distance_to_line_segment(&rtree, &sample_pt, &max_radius);
-
-			// Invert the distance if we're inside the outline.
-			if rings.contains_point(&sample_pt) {
+			if inside {
 				d = -d;
 			}
 
-			// Scale distance and apply the cutoff for the final SDF value.
 			d = d * radius_by_256 + CUTOFF;
 			let n = (255.0 - d).clamp(0.0, 255.0);
 
