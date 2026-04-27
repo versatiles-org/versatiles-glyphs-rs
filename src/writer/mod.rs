@@ -21,6 +21,7 @@ where
 /// A struct for writing files and directories to various output targets.
 pub struct Writer<'a> {
 	writer: Box<dyn WriterTrait + 'a>,
+	finished: bool,
 }
 
 impl<'a> Writer<'a> {
@@ -28,6 +29,7 @@ impl<'a> Writer<'a> {
 	pub fn new_tar<W: std::io::Write + Send + Sync + 'static>(writer: &'a mut W) -> Self {
 		Self {
 			writer: Box::new(tar::TarWriter::new(writer)),
+			finished: false,
 		}
 	}
 
@@ -35,6 +37,7 @@ impl<'a> Writer<'a> {
 	pub fn new_file(folder: std::path::PathBuf) -> Self {
 		Self {
 			writer: Box::new(file::FileWriter::new(folder)),
+			finished: false,
 		}
 	}
 
@@ -43,6 +46,7 @@ impl<'a> Writer<'a> {
 	pub fn new_dummy() -> Self {
 		Self {
 			writer: Box::new(dummy::DummyWriter::default()),
+			finished: false,
 		}
 	}
 
@@ -57,7 +61,15 @@ impl<'a> Writer<'a> {
 	}
 
 	/// Finishes writing to the output target.
+	///
+	/// Idempotent: subsequent calls (including the implicit one in [`Drop`])
+	/// are no-ops, so explicitly calling `finish()` will not produce duplicate
+	/// trailers (e.g. extra zero-padding in a tar archive).
 	pub fn finish(&mut self) -> Result<()> {
+		if self.finished {
+			return Ok(());
+		}
+		self.finished = true;
 		self.writer.finish()
 	}
 
@@ -69,7 +81,17 @@ impl<'a> Writer<'a> {
 }
 
 impl Drop for Writer<'_> {
+	/// Best-effort finalization. Drop cannot return an error, so a failure
+	/// here is logged to stderr and the underlying I/O error is otherwise
+	/// dropped. Callers that care about finalize errors should call
+	/// [`Writer::finish`] explicitly.
 	fn drop(&mut self) {
-		let _ = self.finish();
+		if self.finished {
+			return;
+		}
+		if let Err(e) = self.writer.finish() {
+			eprintln!("warning: writer finalize failed during drop: {e:#}");
+		}
+		self.finished = true;
 	}
 }
