@@ -41,6 +41,9 @@ impl<'a> GlyphBlock<'a> {
 	}
 
 	/// Returns `true` if no characters in this block are mapped to a font.
+	///
+	/// Pairs with [`Self::len`] (clippy's `len_without_is_empty` convention).
+	/// Currently only called from tests, hence the `#[allow(dead_code)]`.
 	#[allow(dead_code)]
 	pub fn is_empty(&self) -> bool {
 		self.glyphs.is_empty()

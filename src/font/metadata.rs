@@ -13,11 +13,14 @@ use ttf_parser::{name_id, Face};
 
 use super::parse_font_name;
 
-#[allow(dead_code)]
 /// Stores extracted font properties such as `family`, `style`, and `weight`,
 /// along with a set of all supported codepoints.
 pub struct FontMetadata {
 	/// The raw font name (may include style and other descriptors).
+	///
+	/// Read by the `commands::recurse` module in the bin target; the lib never
+	/// reads it, hence the `#[allow(dead_code)]`.
+	#[allow(dead_code)]
 	pub name: String,
 	/// The family portion of the font name (e.g. "Noto Sans").
 	pub family: String,
@@ -114,16 +117,14 @@ impl TryFrom<&Face<'_>> for FontMetadata {
 		let mut codepoints = codepoints.into_iter().collect::<Vec<u32>>();
 		codepoints.sort_unstable();
 
-		let metadata = FontMetadata {
+		Ok(FontMetadata {
 			name,
 			family,
 			codepoints,
 			style,
 			weight,
 			width,
-		};
-
-		Ok(metadata)
+		})
 	}
 }
 
