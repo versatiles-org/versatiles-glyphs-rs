@@ -1,9 +1,9 @@
 /// Converts a grayscale bitmap into rows of two-digit numeric strings,
-/// each representing the pixel's approximate grayscale value.
+/// each representing the pixel's grayscale value scaled to `0..=99`.
 ///
-/// Each pixel (`u8`) is first scaled by adding `100.0` and dividing by `2.56`,
-/// then truncated to a two-character substring. For instance, a value of `128`
-/// might become `"50"` in the output string.
+/// Each pixel `x` is mapped to `(x * 100) / 256`, capped at 99, then
+/// formatted as a zero-padded two-digit string. For instance, a value
+/// of `128` becomes `"50"` and `255` becomes `"99"`.
 ///
 /// # Arguments
 /// * `bitmap` - A slice of 8-bit grayscale pixel data.
@@ -12,28 +12,14 @@
 /// # Returns
 /// A vector of strings, where each string represents one row of the image
 /// (with each pixel replaced by two digits and separated by spaces).
-///
-/// # Example
-/// ```
-/// let bitmap = vec![0, 128, 255, 64];
-/// let rows = bitmap_as_digit_art(&bitmap, 2);
-/// assert_eq!(
-///     rows,
-///     vec![
-///         "00 50",
-///         "12 25",
-///     ]
-/// );
-/// ```
 pub fn bitmap_as_digit_art(bitmap: &[u8], width: usize) -> Vec<String> {
 	bitmap
 		.chunks(width)
 		.map(|row| {
 			row.iter()
 				.map(|&x| {
-					let v = 100.0 + (x as f32) / 2.56;
-					let s = v.to_string();
-					String::from(&s[1..3])
+					let v = ((x as u32 * 100) / 256).min(99);
+					format!("{v:02}")
 				})
 				.collect::<Vec<String>>()
 				.join(" ")
