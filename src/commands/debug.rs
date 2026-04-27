@@ -92,4 +92,3 @@ pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static))
 
 	Ok(())
 }
-
