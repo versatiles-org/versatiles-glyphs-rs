@@ -1,6 +1,6 @@
 [package]
 name = "versatiles_glyphs"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2021"
 rust-version = "1.85"
 description = "A tool for generating SDF glyphs from fonts."
