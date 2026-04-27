@@ -1,5 +1,5 @@
 use super::WriterTrait;
-use anyhow::{ensure, Result};
+use anyhow::{bail, ensure, Result};
 use std::{
 	io::{BufWriter, Write},
 	time::{SystemTime, UNIX_EPOCH},
@@ -50,7 +50,7 @@ impl<W: Write> TarWriter<W> {
 		let mut header = [0u8; 512];
 
 		// Name (bytes 0..100)
-		write_string(&mut header[0..100], path);
+		write_string(&mut header[0..100], path)?;
 
 		// File mode (octal, bytes 100..108)
 		write_octal(&mut header[100..108], mode);
@@ -155,17 +155,35 @@ fn write_octal(buf: &mut [u8], mut val: u64) {
 	}
 }
 
-/// Copies the bytes of `s` into `dest`, truncating if necessary.
-fn write_string(dest: &mut [u8], s: &str) {
+/// Copies the bytes of `s` into `dest`. Errors if `s` doesn't fit, since
+/// silently truncating would corrupt the tar entry's identity (e.g. its name).
+fn write_string(dest: &mut [u8], s: &str) -> Result<()> {
 	let bytes = s.as_bytes();
-	let len = bytes.len().min(dest.len());
-	dest[..len].copy_from_slice(&bytes[..len]);
+	if bytes.len() > dest.len() {
+		bail!(
+			"tar header field overflow: \"{s}\" is {} bytes, max {}",
+			bytes.len(),
+			dest.len()
+		);
+	}
+	dest[..bytes.len()].copy_from_slice(bytes);
+	Ok(())
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
 	use tar::{Archive, Entry};
+
+	#[test]
+	fn test_long_filename_errors() {
+		let mut output = Vec::new();
+		let mut tar = TarWriter::new(&mut output);
+		// 101 bytes — exceeds the 100-byte tar name field.
+		let long = "a".repeat(101);
+		let err = tar.write_file(&long, b"x").unwrap_err();
+		assert!(err.to_string().contains("tar header field overflow"));
+	}
 
 	#[test]
 	fn test_write_file() -> Result<()> {
