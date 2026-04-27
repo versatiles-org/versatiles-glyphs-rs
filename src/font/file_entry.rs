@@ -13,7 +13,10 @@ pub struct FontFileEntry<'a> {
 	/// The metadata extracted from the font, such as name, style, and other descriptors.
 	pub metadata: FontMetadata,
 
-	/// Pinned raw font data buffer. Ensures the bytes won't be moved in memory.
+	/// Pinned backing storage for `face`'s borrowed slice.
+	///
+	/// Load-bearing despite never being read directly: dropping or moving it would
+	/// invalidate the `&'a [u8]` that `face` holds. Hence `#[allow(dead_code)]`.
 	#[allow(dead_code)]
 	data: Pin<Vec<u8>>,
 
@@ -27,18 +30,29 @@ impl<'a> FontFileEntry<'a> {
 	/// # Errors
 	/// Returns an error if the font data fails to parse.
 	pub fn new(data: Vec<u8>) -> Result<Self> {
-		unsafe {
-			let data = Pin::new(data);
-			let slice: &'a [u8] = slice::from_raw_parts(data.as_ptr(), data.len());
-			let face = Face::parse(slice, 0).context("Could not parse font data")?;
-			let metadata = FontMetadata::try_from(&face)?;
-			Ok(FontFileEntry {
-				data,
-				face,
-				metadata,
-				_pin: PhantomPinned,
-			})
-		}
+		let data = Pin::new(data);
+		// SAFETY: This builds a self-referential struct. The slice we hand to
+		// `Face::parse` borrows from the bytes owned by `data`. The borrow is
+		// safe because:
+		//   1. `data` is `Pin<Vec<u8>>` and exposed only by reference, so the
+		//      `Vec`'s heap allocation is never moved or reallocated for the
+		//      lifetime of the struct.
+		//   2. `_pin: PhantomPinned` makes the struct itself `!Unpin`, so safe
+		//      code cannot move `FontFileEntry` once constructed.
+		//   3. `data` is dropped together with `face` when the struct is
+		//      dropped, so the slice never outlives its backing storage.
+		// The lifetime parameter `'a` is only nominal here — nothing outside
+		// the struct provides it; it exists so `Face<'a>` can borrow the
+		// internal slice.
+		let slice: &'a [u8] = unsafe { slice::from_raw_parts(data.as_ptr(), data.len()) };
+		let face = Face::parse(slice, 0).context("Could not parse font data")?;
+		let metadata = FontMetadata::try_from(&face)?;
+		Ok(FontFileEntry {
+			data,
+			face,
+			metadata,
+			_pin: PhantomPinned,
+		})
 	}
 }
 
