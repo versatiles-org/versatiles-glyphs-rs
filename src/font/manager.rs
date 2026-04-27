@@ -5,7 +5,7 @@ use crate::{
 	utils::get_progress_bar,
 	writer::Writer,
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex_lite::Regex;
 use std::{
@@ -100,24 +100,23 @@ impl<'a> FontManager<'a> {
 		let progress = get_progress_bar(total_glyphs);
 		let writer_mutex = Mutex::new(writer);
 
-		let op = |todo: &Todo| {
+		let op = |todo: &Todo| -> Result<()> {
 			let file_name = format!("{}/{}", todo.name, todo.block.filename());
-			let data = todo.block.render(todo.name.clone(), renderer).unwrap();
+			let data = todo.block.render(todo.name.clone(), renderer)?;
 
-			// Lock the writer and write out the rendered data.
 			writer_mutex
 				.lock()
-				.unwrap()
-				.write_file(&file_name, &data)
-				.unwrap();
+				.map_err(|_| anyhow!("writer mutex poisoned"))?
+				.write_file(&file_name, &data)?;
 
 			progress.inc(todo.block.len() as u64);
+			Ok(())
 		};
 
 		if self.parallel {
-			tasks.par_iter().for_each(op);
+			tasks.par_iter().try_for_each(op)?;
 		} else {
-			tasks.iter().for_each(op);
+			tasks.iter().try_for_each(op)?;
 		}
 
 		progress.finish();
