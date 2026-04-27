@@ -67,7 +67,11 @@ pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static))
 		let start = i * 256;
 		let end = start + 255;
 		let filename = glyph_directory.join(format!("{start}-{end}.pbf"));
-		let buf = fs::read(&filename).with_context(|| format!("Failed to read {filename:?}"))?;
+		let buf = match fs::read(&filename) {
+			Ok(b) => b,
+			Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+			Err(e) => return Err(e).with_context(|| format!("Failed to read {filename:?}")),
+		};
 		let mut glyphs = PbfGlyphs::decode(buf.as_slice())
 			.with_context(|| format!("Failed to decode {filename:?}"))?
 			.into_glyphs();
