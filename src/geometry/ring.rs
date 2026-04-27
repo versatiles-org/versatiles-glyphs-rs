@@ -103,14 +103,18 @@ impl Ring {
 			.collect()
 	}
 
-	/// Approximates a quadratic Bezier curve by recursively subdividing until it's "flat enough,"
-	/// then adds the endpoint to this ring.
+	/// Approximates a quadratic Bezier curve by iteratively subdividing until
+	/// it's "flat enough," then adds the endpoint to this ring.
+	///
+	/// Uses an explicit `Vec` stack instead of recursion so that pathological
+	/// inputs (very long, very curved segments at very small tolerances) cannot
+	/// blow the call stack.
 	///
 	/// # Arguments
 	///
 	/// * `start` - Starting point of the curve.
 	/// * `ctrl` - The single control point.
-	/// * `end` - The final endpoint of the curve (will be added to this ring once recursion ends).
+	/// * `end` - The final endpoint of the curve.
 	/// * `tolerance_sq` - The squared tolerance for "flatness". Smaller values increase subdivisions.
 	pub fn add_quadratic_bezier(
 		&mut self,
@@ -119,35 +123,38 @@ impl Ring {
 		end: Point,
 		tolerance_sq: f64,
 	) {
-		// Evaluate midpoints
-		let mid_1 = start.midpoint(ctrl);
-		let mid_2 = ctrl.midpoint(&end);
-		let mid = mid_1.midpoint(&mid_2);
-
-		// Check "flatness"
-		let dx = start.x + end.x - ctrl.x * 2.0;
-		let dy = start.y + end.y - ctrl.y * 2.0;
-		let dist_sq = dx * dx + dy * dy;
-
-		if dist_sq <= tolerance_sq {
-			// It's flat enough; just line to the end
-			self.add_point(end);
-		} else {
-			// Otherwise, subdivide
-			self.add_quadratic_bezier(start, &mid_1, mid.clone(), tolerance_sq);
-			self.add_quadratic_bezier(&mid, &mid_2, end, tolerance_sq);
+		let mut stack: Vec<(Point, Point, Point)> = Vec::new();
+		stack.push((start.clone(), ctrl.clone(), end));
+		while let Some((s, c, e)) = stack.pop() {
+			let dx = s.x + e.x - c.x * 2.0;
+			let dy = s.y + e.y - c.y * 2.0;
+			if dx * dx + dy * dy <= tolerance_sq {
+				self.add_point(e);
+				continue;
+			}
+			// De Casteljau split.
+			let mid_1 = s.midpoint(&c);
+			let mid_2 = c.midpoint(&e);
+			let mid = mid_1.midpoint(&mid_2);
+			// Push the right half first so the left half is popped next,
+			// preserving start→end ordering of points appended to the ring.
+			stack.push((mid.clone(), mid_2, e));
+			stack.push((s, mid_1, mid));
 		}
 	}
 
-	/// Approximates a cubic Bezier curve by recursively subdividing until "flat enough,"
-	/// then adds the endpoint to this ring.
+	/// Approximates a cubic Bezier curve by iteratively subdividing until
+	/// "flat enough," then adds the endpoint to this ring.
+	///
+	/// See [`add_quadratic_bezier`](Self::add_quadratic_bezier) for the
+	/// rationale behind the explicit stack.
 	///
 	/// # Arguments
 	///
 	/// * `start` - Starting point.
 	/// * `c1` - First control point.
 	/// * `c2` - Second control point.
-	/// * `end` - Final endpoint (added once the curve is sufficiently flat).
+	/// * `end` - Final endpoint.
 	/// * `tolerance_sq` - The squared tolerance for "flatness".
 	pub fn add_cubic_bezier(
 		&mut self,
@@ -157,26 +164,25 @@ impl Ring {
 		end: Point,
 		tolerance_sq: f64,
 	) {
-		// Compute midpoints (De Casteljau subdivision)
-		let p01 = start.midpoint(c1);
-		let p12 = c1.midpoint(c2);
-		let p23 = c2.midpoint(&end);
-		let p012 = p01.midpoint(&p12);
-		let p123 = p12.midpoint(&p23);
-		let mid = p012.midpoint(&p123);
-
-		// Approximate flatness
-		let dx = (c2.x + c1.x) - (start.x + end.x);
-		let dy = (c2.y + c1.y) - (start.y + end.y);
-		let dist_sq = dx * dx + dy * dy;
-
-		if dist_sq <= tolerance_sq {
-			// Flat enough
-			self.add_point(end);
-		} else {
-			// Subdivide
-			self.add_cubic_bezier(start, &p01, &p012, mid.clone(), tolerance_sq);
-			self.add_cubic_bezier(&mid, &p123, &p23, end, tolerance_sq);
+		let mut stack: Vec<(Point, Point, Point, Point)> = Vec::new();
+		stack.push((start.clone(), c1.clone(), c2.clone(), end));
+		while let Some((s, c1, c2, e)) = stack.pop() {
+			let dx = (c2.x + c1.x) - (s.x + e.x);
+			let dy = (c2.y + c1.y) - (s.y + e.y);
+			if dx * dx + dy * dy <= tolerance_sq {
+				self.add_point(e);
+				continue;
+			}
+			// De Casteljau split.
+			let p01 = s.midpoint(&c1);
+			let p12 = c1.midpoint(&c2);
+			let p23 = c2.midpoint(&e);
+			let p012 = p01.midpoint(&p12);
+			let p123 = p12.midpoint(&p23);
+			let mid = p012.midpoint(&p123);
+			// Right half first; left half popped next.
+			stack.push((mid.clone(), p123, p23, e));
+			stack.push((s, p01, p012, mid));
 		}
 	}
 
