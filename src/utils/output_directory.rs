@@ -70,6 +70,22 @@ mod tests {
 	}
 
 	#[test]
+	fn test_prepare_output_directory_when_path_is_a_file() {
+		// `remove_dir_all` errors when given a regular file; the function should
+		// surface that with our `"removing directory"` context.
+		let temp_dir = tempdir().unwrap();
+		let file_path = temp_dir.path().join("not_a_dir");
+		fs::File::create(&file_path).unwrap();
+
+		let err = prepare_output_directory(file_path.to_str().unwrap()).unwrap_err();
+		let msg = err.to_string();
+		assert!(
+			msg.contains("removing directory") || msg.contains("creating directory"),
+			"unexpected error: {msg}"
+		);
+	}
+
+	#[test]
 	fn test_prepare_output_directory_when_exists() {
 		let temp_dir = tempdir().unwrap();
 		let output_dir = temp_dir.path().join("existing_dir");

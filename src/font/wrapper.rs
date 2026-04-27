@@ -8,10 +8,10 @@ use super::{FontFileEntry, FontMetadata, GlyphBlock, GLYPH_BLOCK_SIZE};
 use anyhow::{Context, Result};
 use std::{collections::HashMap, path::PathBuf};
 
-/// A wrapper around one or more [`FontFileEntry`] instances.  
+/// A wrapper around one or more [`FontFileEntry`] instances.
 /// Each [`FontWrapper`] is effectively a "logical" font that can span
 /// multiple font files (e.g., for different languages).
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct FontWrapper<'a> {
 	/// Collection of all font files that share the same logical font identity.
 	pub files: Vec<FontFileEntry<'a>>,
@@ -115,6 +115,48 @@ mod tests {
             format!("{metadata:?}", ),
             "FontMetadata { family: Fira Sans, style: normal, weight: 400, width: normal, codepoints: 1686 }"
         );
+	}
+
+	#[test]
+	fn test_get_metadata_empty_wrapper_errors() {
+		let wrapper = FontWrapper::default();
+		let err = wrapper.get_metadata().unwrap_err();
+		assert!(err.to_string().contains("FontWrapper has no files"));
+	}
+
+	#[test]
+	fn test_add_paths_missing_file_errors() {
+		let mut wrapper = FontWrapper::default();
+		let err = wrapper
+			.add_paths(&[PathBuf::from("/nonexistent.ttf")])
+			.unwrap_err();
+		assert!(err.to_string().contains("reading font file"));
+	}
+
+	#[test]
+	fn test_add_paths_invalid_font_errors() {
+		// Create a temp file with garbage bytes that won't parse as a font.
+		let dir = tempfile::tempdir().unwrap();
+		let bad = dir.path().join("garbage.ttf");
+		std::fs::write(&bad, b"not a font").unwrap();
+
+		let mut wrapper = FontWrapper::default();
+		let err = wrapper.add_paths(&[bad]).unwrap_err();
+		assert!(err.to_string().contains("Could not parse font data"));
+	}
+
+	#[test]
+	fn test_try_from_paths_creates_wrapper() {
+		let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/Fira Sans - Regular.ttf");
+		let wrapper = FontWrapper::try_from(&[path][..]).unwrap();
+		assert_eq!(wrapper.files.len(), 1);
+		assert_eq!(wrapper.get_metadata().unwrap().family, "Fira Sans");
+	}
+
+	#[test]
+	fn test_try_from_paths_propagates_errors() {
+		let err = FontWrapper::try_from(&[PathBuf::from("/nonexistent.ttf")][..]).unwrap_err();
+		assert!(err.to_string().contains("reading font file"));
 	}
 
 	#[test]

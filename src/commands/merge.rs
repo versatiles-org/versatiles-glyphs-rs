@@ -113,6 +113,31 @@ mod tests {
 	}
 
 	#[test]
+	fn test_run_with_file_output() -> Result<()> {
+		let temp = tempfile::tempdir()?;
+		let out = temp.path().join("glyphs");
+		let args = Subcommand {
+			input_files: vec![
+				PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/Fira Sans - Regular.ttf")
+			],
+			output_directory: Some(out.to_str().unwrap().to_string()),
+			tar: false,
+			no_families: false,
+			no_index: false,
+			dummy: true,
+			single_thread: false,
+		};
+
+		let mut stdout = Vec::<u8>::new();
+		run(&args, &mut stdout)?;
+
+		assert!(out.join("fira_sans_regular/0-255.pbf").is_file());
+		assert!(out.join("font_families.json").is_file());
+		assert!(out.join("index.json").is_file());
+		Ok(())
+	}
+
+	#[test]
 	fn test_run_with_tar_to_stdout() -> Result<()> {
 		// Pretend we have multiple directories, but they actually reference the same testdata dir.
 		let args = Subcommand {

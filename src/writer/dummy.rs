@@ -55,3 +55,47 @@ impl WriterTrait for DummyWriter {
 		Some(&self.data)
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn test_write_directory_records_name() {
+		let mut w = DummyWriter::default();
+		w.write_directory("subdir/").unwrap();
+		assert_eq!(w.get_inner().unwrap(), &["subdir/".to_string()]);
+	}
+
+	#[test]
+	fn test_write_non_json_records_byte_length() {
+		let mut w = DummyWriter::default();
+		w.write_file("data.pbf", &[0u8; 42]).unwrap();
+		assert_eq!(w.get_inner().unwrap(), &["data.pbf (42)".to_string()]);
+	}
+
+	#[test]
+	fn test_write_json_records_condensed_content() {
+		let mut w = DummyWriter::default();
+		w.write_file("config.json", b"{\n  \"a\": 1,\n  \"b\": 2\n}")
+			.unwrap();
+		assert_eq!(
+			w.get_inner().unwrap(),
+			&[r#"config.json: {"a": 1,"b": 2}"#.to_string()]
+		);
+	}
+
+	#[test]
+	fn test_write_json_invalid_utf8_errors() {
+		let mut w = DummyWriter::default();
+		let err = w.write_file("bad.json", &[0xff, 0xfe]).unwrap_err();
+		// `from_utf8` produces a `FromUtf8Error`; anyhow wraps it.
+		assert!(err.is::<std::string::FromUtf8Error>());
+	}
+
+	#[test]
+	fn test_finish_is_noop() {
+		let mut w = DummyWriter::default();
+		w.finish().unwrap();
+	}
+}

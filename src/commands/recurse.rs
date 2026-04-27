@@ -212,6 +212,115 @@ mod tests {
 	}
 
 	#[test]
+	fn test_run_with_file_output() -> Result<()> {
+		let temp = tempfile::tempdir()?;
+		let out = temp.path().join("glyphs");
+		let args = Subcommand {
+			input_directories: vec![
+				PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/Fira Sans - Regular.ttf")
+			],
+			output_directory: Some(out.to_str().unwrap().to_string()),
+			tar: false,
+			no_families: false,
+			no_index: false,
+			dummy: true,
+			single_thread: false,
+		};
+
+		let mut stdout = Vec::<u8>::new();
+		run(&args, &mut stdout)?;
+
+		// Files were laid out per the frontend spec.
+		assert!(out.is_dir());
+		assert!(out.join("fira_sans_regular").is_dir());
+		assert!(out.join("fira_sans_regular/0-255.pbf").is_file());
+		assert!(out.join("font_families.json").is_file());
+		assert!(out.join("index.json").is_file());
+
+		let index = std::fs::read_to_string(out.join("index.json"))?;
+		assert!(index.contains("fira_sans_regular"));
+		Ok(())
+	}
+
+	#[test]
+	fn test_run_with_no_families_and_no_index_flags() -> Result<()> {
+		let temp = tempfile::tempdir()?;
+		let out = temp.path().join("glyphs");
+		let args = Subcommand {
+			input_directories: vec![
+				PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/Fira Sans - Regular.ttf")
+			],
+			output_directory: Some(out.to_str().unwrap().to_string()),
+			tar: false,
+			no_families: true,
+			no_index: true,
+			dummy: true,
+			single_thread: false,
+		};
+
+		let mut stdout = Vec::<u8>::new();
+		run(&args, &mut stdout)?;
+
+		// Glyphs rendered, but the two metadata JSON files were skipped.
+		assert!(out.join("fira_sans_regular/0-255.pbf").is_file());
+		assert!(!out.join("font_families.json").exists());
+		assert!(!out.join("index.json").exists());
+		Ok(())
+	}
+
+	#[test]
+	fn test_run_with_fonts_json_manifest() -> Result<()> {
+		let temp = tempfile::tempdir()?;
+
+		// Build a directory containing a font and a fonts.json that points at it.
+		let font_dir = temp.path().join("input");
+		std::fs::create_dir(&font_dir)?;
+		std::fs::copy(
+			PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/Fira Sans - Regular.ttf"),
+			font_dir.join("font.ttf"),
+		)?;
+		std::fs::write(
+			font_dir.join("fonts.json"),
+			r#"[{"name": "Custom Merged Sans", "sources": ["font.ttf"]}]"#,
+		)?;
+
+		let out = temp.path().join("glyphs");
+		let args = Subcommand {
+			input_directories: vec![font_dir],
+			output_directory: Some(out.to_str().unwrap().to_string()),
+			tar: false,
+			no_families: false,
+			no_index: false,
+			dummy: true,
+			single_thread: false,
+		};
+
+		let mut stdout = Vec::<u8>::new();
+		run(&args, &mut stdout)?;
+
+		// `name_to_id` lower-cases and underscore-joins the manifest name.
+		assert!(out.join("custom_merged_sans").is_dir());
+		assert!(out.join("custom_merged_sans/0-255.pbf").is_file());
+		Ok(())
+	}
+
+	#[test]
+	fn test_scan_skips_non_font_files() -> Result<()> {
+		let temp = tempfile::tempdir()?;
+		std::fs::write(temp.path().join("README.txt"), b"this is not a font")?;
+		std::fs::copy(
+			PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/Fira Sans - Regular.ttf"),
+			temp.path().join("font.ttf"),
+		)?;
+
+		let mut manager = FontManager::new(false);
+		scan(temp.path(), &mut manager)?;
+		// Only the .ttf file was added; README.txt was skipped.
+		assert_eq!(manager.fonts.len(), 1);
+		Ok(())
+	}
+
+	#[test]
 	fn test_run_with_tar_to_stdout() -> Result<()> {
 		// Pretend we have multiple directories, but they actually reference the same testdata dir.
 		let args = Subcommand {

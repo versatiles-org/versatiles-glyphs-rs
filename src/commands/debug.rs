@@ -162,4 +162,59 @@ mod tests {
 		let err = run(&args, &mut stdout).unwrap_err();
 		assert!(err.to_string().contains("Directory does not exist"));
 	}
+
+	#[test]
+	fn test_debug_run_tsv_format_uses_tabs() -> Result<()> {
+		// Render a font, then run debug with TSV format.
+		let temp = tempdir()?;
+		let mut manager = FontManager::new(false);
+		manager.add_path(
+			&PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/Fira Sans - Regular.ttf"),
+		)?;
+		let mut writer = Writer::new_file(temp.path().to_path_buf());
+		manager.render_glyphs(&mut writer, &Renderer::new_dummy())?;
+		writer.finish()?;
+
+		let args = Subcommand {
+			glyph_directory: temp.path().join("fira_sans_regular"),
+			format: Format::Tsv,
+		};
+		let mut stdout: Vec<u8> = Vec::new();
+		run(&args, &mut stdout)?;
+
+		let output = String::from_utf8(stdout)?;
+		let header = output.lines().next().unwrap();
+		assert_eq!(
+			header,
+			"codepoint\twidth\theight\tleft\ttop\tadvance\tbitmap_size"
+		);
+		// Spot-check a data row also uses tabs.
+		let first_row = output.lines().nth(1).unwrap();
+		assert_eq!(
+			first_row.matches('\t').count(),
+			6,
+			"expected 6 tabs per row, got: {first_row}"
+		);
+		Ok(())
+	}
+
+	#[test]
+	fn test_debug_run_corrupt_pbf_errors() -> Result<()> {
+		// Write a corrupt .pbf at the first range so `run` reaches it before any
+		// missing-file `continue`. The decoder should reject the bytes.
+		let temp = tempdir()?;
+		std::fs::write(temp.path().join("0-255.pbf"), b"\xff\xff\xff not a pbf")?;
+
+		let args = Subcommand {
+			glyph_directory: temp.path().to_path_buf(),
+			format: Format::Csv,
+		};
+		let mut stdout: Vec<u8> = Vec::new();
+		let err = run(&args, &mut stdout).unwrap_err();
+		assert!(
+			err.to_string().contains("Failed to decode"),
+			"unexpected error: {err}"
+		);
+		Ok(())
+	}
 }
