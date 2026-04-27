@@ -65,11 +65,12 @@ impl<'a> FontManager<'a> {
 	/// Useful for merging multiple `.ttf` files under one key.
 	pub fn add_font_with_name(&mut self, name: &str, sources: &[PathBuf]) -> Result<()> {
 		let id = name_to_id(name);
-		self
-			.fonts
-			.entry(id)
-			.and_modify(|f| f.add_paths(sources).unwrap())
-			.or_insert_with(|| FontWrapper::try_from(sources).unwrap());
+		match self.fonts.entry(id) {
+			Entry::Occupied(mut e) => e.get_mut().add_paths(sources)?,
+			Entry::Vacant(e) => {
+				e.insert(FontWrapper::try_from(sources)?);
+			}
+		}
 		Ok(())
 	}
 
