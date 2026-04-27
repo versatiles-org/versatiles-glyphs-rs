@@ -52,14 +52,24 @@ impl Renderer {
 	///   and coordinate offsets.
 	///
 	/// Returns [`None`] if the bounding box is empty (e.g., no outline data).
+	///
+	/// # Bbox rounding
+	///
+	/// The float bbox is converted to integer pixel bounds with `floor` on
+	/// `min` and `ceil` on `max`, so the integer cell always *contains* the
+	/// float bbox. The trade-off is that the actual outline can sit up to 1
+	/// pixel inside each edge — see the [module-level docs](super) for the
+	/// full discussion of this rounding artifact and why `BUFFER` is only
+	/// 3 pixels even though the SDF gradient extends to 8.
 	fn prepare_glyph(&self, rings: &Rings) -> Option<RenderResult> {
-		// Calculate the real glyph bbox.
 		let bbox = rings.get_bbox();
 
 		if bbox.is_empty() {
 			return None;
 		}
 
+		// floor/ceil + BUFFER: the bitmap's content area is the integer cell
+		// containing `bbox`, padded by BUFFER pixels on every side for the SDF.
 		let x0 = bbox.min.x.floor() as i32 - BUFFER;
 		let y0 = bbox.min.y.floor() as i32 - BUFFER;
 		let x1 = bbox.max.x.ceil() as i32 + BUFFER;
@@ -100,6 +110,8 @@ impl Renderer {
 		face.outline_glyph(glyph_id, &mut builder);
 		let mut rings = builder.into_rings();
 
+		// `* 0.95` matches the empirical scale used by other Mapbox-spec glyph
+		// pipelines (e.g. fontnik) so renderings line up with existing tiles.
 		let advance_float = face.glyph_hor_advance(glyph_id).unwrap_or(0) as f64 * scale * 0.95;
 		let advance = advance_float.round() as u32;
 
@@ -109,7 +121,12 @@ impl Renderer {
 
 		rings.scale(scale);
 
-		// Center the glyph to compensate for the rounding error
+		// `advance` in the PBF must be an integer, but `advance_float` rarely
+		// is. We absorb half the rounding error by translating the outline by
+		// `dx` (≤ ±0.25 px) so it stays visually centered inside the integer
+		// advance cell. This sub-pixel shift is what makes the outline land at
+		// non-integer positions and feeds into the bbox rounding artifact
+		// described in `prepare_glyph` below.
 		let dx = (advance as f64 - advance_float) / 2.0;
 		rings.translate(&Point::new(dx, 0.0));
 

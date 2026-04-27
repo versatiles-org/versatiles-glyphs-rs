@@ -27,9 +27,17 @@ pub struct RenderResult {
 impl RenderResult {
 	/// Consumes this rendering result and produces a [`PbfGlyph`].
 	///
-	/// It subtracts the buffer from the raw width/height, then
-	/// adjusts the `left` and `top` metrics to account for that buffer,
-	/// returning a fully initialized `PbfGlyph`.
+	/// The bitmap stored on disk is `(width + 2·BUFFER) × (height + 2·BUFFER)`
+	/// pixels: a content area surrounded by `BUFFER` pixels of SDF
+	/// padding on every side. The PBF metrics report only the *content area*
+	/// (`width`, `height`, `left`, `top`) — consumers reconstruct the full
+	/// bitmap dimensions by adding back `2·BUFFER` on each axis.
+	///
+	/// `left = x0 + BUFFER` and `top = y1 - BUFFER` therefore correspond to
+	/// `floor(min.x)` and `ceil(max.y)` of the float bbox computed in
+	/// [`Renderer::prepare_glyph`](crate::render::Renderer). See the
+	/// [`render` module docs](crate::render) for why those `floor`/`ceil`
+	/// boundaries don't always coincide with the actual outline.
 	///
 	/// # Examples
 	///
