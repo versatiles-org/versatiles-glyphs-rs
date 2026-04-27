@@ -103,7 +103,7 @@ pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static))
 /// Recursively scans directories and adds matching font files to the [`FontManager`].
 fn scan(path: &Path, font_manager: &mut FontManager) -> Result<()> {
 	if path.is_file() {
-		let extension = path.extension().unwrap_or_default().to_str().unwrap();
+		let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
 		if extension == "ttf" || extension == "otf" {
 			font_manager.add_path(path)?;
 		}
