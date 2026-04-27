@@ -1,5 +1,184 @@
 //! Utilities for parsing font family, style, weight, and width from raw name strings.
 
+/// Lowercase tokens to strip from a raw family name during normalization.
+///
+/// Mostly script subsets (typically for Noto Sans/Serif): when tokens like
+/// `"Adlam"` or `"Tamil"` appear in the raw family name (e.g.
+/// `"Noto Sans Adlam"`), they are removed so the resulting family matches the
+/// parent face (`"Noto Sans"`) and all script subsets share one output bundle.
+///
+/// Also includes `"italic"` — it's a style descriptor that should never
+/// remain in the family (italic info comes from the PostScript name's
+/// suffix), and dropping it cleanly handles the multi-word script
+/// `"Old Italic"` once `"old"` has been stripped.
+///
+/// This list is the authoritative source for token-based stripping. To support
+/// a new Noto script, add its lowercased tokens here. Multi-word script names
+/// (e.g. `"Old Italic"`, `"Anatolian Hieroglyphs"`) are matched by including
+/// every word as its own token — false positives are unlikely because tokens
+/// like `"hieroglyphs"` or `"hmong"` don't appear in non-script family names.
+const SCRIPT_TOKENS: &[&str] = &[
+	"aboriginal",
+	"adlam",
+	"albanian",
+	"anatolian",
+	"arabic",
+	"aramaic",
+	"armenian",
+	"avestan",
+	"balinese",
+	"bamum",
+	"bassa",
+	"batak",
+	"bengali",
+	"bhaiksuki",
+	"brahmi",
+	"buginese",
+	"buhid",
+	"canadian",
+	"carian",
+	"caucasian",
+	"chakma",
+	"cham",
+	"cherokee",
+	"chiki",
+	"cin",
+	"coptic",
+	"cuneiform",
+	"cypriot",
+	"deseret",
+	"devanagari",
+	"duployan",
+	"egyptian",
+	"elbasan",
+	"elymaic",
+	"ethiopic",
+	"georgian",
+	"glagolitic",
+	"gondi",
+	"gothic",
+	"grantha",
+	"gujarati",
+	"gunjala",
+	"gurmukhi",
+	"hanifi",
+	"hanunoo",
+	"hatran",
+	"hau",
+	"hebrew",
+	"hieroglyphs",
+	"hmong",
+	"hungarian",
+	"imperial",
+	"indic",
+	"inscriptional",
+	"italic",
+	"javanese",
+	"jp",
+	"kaithi",
+	"kannada",
+	"kayah",
+	"kharoshthi",
+	"khmer",
+	"khojki",
+	"khudawadi",
+	"kikakui",
+	"kr",
+	"lao",
+	"le",
+	"lepcha",
+	"li",
+	"limbu",
+	"linear",
+	"lisu",
+	"lue",
+	"lycian",
+	"lydian",
+	"mahajani",
+	"malayalam",
+	"mandaic",
+	"manichaean",
+	"marchen",
+	"masaram",
+	"mayan",
+	"mayek",
+	"medefaidrin",
+	"meetei",
+	"mende",
+	"meroitic",
+	"miao",
+	"modi",
+	"mongolian",
+	"mro",
+	"multani",
+	"myanmar",
+	"nabataean",
+	"new",
+	"newa",
+	"nko",
+	"north",
+	"numbers",
+	"nushu",
+	"ogham",
+	"ol",
+	"old",
+	"oriya",
+	"osage",
+	"osmanya",
+	"pa",
+	"pahawh",
+	"pahlavi",
+	"palmyrene",
+	"parthian",
+	"pau",
+	"permic",
+	"persian",
+	"phags",
+	"phoenician",
+	"psalter",
+	"rejang",
+	"rohingya",
+	"runic",
+	"samaritan",
+	"saurashtra",
+	"sc",
+	"sharada",
+	"shavian",
+	"siddham",
+	"sinhala",
+	"sogdian",
+	"sompeng",
+	"sora",
+	"south",
+	"soyombo",
+	"square",
+	"sundanese",
+	"syloti",
+	"symbols",
+	"syriac",
+	"tagalog",
+	"tagbanwa",
+	"tai",
+	"takri",
+	"tamil",
+	"tangut",
+	"tc",
+	"telugu",
+	"thaana",
+	"thai",
+	"tibetan",
+	"tifinagh",
+	"tirhuta",
+	"turkic",
+	"ugaritic",
+	"vah",
+	"vai",
+	"wancho",
+	"warang",
+	"yi",
+	"zanabazar",
+];
+
 /// Attempts to parse a font's family, style, weight, and width from a given family name and
 /// postscript name. Returns a tuple `(family, style, weight, width)`.
 ///
@@ -84,30 +263,9 @@ pub fn parse_font_name(family: String, ps_name: String) -> (String, String, u16,
 			continue;
 		}
 
-		// Skip language-specific tokens (Arabic, JP, etc.).
-		if t == "arabic"
-			|| t == "armenian"
-			|| t == "balinese"
-			|| t == "bengali"
-			|| t == "devanagari"
-			|| t == "ethiopic"
-			|| t == "georgian"
-			|| t == "gujarati"
-			|| t == "gurmukhi"
-			|| t == "hebrew"
-			|| t == "jp"
-			|| t == "javanese"
-			|| t == "kr"
-			|| t == "kannada"
-			|| t == "khmer"
-			|| t == "lao"
-			|| t == "myanmar"
-			|| t == "oriya"
-			|| t == "sc"
-			|| t == "sinhala"
-			|| t == "tamil"
-			|| t == "thai"
-		{
+		// Skip script-subset tokens (Arabic, Adlam, Tamil, Old Italic, …).
+		// See `SCRIPT_TOKENS` at the top of this file.
+		if SCRIPT_TOKENS.contains(&t.as_str()) {
 			i += 1;
 			continue;
 		}
@@ -401,7 +559,20 @@ mod tests {
 		"Merriweather Sans SemiBold;MerriweatherSans-SemiBold;Merriweather Sans;normal;600;normal",
 		"Merriweather Sans Medium;MerriweatherSans-MediumItalic;Merriweather Sans;italic;500;normal",
 		"Merriweather Sans Medium;MerriweatherSans-Medium;Merriweather Sans;normal;500;normal",
-		"Merriweather Sans;MerriweatherSans-Bold;Merriweather Sans;normal;700;normal"
+		"Merriweather Sans;MerriweatherSans-Bold;Merriweather Sans;normal;700;normal",
+		// Noto scripts that were previously left in the family name (regression cases for SCRIPT_TOKENS).
+		"Noto Sans Adlam;NotoSansAdlam-Regular;Noto Sans;normal;400;normal",
+		"Noto Sans Tibetan;NotoSansTibetan-Bold;Noto Sans;normal;700;normal",
+		"Noto Sans Cherokee;NotoSansCherokee-Regular;Noto Sans;normal;400;normal",
+		"Noto Sans Mongolian;NotoSansMongolian-Regular;Noto Sans;normal;400;normal",
+		"Noto Sans Vai;NotoSansVai-Regular;Noto Sans;normal;400;normal",
+		"Noto Sans Yi;NotoSansYi-Regular;Noto Sans;normal;400;normal",
+		"Noto Sans New Tai Lue;NotoSansNewTaiLue-Regular;Noto Sans;normal;400;normal",
+		"Noto Sans Old Italic;NotoSansOldItalic-Regular;Noto Sans;normal;400;normal",
+		"Noto Sans Anatolian Hieroglyphs;NotoSansAnatolianHieroglyphs-Regular;Noto Sans;normal;400;normal",
+		"Noto Sans Egyptian Hieroglyphs;NotoSansEgyptianHieroglyphs-Regular;Noto Sans;normal;400;normal",
+		"Noto Sans Phags Pa;NotoSansPhagsPa-Regular;Noto Sans;normal;400;normal",
+		"Noto Sans Pau Cin Hau;NotoSansPauCinHau-Regular;Noto Sans;normal;400;normal"
 	];
 
 		for sample in samples {
