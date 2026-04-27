@@ -134,7 +134,7 @@ pub fn build_font_families_json<'a>(
 			.add_font(id.to_string(), meta);
 	}
 	let mut families = family_map.into_values().collect::<Vec<_>>();
-	families.sort_by_cached_key(|f| f.name.clone());
+	families.sort_by(|a, b| a.name.cmp(&b.name));
 	Ok(serde_json::to_vec_pretty(&families)?)
 }
 
