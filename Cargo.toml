@@ -2,9 +2,14 @@
 name = "versatiles_glyphs"
 version = "0.8.0"
 edition = "2021"
+rust-version = "1.85"
 description = "A tool for generating SDF glyphs from fonts."
 license = "Unlicense"
 repository = "https://github.com/versatiles-org/versatiles-glyphs-rs"
+documentation = "https://docs.rs/versatiles_glyphs"
+readme = "README.md"
+keywords = ["font", "glyph", "sdf", "ttf", "maplibre"]
+categories = ["graphics", "rendering", "command-line-utilities"]
 exclude = [
 	".github",
 	".gitignore",
