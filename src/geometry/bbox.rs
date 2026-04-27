@@ -23,7 +23,7 @@ impl BBox {
 	/// and `max` set to `[-∞, -∞]`.
 	///
 	/// Such a box will expand to include any point or other bounding box
-	/// added via [`self.include_point`] or [`self.include_bbox`].
+	/// added via [`Self::include_point`] or [`Self::include_bbox`].
 	pub fn new() -> Self {
 		BBox {
 			min: Point::new(f64::INFINITY, f64::INFINITY),

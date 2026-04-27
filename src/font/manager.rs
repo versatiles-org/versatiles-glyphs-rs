@@ -34,7 +34,7 @@ impl<'a> FontManager<'a> {
 
 	/// Adds a single font file to the manager by path.
 	///
-	/// The font name is normalized to form a key used in [`self.fonts`].
+	/// The font name is normalized to form a key used in [`Self::fonts`].
 	/// If the key already exists, the file is appended to that font.
 	pub fn add_path(&mut self, path: &Path) -> Result<()> {
 		let file_data = std::fs::read(path)?;

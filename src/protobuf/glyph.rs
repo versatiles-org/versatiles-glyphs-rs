@@ -41,7 +41,7 @@ pub struct PbfGlyph {
 }
 
 impl PbfGlyph {
-	/// Creates a new [`Glyph`] with the specified `id` and `advance`,
+	/// Creates a new [`PbfGlyph`] with the specified `id` and `advance`,
 	/// while leaving all other fields unset or zero.
 	///
 	/// This is useful for glyphs that only need advance/position metrics

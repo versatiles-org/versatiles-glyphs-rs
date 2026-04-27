@@ -2,7 +2,7 @@ use super::{fontstack::Fontstack, PbfGlyph};
 use anyhow::Result;
 use prost::{alloc, Message};
 
-/// A collection of one or more [`Fontstack`] instances,
+/// A collection of one or more `Fontstack` instances,
 /// each containing glyph data for a particular font or range.
 ///
 /// This top-level message is often used to represent an entire
@@ -31,7 +31,7 @@ impl PbfGlyphs {
 		}
 	}
 
-	/// Adds a single [`Glyph`] to the wrapped `Fontstack`.
+	/// Adds a single [`PbfGlyph`] to the wrapped `Fontstack`.
 	///
 	/// # Examples
 	///
