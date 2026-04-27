@@ -43,14 +43,17 @@ impl BBox {
 		(self.max.y - self.min.y).max(0.0)
 	}
 
-	/// Checks if this bounding box is empty. A box is considered empty
-	/// if `max.x <= min.x` or `max.y <= min.y`.
+	/// Checks if this bounding box is empty. A box is considered empty only
+	/// when it has zero extent in **both** axes — i.e. `max.x <= min.x` *and*
+	/// `max.y <= min.y`.
 	///
-	/// This is typically true only for a newly-created bounding box before
-	/// any points expand its bounds, or if points are collinear in an
-	/// unexpected way.
+	/// This catches the newly-created bounding box (where `min` is `+∞` and
+	/// `max` is `-∞`) and a single-point bbox, but treats a degenerate
+	/// horizontal-only or vertical-only bbox as non-empty so the renderer
+	/// doesn't silently drop it. (TrueType outlines are always closed loops
+	/// so this typically only matters for synthesized geometry.)
 	pub fn is_empty(&self) -> bool {
-		self.max.x <= self.min.x || self.max.y <= self.min.y
+		self.max.x <= self.min.x && self.max.y <= self.min.y
 	}
 
 	/// Expands this bounding box to include the given [`Point`].
@@ -184,13 +187,25 @@ mod tests {
 		let mut bbox = BBox::new();
 		assert!(bbox.is_empty());
 
+		// Single point: still empty (no extent in either axis).
 		bbox.include_point(&Point::new(2.0, 3.0));
 		assert!(bbox.is_empty());
 
+		// Vertical extent only: non-empty under the `&&` semantics.
 		bbox.include_point(&Point::new(2.0, 5.0));
-		assert!(bbox.is_empty());
+		assert!(!bbox.is_empty());
 
+		// Add a second x-coordinate so both axes have extent.
 		bbox.include_point(&Point::new(1.0, 5.0));
+		assert!(!bbox.is_empty());
+	}
+
+	#[test]
+	fn test_horizontal_only_bbox_is_not_empty() {
+		let mut bbox = BBox::new();
+		bbox.include_point(&Point::new(1.0, 2.0));
+		bbox.include_point(&Point::new(5.0, 2.0));
+		// Width = 4, height = 0 → not empty.
 		assert!(!bbox.is_empty());
 	}
 }
