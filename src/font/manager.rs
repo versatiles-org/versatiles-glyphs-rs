@@ -11,7 +11,7 @@ use regex_lite::Regex;
 use std::{
 	collections::{hash_map::Entry, HashMap},
 	path::{Path, PathBuf},
-	sync::Mutex,
+	sync::{Mutex, OnceLock},
 };
 
 /// Manages a collection of fonts and provides methods to render glyphs
@@ -139,10 +139,11 @@ impl<'a> FontManager<'a> {
 
 /// Normalizes a font name into a lowercase, underscore-delimited string.
 fn name_to_id(name: &str) -> String {
-	let mut lower = name.to_lowercase();
-	let re = Regex::new(r"[-_\s]+").unwrap();
-	lower = re.replace_all(&lower, " ").trim().to_string();
-	lower.replace(' ', "_")
+	static RE: OnceLock<Regex> = OnceLock::new();
+	let re = RE.get_or_init(|| Regex::new(r"[-_\s]+").expect("valid regex"));
+	let lower = name.to_lowercase();
+	let collapsed = re.replace_all(&lower, " ").trim().to_string();
+	collapsed.replace(' ', "_")
 }
 
 #[cfg(test)]
@@ -170,8 +171,6 @@ mod tests {
 
 		let mut files = writer.get_inner().unwrap().to_vec();
 		files.sort_unstable();
-
-		assert_eq!(files.len(), 59);
 
 		assert_eq!(
 			files,
