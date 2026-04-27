@@ -91,7 +91,7 @@ impl Renderer {
 	///
 	/// Returns [`None`] if no corresponding glyph index can be found in `face`.
 	pub fn render_glyph(&self, face: &Face, index: u32) -> Option<PbfGlyph> {
-		let cp = char::from_u32(index).unwrap();
+		let cp = char::from_u32(index)?;
 
 		let glyph_id = face.glyph_index(cp)?;
 		let scale = 24.0 / face.units_per_em() as f64;
@@ -100,7 +100,7 @@ impl Renderer {
 		face.outline_glyph(glyph_id, &mut builder);
 		let mut rings = builder.into_rings();
 
-		let advance_float = face.glyph_hor_advance(glyph_id).unwrap() as f64 * scale * 0.95;
+		let advance_float = face.glyph_hor_advance(glyph_id).unwrap_or(0) as f64 * scale * 0.95;
 		let advance = advance_float.round() as u32;
 
 		if rings.is_empty() {
