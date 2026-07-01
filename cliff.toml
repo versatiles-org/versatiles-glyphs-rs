@@ -1,0 +1,55 @@
+# git-cliff configuration — https://git-cliff.org
+#
+# Generates CHANGELOG.md and per-release GitHub notes from the conventional
+# commit history. Used by scripts/update_changelog.sh (via cargo-release) and
+# scripts/release.sh.
+
+[changelog]
+# Rendered once at the top of CHANGELOG.md. Stripped for GitHub release notes
+# via `git-cliff --strip header`.
+header = """# Changelog
+
+All notable changes to this project are documented in this file.
+It is generated from the commit history by [git-cliff](https://git-cliff.org).
+"""
+# Rendered once per release.
+body = """
+## {% if version %}{{ version }} - {{ timestamp | date(format="%Y-%m-%d") }}{% else %}Unreleased{% endif %}
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}- {% if commit.scope %}*({{ commit.scope }})* {% endif %}{{ commit.message | split(pat="\n") | first | upper_first }}
+{% endfor %}{% endfor %}{% if version and previous and previous.version %}
+**Full Changelog**: https://github.com/versatiles-org/versatiles-glyphs-rs/compare/{{ previous.version }}...{{ version }}
+{% endif %}
+"""
+footer = ""
+trim = false
+
+[git]
+conventional_commits = true
+# Keep non-conventional commits too, but route them to an "Other" bucket.
+filter_unconventional = false
+split_commits = false
+protect_breaking_commits = false
+filter_commits = false
+tag_pattern = "v[0-9]*"
+topo_order = false
+sort_commits = "newest"
+
+# Order is enforced by the hidden `<!-- N -->` sort keys (invisible when the
+# markdown is rendered). Earlier parsers win, so skips come first.
+commit_parsers = [
+  { message = "^chore: Release", skip = true },
+  { message = "^chore\\(release\\)", skip = true },
+  { message = "^Merge ", skip = true },
+  { message = "^feat", group = "<!-- 0 -->🚀 Features" },
+  { message = "^fix", group = "<!-- 1 -->🐛 Bug Fixes" },
+  { message = "^perf", group = "<!-- 2 -->⚡ Performance" },
+  { message = "^refactor", group = "<!-- 3 -->🚜 Refactoring" },
+  { message = "^docs?", group = "<!-- 4 -->📚 Documentation" },
+  { message = "^test", group = "<!-- 5 -->🧪 Testing" },
+  { message = "^style", group = "<!-- 6 -->🎨 Styling" },
+  { message = "^(build|ci)", group = "<!-- 7 -->⚙️ Build & CI" },
+  { message = "^chore", group = "<!-- 8 -->🧹 Chores" },
+  { message = ".*", group = "<!-- 9 -->📦 Other" },
+]

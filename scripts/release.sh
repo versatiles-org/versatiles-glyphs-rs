@@ -31,10 +31,15 @@ fi
 cargo release "$BUMP_TYPE" --execute --sign --no-verify
 
 RELEASE_TAG=$(cargo get package.version --pretty)
-RELEASE_NAME="Release ${RELEASE_TAG}"
 
 echo -e "${GRE}Creating GitHub release '${RELEASE_TAG}'...${END}"
-gh release create "${RELEASE_TAG}" --generate-notes --draft
+# Build the release body from the commit history with git-cliff (same config
+# that produced CHANGELOG.md). --latest = just this tag; --strip header drops
+# the "# Changelog" preamble.
+NOTES_FILE=$(mktemp)
+trap 'rm -f "${NOTES_FILE}"' EXIT
+git-cliff --latest --strip header >"${NOTES_FILE}"
+gh release create "${RELEASE_TAG}" --title "${RELEASE_TAG}" --notes-file "${NOTES_FILE}" --draft
 
 echo -e "${GRE}Trigger release build...${END}"
 gh workflow run release.yml -r main

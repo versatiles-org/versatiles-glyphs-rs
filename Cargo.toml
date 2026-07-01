@@ -21,6 +21,12 @@ exclude = [
 	"testdata",
 ]
 
+# cargo-release settings (used by scripts/release.sh).
+# The pre-release hook regenerates CHANGELOG.md so it lands in the release commit.
+[package.metadata.release]
+pre-release-commit-message = "chore: Release {{crate_name}} version {{version}}"
+pre-release-hook = ["scripts/update_changelog.sh"]
+
 [lib]
 name = "versatiles_glyphs"
 path = "src/lib.rs"
