@@ -6,7 +6,7 @@
 
 use super::{FontFileEntry, FontMetadata, GlyphBlock, GLYPH_BLOCK_SIZE};
 use anyhow::{Context, Result};
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 
 /// A wrapper around one or more [`FontFileEntry`] instances.
 /// Each [`FontWrapper`] is effectively a "logical" font that can span
@@ -42,22 +42,37 @@ impl<'a> FontWrapper<'a> {
 	///
 	/// This is essential for rendering, as each block corresponds to a `.pbf` file
 	/// covering a particular range of Unicode codepoints.
+	///
+	/// A block is emitted for **every** 256-codepoint range of the Basic Multilingual
+	/// Plane (`0-255` … `65280-65535`), even when this font contains no glyphs in that
+	/// range. Mapbox GL / MapLibre request ranges on demand and treat a missing file
+	/// (HTTP 404) as an error, logging a console warning per codepoint. Emitting an
+	/// empty `.pbf` for uncovered ranges turns that 404 into a valid empty response,
+	/// so the client silently falls back instead of warning. Codepoints outside the
+	/// BMP (`> 0xFFFF`) are ignored, since the clients only render the BMP.
 	pub fn get_blocks(&'a self) -> Vec<GlyphBlock<'a>> {
-		let mut blocks = HashMap::<u32, GlyphBlock<'a>>::new();
+		/// Number of 256-codepoint blocks covering the Basic Multilingual Plane.
+		const BMP_BLOCK_COUNT: u32 = 0x1_0000 / GLYPH_BLOCK_SIZE;
+
+		// One block per BMP range, so even ranges this font doesn't cover are emitted.
+		let mut blocks = (0..BMP_BLOCK_COUNT)
+			.map(|i| GlyphBlock::new(i * GLYPH_BLOCK_SIZE))
+			.collect::<Vec<GlyphBlock<'a>>>();
 
 		// For each file, for each codepoint, place the codepoint into its corresponding block.
 		for font_file in &self.files {
 			for &codepoint in &font_file.metadata.codepoints {
-				let block_index = codepoint / GLYPH_BLOCK_SIZE;
+				// Mapbox GL / MapLibre only render the Basic Multilingual Plane.
+				if codepoint > 0xFFFF {
+					continue;
+				}
+				let block_index = (codepoint / GLYPH_BLOCK_SIZE) as usize;
 				let char_index = (codepoint % GLYPH_BLOCK_SIZE) as u8;
-				let block = blocks
-					.entry(block_index)
-					.or_insert_with(|| GlyphBlock::new(block_index * GLYPH_BLOCK_SIZE));
-				block.set_glyph_font(char_index, font_file);
+				blocks[block_index].set_glyph_font(char_index, font_file);
 			}
 		}
 
-		blocks.into_values().collect()
+		blocks
 	}
 
 	/// Returns the [`FontMetadata`] of the first font file in this wrapper.
