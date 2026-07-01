@@ -179,14 +179,23 @@ mod tests {
 		let wrapper = FontWrapper::from(create_test_font_file_entry());
 		let blocks = wrapper.get_blocks();
 
-		let mut list = blocks
+		// Every BMP range (0-255 … 65280-65535) is emitted, empty or not, so the
+		// client never receives a 404 for an in-range codepoint.
+		assert_eq!(blocks.len(), 256);
+		assert!(blocks.iter().all(|b| b.start_index % GLYPH_BLOCK_SIZE == 0));
+		assert!(blocks.iter().all(|b| b.start_index < 0x1_0000));
+
+		// The populated ranges (and their glyph counts) still match the font's coverage;
+		// all other ranges are present but empty.
+		let mut populated = blocks
 			.iter()
+			.filter(|b| !b.glyphs.is_empty())
 			.map(|b| (b.start_index, b.glyphs.len()))
 			.collect::<Vec<_>>();
-		list.sort_unstable();
+		populated.sort_unstable();
 
 		assert_eq!(
-			list,
+			populated,
 			[
 				(0, 192),
 				(256, 256),
@@ -210,5 +219,10 @@ mod tests {
 				(65024, 1)
 			]
 		);
+
+		// The Tibetan range (U+0F00–0FFF → 3840-4095) is now present as an empty block,
+		// which is exactly the 404 case reported by MapLibre.
+		let tibetan = blocks.iter().find(|b| b.start_index == 3840).unwrap();
+		assert!(tibetan.glyphs.is_empty());
 	}
 }
