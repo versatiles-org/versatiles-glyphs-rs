@@ -50,7 +50,7 @@ pub fn min_distance_to_line_segment(
 	);
 
 	// Collect candidate segments in that bounding box.
-	let candidates = rtree.locate_in_envelope_intersecting(&query_env);
+	let candidates = rtree.locate_in_envelope_intersecting(query_env);
 
 	// Determine the squared distance from `p` to each candidate,
 	// keeping track of the minimum.
