@@ -5,20 +5,22 @@ use crate::{
 	utils::get_progress_bar,
 	writer::Writer,
 };
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex_lite::Regex;
 use std::{
-	collections::{hash_map::Entry, HashMap},
+	collections::{btree_map::Entry, BTreeMap},
 	path::{Path, PathBuf},
-	sync::{Mutex, OnceLock},
+	sync::OnceLock,
 };
 
 /// Manages a collection of fonts and provides methods to render glyphs
 /// and write metadata (index/families) files.
 pub struct FontManager<'a> {
 	/// Mapping from a font identifier to a [`FontWrapper`].
-	pub fonts: HashMap<String, FontWrapper<'a>>,
+	///
+	/// Ordered, so fonts are always rendered and written sorted by identifier.
+	pub fonts: BTreeMap<String, FontWrapper<'a>>,
 	/// Whether to parallelize rendering operations.
 	pub parallel: bool,
 }
@@ -27,7 +29,7 @@ impl<'a> FontManager<'a> {
 	/// Creates a new `FontManager` with the specified parallel rendering setting.
 	pub fn new(parallel: bool) -> Self {
 		Self {
-			fonts: HashMap::new(),
+			fonts: BTreeMap::new(),
 			parallel,
 		}
 	}
@@ -77,47 +79,45 @@ impl<'a> FontManager<'a> {
 	/// Renders glyphs from all managed fonts via the provided renderer,
 	/// writing each glyph block to the supplied writer.
 	///
-	/// Rendering is parallelized with `rayon` for performance.
+	/// The output order is deterministic: fonts are written sorted by identifier,
+	/// each followed by its blocks in ascending range order. The blocks of a font
+	/// (and the glyphs within each block) are rendered in parallel with `rayon`
+	/// (if enabled), buffered, and then written in order, so at most one font's
+	/// glyph data is held in memory.
 	pub fn render_glyphs(&'a self, writer: &mut Writer, renderer: &Renderer) -> Result<()> {
-		struct Todo<'block> {
-			name: String,
-			block: GlyphBlock<'block>,
-		}
-
 		// Collect all blocks from every font.
-		let mut tasks = Vec::new();
-		for (name, font) in &self.fonts {
-			writer.write_directory(&format!("{name}/"))?;
-			for block in font.get_blocks() {
-				tasks.push(Todo {
-					name: name.clone(),
-					block,
-				});
-			}
-		}
+		let fonts = self
+			.fonts
+			.iter()
+			.map(|(name, font)| (name, font.get_blocks()))
+			.collect::<Vec<_>>();
 
 		// Progress bar across all glyph blocks.
-		let total_glyphs = tasks.iter().map(|t| t.block.len() as u64).sum();
+		let total_glyphs = fonts
+			.iter()
+			.flat_map(|(_, blocks)| blocks)
+			.map(|block| block.len() as u64)
+			.sum();
 		let progress = get_progress_bar(total_glyphs);
-		let writer_mutex = Mutex::new(writer);
 
-		let op = |todo: &Todo| -> Result<()> {
-			let file_name = format!("{}/{}", todo.name, todo.block.filename());
-			let data = todo.block.render(todo.name.clone(), renderer)?;
+		for (name, blocks) in &fonts {
+			writer.write_directory(&format!("{name}/"))?;
 
-			writer_mutex
-				.lock()
-				.map_err(|_| anyhow!("writer mutex poisoned"))?
-				.write_file(&file_name, &data)?;
+			let render = |block: &GlyphBlock| -> Result<Vec<u8>> {
+				let data = block.render(name.to_string(), renderer, self.parallel)?;
+				progress.inc(block.len() as u64);
+				Ok(data)
+			};
 
-			progress.inc(todo.block.len() as u64);
-			Ok(())
-		};
+			let results = if self.parallel {
+				blocks.par_iter().map(render).collect::<Result<Vec<_>>>()?
+			} else {
+				blocks.iter().map(render).collect::<Result<Vec<_>>>()?
+			};
 
-		if self.parallel {
-			tasks.par_iter().try_for_each(op)?;
-		} else {
-			tasks.iter().try_for_each(op)?;
+			for (block, data) in blocks.iter().zip(results) {
+				writer.write_file(&format!("{name}/{}", block.filename()), &data)?;
+			}
 		}
 
 		progress.finish();
@@ -220,6 +220,58 @@ mod tests {
 		// U+0F00–0FFF (Tibetan, range 3840-4095) — the exact 404 reported by MapLibre —
 		// is now emitted as an empty placeholder rather than being absent.
 		assert!(size_of("noto_sans_regular", 3840) < 100);
+		Ok(())
+	}
+
+	#[test]
+	fn test_render_glyphs_write_order() -> Result<()> {
+		let mut manager = FontManager::new(true);
+		manager.add_paths(&get_test_paths())?;
+
+		let mut writer = Writer::new_dummy();
+		manager.render_glyphs(&mut writer, &Renderer::new_dummy())?;
+
+		// Strip the " (size)" suffix, keeping the order in which entries were written.
+		let written = writer
+			.get_inner()
+			.unwrap()
+			.iter()
+			.map(|e| e.split(" (").next().unwrap().to_string())
+			.collect::<Vec<_>>();
+
+		// Fonts sorted by id; each directory followed by its ranges in ascending order.
+		let mut expected = Vec::new();
+		for font in ["fira_sans_regular", "noto_sans_regular"] {
+			expected.push(format!("{font}/"));
+			for i in 0..256 {
+				let start = i * crate::font::GLYPH_BLOCK_SIZE;
+				let end = start + crate::font::GLYPH_BLOCK_SIZE - 1;
+				expected.push(format!("{font}/{start}-{end}.pbf"));
+			}
+		}
+		assert_eq!(written, expected);
+		Ok(())
+	}
+
+	#[test]
+	fn test_render_glyphs_is_reproducible() -> Result<()> {
+		let render = || -> Result<Vec<u8>> {
+			let mut manager = FontManager::new(true);
+			manager.add_paths(&get_test_paths())?;
+
+			let mut output = Vec::<u8>::new();
+			let mut writer = Writer::new_tar(&mut output);
+			manager.render_glyphs(&mut writer, &Renderer::new_dummy())?;
+			manager.write_index_json(&mut writer)?;
+			manager.write_families_json(&mut writer)?;
+			writer.finish()?;
+			drop(writer);
+			Ok(output)
+		};
+
+		let first = render()?;
+		let second = render()?;
+		assert!(first == second, "two builds produced different bytes");
 		Ok(())
 	}
 
