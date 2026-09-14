@@ -1,9 +1,6 @@
 use super::WriterTrait;
 use anyhow::{bail, ensure, Result};
-use std::{
-	io::{BufWriter, Write},
-	time::{SystemTime, UNIX_EPOCH},
-};
+use std::io::{BufWriter, Write};
 
 /// 1 KiB of zeros, used for padding data and finalizing the archive.
 const ZEROS_1K: [u8; 1024] = [0; 1024];
@@ -18,6 +15,8 @@ const ZEROS_1K: [u8; 1024] = [0; 1024];
 /// # Features
 /// - Generates minimal 512-byte headers containing filenames, file sizes,
 ///   timestamps, and checksums.
+/// - Produces reproducible output: every entry gets the same modification time,
+///   taken from `SOURCE_DATE_EPOCH` if set, otherwise `0`.
 /// - Pads file data to 512-byte boundaries.
 /// - Finalizes the tar file with an additional 1024 bytes of zero padding
 ///   as required by the format.
@@ -29,6 +28,8 @@ const ZEROS_1K: [u8; 1024] = [0; 1024];
 pub struct TarWriter<W: Write> {
 	/// A buffered writer that collects and writes tar data.
 	writer: BufWriter<W>,
+	/// Modification time (Unix seconds) written into every header.
+	mtime: u64,
 }
 
 impl<W: Write> TarWriter<W> {
@@ -36,6 +37,7 @@ impl<W: Write> TarWriter<W> {
 	pub fn new(writer: W) -> Self {
 		Self {
 			writer: BufWriter::new(writer),
+			mtime: parse_source_date_epoch(std::env::var("SOURCE_DATE_EPOCH").ok().as_deref()),
 		}
 	}
 
@@ -65,11 +67,7 @@ impl<W: Write> TarWriter<W> {
 		write_octal(&mut header[124..136], size);
 
 		// Last modification time in numeric Unix time (octal, bytes 136..148)
-		let mtime = SystemTime::now()
-			.duration_since(UNIX_EPOCH)
-			.unwrap_or_default()
-			.as_secs();
-		write_octal(&mut header[136..148], mtime);
+		write_octal(&mut header[136..148], self.mtime);
 
 		// Type flag (file= '0', directory= '5'), byte 156
 		header[156] = typeflag;
@@ -142,6 +140,13 @@ impl<W: Write + Send + Sync> WriterTrait for TarWriter<W> {
 	}
 }
 
+/// Parses a [`SOURCE_DATE_EPOCH`](https://reproducible-builds.org/specs/source-date-epoch/)
+/// value into Unix seconds. Missing or invalid values fall back to `0`, so the
+/// output never depends on the current time.
+fn parse_source_date_epoch(value: Option<&str>) -> u64 {
+	value.and_then(|v| v.trim().parse().ok()).unwrap_or(0)
+}
+
 /// Writes an octal representation of `val` into `buf`, ending with a space character.
 /// The buffer is filled from the right, and any remaining space on the left is filled with `0`.
 fn write_octal(buf: &mut [u8], mut val: u64) {
@@ -183,6 +188,34 @@ mod tests {
 		let long = "a".repeat(101);
 		let err = tar.write_file(&long, b"x").unwrap_err();
 		assert!(err.to_string().contains("tar header field overflow"));
+	}
+
+	#[test]
+	fn test_parse_source_date_epoch() {
+		assert_eq!(parse_source_date_epoch(None), 0);
+		assert_eq!(parse_source_date_epoch(Some("1700000000")), 1_700_000_000);
+		assert_eq!(parse_source_date_epoch(Some(" 42\n")), 42);
+		assert_eq!(parse_source_date_epoch(Some("")), 0);
+		assert_eq!(parse_source_date_epoch(Some("not a number")), 0);
+		assert_eq!(parse_source_date_epoch(Some("-1")), 0);
+	}
+
+	#[test]
+	fn test_mtime_is_fixed() -> Result<()> {
+		let mut output = Vec::new();
+		{
+			let mut tar = TarWriter::new(&mut output);
+			tar.mtime = 1_700_000_000;
+			tar.write_directory("folder/")?;
+			tar.write_file("folder/file.txt", b"content")?;
+			tar.finish()?;
+		}
+
+		let mut archive = Archive::new(&output[..]);
+		for entry in archive.entries()? {
+			assert_eq!(entry?.header().mtime()?, 1_700_000_000);
+		}
+		Ok(())
 	}
 
 	#[test]
