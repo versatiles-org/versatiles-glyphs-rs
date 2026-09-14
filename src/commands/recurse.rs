@@ -124,8 +124,14 @@ fn scan(path: &Path, font_manager: &mut FontManager) -> Result<()> {
 				)?;
 			}
 		} else {
-			for entry in fs::read_dir(path)? {
-				scan(&entry?.path(), font_manager)?;
+			// `read_dir` order is filesystem-dependent. Sort it, because the first file
+			// added to a font wins when several files provide the same codepoint.
+			let mut entries = fs::read_dir(path)?
+				.map(|entry| Ok(entry?.path()))
+				.collect::<Result<Vec<_>>>()?;
+			entries.sort_unstable();
+			for entry in entries {
+				scan(&entry, font_manager)?;
 			}
 		}
 	}
@@ -301,6 +307,33 @@ mod tests {
 		// `name_to_id` lower-cases and underscore-joins the manifest name.
 		assert!(out.join("custom_merged_sans").is_dir());
 		assert!(out.join("custom_merged_sans/0-255.pbf").is_file());
+		Ok(())
+	}
+
+	#[test]
+	fn test_scan_adds_files_in_sorted_order() -> Result<()> {
+		// Both files map to `noto_sans_regular`; the first one added wins overlapping
+		// codepoints, so the order must not depend on the filesystem.
+		let temp = tempfile::tempdir()?;
+		let noto = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/Noto Sans");
+		std::fs::copy(
+			noto.join("Noto Sans Arabic - Regular.ttf"),
+			temp.path().join("b.ttf"),
+		)?;
+		std::fs::copy(
+			noto.join("Noto Sans - Regular.ttf"),
+			temp.path().join("a.ttf"),
+		)?;
+
+		let mut manager = FontManager::new(false);
+		scan(temp.path(), &mut manager)?;
+
+		let names = manager.fonts["noto_sans_regular"]
+			.files
+			.iter()
+			.map(|f| f.metadata.name.as_str())
+			.collect::<Vec<_>>();
+		assert_eq!(names, ["Noto Sans", "Noto Sans Arabic"]);
 		Ok(())
 	}
 
