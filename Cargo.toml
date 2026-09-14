@@ -59,15 +59,15 @@ overflow-checks = false
 strip = true
 
 [dependencies]
-anyhow = "1.0.103"
-clap = { version = "4.6.1", features = ["derive", "std"], optional = true }
+anyhow = "1.0.104"
+clap = { version = "4.6.6", features = ["derive", "std"], optional = true }
 indicatif = "0.18.6"
 prost = "0.14.4"
 rayon = "1.12.0"
 regex-lite = "0.1.9"
 rstar = "0.13.0"
-serde = { version = "1.0.228", features = ["derive"], optional = true }
-serde_json = { version = "1.0.150", optional = true }
+serde = { version = "1.0.229", features = ["derive"], optional = true }
+serde_json = { version = "1.0.151", optional = true }
 ttf-parser = { version = "0.25.1", features = ["std"] }
 
 [dev-dependencies]
