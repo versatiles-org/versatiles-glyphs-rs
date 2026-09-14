@@ -102,11 +102,18 @@ This avoids duplicate data that gzip can't detect, but whoever reads the tar mus
 
 ### Subcommand: `merge`
 
-Merges one or more font files into a single directory of glyphs:
+Merges one or more font files into a single font, e.g. when a font is split into several files for different scripts:
 
 ```bash
-versatiles_glyphs merge ./font/
+versatiles_glyphs merge -o ./glyphs/noto_sans_regular/ font.ttf font_arabic.ttf font_chinese.ttf
 ```
+
+All files are merged into one font, regardless of their names. If several files contain the same character, the file listed first wins. The glyph ranges are written directly into the output directory, without a font directory, `index.json` or `font_families.json`:
+
+<pre>
+📂 noto_sans_regular/
+└── 📄 {start}-{end}.pbf
+</pre>
 
 It supports the same `--output-directory` and `--tar` options.
 
@@ -134,7 +141,7 @@ You can find the latest documentation at [docs.rs/versatiles_glyphs](https://doc
 - Font files are added to a [`FontManager`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontManager.html), which scans their [metadata](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontMetadata.html) and [parses the font name](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/fn.parse_font_name.html) to guess the font family, style, weight, width …
 - Font files of the same font (e.g. when a font is split into multiple files, each for a different language) are combined in a [`FontWrapper`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontWrapper.html).
 - The [`FontManager`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontManager.html) can [render all glyphs and write them](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontManager.html#method.render_glyphs) to one of two [`Writer`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/writer/trait.Writer.html)s: [`FileWriter`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/writer/struct.FileWriter.html) or [`TarWriter`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/writer/struct.TarWriter.html)
-- Glyphs are rendered serially per [`GlyphBlock`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.GlyphBlock.html). Each block contains a maximum of 256 glyphs. The blocks are rendered in parallel.
+- Glyphs are rendered per [`GlyphBlock`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.GlyphBlock.html). Each block contains a maximum of 256 glyphs. Blocks and the glyphs within them are rendered in parallel, and written in a deterministic order.
 - A single glyph is rendered with [`render_glyph`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/render/struct.Renderer.html#method.render_glyph) from [`Renderer::new_precise()`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/render/struct.Renderer.html#method.new_precise).
 
 ### Font Metrics & Precision

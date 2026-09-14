@@ -1,4 +1,5 @@
-use crate::{font::FontManager, render::Renderer, utils::prepare_output_directory, writer::Writer};
+use super::render_args::RenderArgs;
+use crate::font::FontManager;
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::{
@@ -28,13 +29,8 @@ pub struct Subcommand {
 	#[arg(num_args=1..)]
 	input_directories: Vec<PathBuf>,
 
-	/// Output directory for glyphs. Mutually exclusive with `tar`.
-	#[arg(long, short = 'o', conflicts_with = "tar")]
-	output_directory: Option<String>,
-
-	/// Write glyphs as a tar to stdout. Mutually exclusive with `output_directory`.
-	#[arg(long, short = 't', conflicts_with = "output_directory")]
-	tar: bool,
+	#[command(flatten)]
+	render: RenderArgs,
 
 	/// Skip writing the `font_families.json` file.
 	#[arg(long)]
@@ -51,14 +47,6 @@ pub struct Subcommand {
 	/// saves time and space. With `--tar`, the consumer must support hardlink entries.
 	#[arg(long)]
 	link_duplicates: bool,
-
-	/// Hidden argument to allow specifying the dummy renderer.
-	#[arg(long, hide = true)]
-	dummy: bool,
-
-	/// Hidden argument to render glyphs in just a single thread.
-	#[arg(long, hide = true)]
-	single_thread: bool,
 }
 
 /// Describes the structure of a `fonts.json` for merged font sets.
@@ -76,7 +64,7 @@ struct FontConfig {
 /// merges fonts into a [`FontManager`]. The glyph data is written
 /// either to a directory or stdout tar.
 pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static)) -> Result<()> {
-	let mut font_manager = FontManager::new(!args.single_thread);
+	let mut font_manager = FontManager::new(args.render.parallel());
 	font_manager.link_duplicates = args.link_duplicates;
 
 	for dir in &args.input_directories {
@@ -85,18 +73,8 @@ pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static))
 		scan(&canonical, &mut font_manager)?;
 	}
 
-	let mut writer = if args.tar {
-		eprintln!("Rendering glyphs as tar to stdout.");
-		Writer::new_tar(stdout)
-	} else {
-		let out_dir = prepare_output_directory(args.output_directory.as_deref().unwrap_or("output"))?;
-		eprintln!("Rendering glyphs to directory: {out_dir:?}");
-		Writer::new_file(path::absolute(out_dir)?)
-	};
-
-	let renderer = Renderer::new(args.dummy);
-
-	font_manager.render_glyphs(&mut writer, &renderer)?;
+	let mut writer = args.render.get_writer(stdout)?;
+	font_manager.render_glyphs(&mut writer, &args.render.get_renderer())?;
 	if !args.no_index {
 		font_manager.write_index_json(&mut writer)?;
 	}
@@ -234,13 +212,14 @@ mod tests {
 			input_directories: vec![
 				PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/Fira Sans - Regular.ttf")
 			],
-			output_directory: Some(out.to_str().unwrap().to_string()),
-			tar: false,
+			render: RenderArgs {
+				output_directory: Some(out.to_str().unwrap().to_string()),
+				dummy: true,
+				..Default::default()
+			},
 			no_families: false,
 			no_index: false,
 			link_duplicates: false,
-			dummy: true,
-			single_thread: false,
 		};
 
 		let mut stdout = Vec::<u8>::new();
@@ -266,13 +245,14 @@ mod tests {
 			input_directories: vec![
 				PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/Fira Sans - Regular.ttf")
 			],
-			output_directory: Some(out.to_str().unwrap().to_string()),
-			tar: false,
+			render: RenderArgs {
+				output_directory: Some(out.to_str().unwrap().to_string()),
+				dummy: true,
+				..Default::default()
+			},
 			no_families: true,
 			no_index: true,
 			link_duplicates: false,
-			dummy: true,
-			single_thread: false,
 		};
 
 		let mut stdout = Vec::<u8>::new();
@@ -304,13 +284,14 @@ mod tests {
 		let out = temp.path().join("glyphs");
 		let args = Subcommand {
 			input_directories: vec![font_dir],
-			output_directory: Some(out.to_str().unwrap().to_string()),
-			tar: false,
+			render: RenderArgs {
+				output_directory: Some(out.to_str().unwrap().to_string()),
+				dummy: true,
+				..Default::default()
+			},
 			no_families: false,
 			no_index: false,
 			link_duplicates: false,
-			dummy: true,
-			single_thread: false,
 		};
 
 		let mut stdout = Vec::<u8>::new();
@@ -353,13 +334,14 @@ mod tests {
 		let out = temp.path().join("glyphs");
 		let args = Subcommand {
 			input_directories: vec![font_dir],
-			output_directory: Some(out.to_str().unwrap().to_string()),
-			tar: false,
+			render: RenderArgs {
+				output_directory: Some(out.to_str().unwrap().to_string()),
+				dummy: true,
+				..Default::default()
+			},
 			no_families: false,
 			no_index: false,
 			link_duplicates: true,
-			dummy: true,
-			single_thread: false,
 		};
 		run(&args, &mut Vec::<u8>::new())?;
 
@@ -430,13 +412,14 @@ mod tests {
 			input_directories: vec![
 				PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/Fira Sans - Regular.ttf")
 			],
-			output_directory: None,
-			tar: true,
+			render: RenderArgs {
+				tar: true,
+				dummy: true,
+				..Default::default()
+			},
 			no_families: false,
 			no_index: false,
 			link_duplicates: false,
-			dummy: true,
-			single_thread: false,
 		};
 
 		let mut stdout = Vec::<u8>::new();

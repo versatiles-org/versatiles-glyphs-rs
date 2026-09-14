@@ -67,6 +67,9 @@ impl<'a> FontManager<'a> {
 	}
 
 	/// Adds multiple font files to the manager.
+	///
+	/// Currently only called from tests, hence the `#[allow(dead_code)]`.
+	#[allow(dead_code)]
 	pub fn add_paths(&mut self, paths: &[PathBuf]) -> Result<()> {
 		for p in paths {
 			self.add_path(p)?;
@@ -103,13 +106,34 @@ impl<'a> FontManager<'a> {
 	/// when several fonts share fallback files, e.g. an italic face that falls back
 	/// to the upright CJK fonts.
 	pub fn render_glyphs(&'a self, writer: &mut Writer, renderer: &Renderer) -> Result<()> {
-		// Collect all blocks from every font.
 		let fonts = self
 			.fonts
 			.iter()
-			.map(|(name, font)| (name, font.get_blocks()))
+			.map(|(name, font)| (format!("{name}/"), font.get_blocks()))
 			.collect::<Vec<_>>();
+		self.render_blocks(&fonts, writer, renderer)
+	}
 
+	/// Renders a single font directly into the root of the writer, without a font directory.
+	///
+	/// Uses the rendering settings of this manager (e.g. [`Self::parallel`]), but not its fonts.
+	pub fn render_font<'f>(
+		&self,
+		font: &'f FontWrapper<'f>,
+		writer: &mut Writer,
+		renderer: &Renderer,
+	) -> Result<()> {
+		self.render_blocks(&[(String::new(), font.get_blocks())], writer, renderer)
+	}
+
+	/// Renders and writes the blocks of each font in order. Each font is given as a
+	/// path prefix (a directory like `"font_id/"`, or empty for the root) and its blocks.
+	fn render_blocks(
+		&self,
+		fonts: &[(String, Vec<GlyphBlock>)],
+		writer: &mut Writer,
+		renderer: &Renderer,
+	) -> Result<()> {
 		// Progress bar across all glyph blocks.
 		let total_glyphs = fonts
 			.iter()
@@ -121,14 +145,16 @@ impl<'a> FontManager<'a> {
 		// Path of the first block written for each source key.
 		let mut written_paths = HashMap::<_, String>::new();
 
-		for (name, blocks) in &fonts {
-			writer.write_directory(&format!("{name}/"))?;
+		for (prefix, blocks) in fonts {
+			if !prefix.is_empty() {
+				writer.write_directory(prefix)?;
+			}
 
 			// Pair each block with the path of an identical block written before, if any.
 			let tasks = blocks
 				.iter()
 				.map(|block| {
-					let path = format!("{name}/{}", block.filename());
+					let path = format!("{prefix}{}", block.filename());
 					let link = match block.source_key().filter(|_| self.link_duplicates) {
 						None => None,
 						Some(key) => match written_paths.entry(key) {
