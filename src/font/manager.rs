@@ -104,7 +104,7 @@ impl<'a> FontManager<'a> {
 			writer.write_directory(&format!("{name}/"))?;
 
 			let render = |block: &GlyphBlock| -> Result<Vec<u8>> {
-				let data = block.render(name.to_string(), renderer, self.parallel)?;
+				let data = block.render(renderer, self.parallel)?;
 				progress.inc(block.len() as u64);
 				Ok(data)
 			};
@@ -218,8 +218,9 @@ mod tests {
 		};
 		assert!(size_of("noto_sans_regular", 256) > 1000);
 		// U+0F00–0FFF (Tibetan, range 3840-4095) — the exact 404 reported by MapLibre —
-		// is now emitted as an empty placeholder rather than being absent.
-		assert!(size_of("noto_sans_regular", 3840) < 100);
+		// is now emitted as an empty placeholder rather than being absent. It's just an
+		// empty fontstack (`0a 00`).
+		assert_eq!(size_of("noto_sans_regular", 3840), 2);
 		Ok(())
 	}
 

@@ -70,7 +70,7 @@ impl<'a> GlyphBlock<'a> {
 	/// # Errors
 	///
 	/// Returns an error if glyph rendering fails.
-	pub fn render(&self, font_name: String, renderer: &Renderer, parallel: bool) -> Result<Vec<u8>> {
+	pub fn render(&self, renderer: &Renderer, parallel: bool) -> Result<Vec<u8>> {
 		let render = |(char_index, font_entry): (&u8, &&FontFileEntry)| {
 			let codepoint = self.start_index + (*char_index as u32);
 			renderer.render_glyph(&font_entry.face, codepoint)
@@ -87,7 +87,7 @@ impl<'a> GlyphBlock<'a> {
 			self.glyphs.iter().filter_map(render).collect::<Vec<_>>()
 		};
 
-		let mut glyphs = PbfGlyphs::new(font_name, self.range());
+		let mut glyphs = PbfGlyphs::new();
 		for glyph in rendered {
 			glyphs.push(glyph);
 		}
@@ -143,10 +143,17 @@ mod tests {
 		let font_entry = create_font_file_entry();
 		block.set_glyph_font(65, &font_entry);
 
-		let render_result = block.render("TestFont".to_string(), &Renderer::new_dummy(), false);
+		let render_result = block.render(&Renderer::new_dummy(), false);
 		assert!(render_result.is_ok());
 		let out_data = render_result.unwrap();
 		assert!(!out_data.is_empty());
+	}
+
+	#[test]
+	fn test_render_empty_block_is_minimal() {
+		let block = GlyphBlock::new(3840);
+		let data = block.render(&Renderer::new_dummy(), false).unwrap();
+		assert_eq!(data, [0x0a, 0x00]);
 	}
 
 	#[test]
@@ -159,9 +166,7 @@ mod tests {
 			block.set_glyph_font(char_index, &font_entry);
 		}
 
-		let data = block
-			.render("TestFont".to_string(), &Renderer::new_dummy(), true)
-			.unwrap();
+		let data = block.render(&Renderer::new_dummy(), true).unwrap();
 		let ids = PbfGlyphs::decode(data.as_slice())
 			.unwrap()
 			.into_glyphs()

@@ -16,18 +16,22 @@ pub struct PbfGlyphs {
 }
 
 impl PbfGlyphs {
-	/// Creates a new [`PbfGlyphs`] for the specified font name and glyph ID `range`.
+	/// Creates a new [`PbfGlyphs`] with a single, empty `Fontstack`.
+	///
+	/// The fontstack's `name` and `range` are not written, so the encoding only
+	/// depends on the glyphs. Without glyphs it is just two bytes: `0a 00`.
 	///
 	/// # Examples
 	///
 	/// ```
 	/// use versatiles_glyphs::protobuf::PbfGlyphs;
 	///
-	/// let pbf = PbfGlyphs::new("MyFont".to_string(), "0-255".to_string());
+	/// let pbf = PbfGlyphs::new();
+	/// assert_eq!(pbf.into_vec().unwrap(), [0x0a, 0x00]);
 	/// ```
-	pub fn new(name: String, range: String) -> Self {
+	pub fn new() -> Self {
 		Self {
-			stacks: vec![Fontstack::new(name, range)],
+			stacks: vec![Fontstack::default()],
 		}
 	}
 
@@ -38,7 +42,7 @@ impl PbfGlyphs {
 	/// ```
 	/// use versatiles_glyphs::protobuf::{PbfGlyph, PbfGlyphs};
 	///
-	/// let mut pbf = PbfGlyphs::new("MyFont".to_string(), "0-255".to_string());
+	/// let mut pbf = PbfGlyphs::new();
 	/// pbf.push(PbfGlyph::empty(42, 12));
 	/// ```
 	pub fn push(&mut self, glyph: PbfGlyph) {
@@ -57,7 +61,7 @@ impl PbfGlyphs {
 	/// ```
 	/// use versatiles_glyphs::protobuf::{PbfGlyph, PbfGlyphs};
 	///
-	/// let mut pbf = PbfGlyphs::new("MyFont".to_string(), "0-255".to_string());
+	/// let mut pbf = PbfGlyphs::new();
 	/// pbf.push(PbfGlyph::empty(42, 12));
 	///
 	/// let bytes = pbf.into_vec().unwrap();
@@ -90,20 +94,27 @@ mod tests {
 
 	#[test]
 	fn test_glyphs_new() {
-		let glyphs = PbfGlyphs::from(Fontstack::new("TestFont".to_string(), "0-255".to_string()));
+		let encoded_data = PbfGlyphs::new().into_vec().unwrap();
+		// A single empty fontstack: field 1, length 0.
+		assert_eq!(encoded_data, [0x0a, 0x00]);
 
-		let encoded_data = glyphs.encode_to_vec();
 		let decoded_glyphs = PbfGlyphs::decode(&encoded_data[..]).unwrap();
-
 		assert_eq!(
 			format!("{decoded_glyphs:?}"),
-			"PbfGlyphs { stacks: [Fontstack { name: \"TestFont\", range: \"0-255\", glyphs: [] }] }"
+			"PbfGlyphs { stacks: [Fontstack { name: None, range: None, glyphs: [] }] }"
 		);
+		assert!(decoded_glyphs.into_glyphs().is_empty());
+	}
+
+	#[test]
+	fn test_glyphs_from_fontstack() {
+		let glyphs = PbfGlyphs::from(Fontstack::default());
+		assert_eq!(glyphs, PbfGlyphs::new());
 	}
 
 	#[test]
 	fn test_pbf_glyphs_multiple_glyphs() {
-		let mut pbf = PbfGlyphs::new("MultiStack".to_string(), "100-200".to_string());
+		let mut pbf = PbfGlyphs::new();
 
 		let glyph_a = PbfGlyph {
 			id: 100,
@@ -135,6 +146,6 @@ mod tests {
 		let fs = &decoded.stacks[0];
 		assert_eq!(fs.glyphs[0], glyph_a);
 		assert_eq!(fs.glyphs[1], glyph_b);
-		assert_eq!(format!("{decoded:?}"), "PbfGlyphs { stacks: [Fontstack { name: \"MultiStack\", range: \"100-200\", glyphs: [PbfGlyph { id: 100, bitmap: Some([10, 20]), width: 15, height: 20, left: -2, top: 5, advance: 16 }, PbfGlyph { id: 101, bitmap: None, width: 9, height: 10, left: 0, top: 2, advance: 11 }] }] }");
+		assert_eq!(format!("{decoded:?}"), "PbfGlyphs { stacks: [Fontstack { name: None, range: None, glyphs: [PbfGlyph { id: 100, bitmap: Some([10, 20]), width: 15, height: 20, left: -2, top: 5, advance: 16 }, PbfGlyph { id: 101, bitmap: None, width: 9, height: 10, left: 0, top: 2, advance: 11 }] }] }");
 	}
 }

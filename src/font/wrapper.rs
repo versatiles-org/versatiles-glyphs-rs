@@ -47,8 +47,9 @@ impl<'a> FontWrapper<'a> {
 	/// Plane (`0-255` … `65280-65535`), even when this font contains no glyphs in that
 	/// range. Mapbox GL / MapLibre request ranges on demand and treat a missing file
 	/// (HTTP 404) as an error, logging a console warning per codepoint. Emitting an
-	/// empty `.pbf` for uncovered ranges turns that 404 into a valid empty response,
-	/// so the client silently falls back instead of warning. Codepoints outside the
+	/// empty `.pbf` (2 bytes, see [`crate::protobuf::PbfGlyphs::new`]) for uncovered ranges
+	/// turns that 404 into a valid empty response, so the client silently falls back
+	/// instead of warning. Codepoints outside the
 	/// BMP (`> 0xFFFF`) are ignored, since the clients only render the BMP.
 	pub fn get_blocks(&'a self) -> Vec<GlyphBlock<'a>> {
 		/// Number of 256-codepoint blocks covering the Basic Multilingual Plane.
