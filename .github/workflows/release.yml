@@ -13,8 +13,28 @@ env:
   GH_TOKEN: ${{ github.token }}
 
 jobs:
+  check-release:
+    name: Check release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      # Uploads use --clobber, so refuse to run unless the release for the
+      # current version is a single, unpublished draft.
+      - name: Ensure release is a draft
+        run: |
+          TAG="v$(scripts/get_version.sh)"
+          DRAFTS=$(gh api "repos/${{ github.repository }}/releases" --paginate \
+            --jq ".[] | select(.tag_name == \"$TAG\") | .draft")
+          if [ "$DRAFTS" != "true" ]; then
+            echo "::error::Expected exactly one draft release for $TAG, found: [${DRAFTS//$'\n'/, }]"
+            exit 1
+          fi
+
   release-linux:
     name: release ${{ matrix.target }}
+    needs: check-release
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -48,6 +68,7 @@ jobs:
 
   release-mac:
     name: release ${{ matrix.target }}
+    needs: check-release
     runs-on: macos-latest
     strategy:
       fail-fast: false

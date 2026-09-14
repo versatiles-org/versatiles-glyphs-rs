@@ -28,9 +28,29 @@ if [ $? -ne 0 ]; then
 fi
 
 # 2) Perform the release.
+OLD_VERSION=$(scripts/get_version.sh)
 cargo release "$BUMP_TYPE" --execute --sign --no-verify
+NEW_VERSION=$(scripts/get_version.sh)
 
-RELEASE_TAG=$(cargo get package.version --pretty)
+# cargo-release exits 0 when the confirmation prompt is declined, so make sure
+# the version was actually bumped before touching GitHub releases.
+if [ "${NEW_VERSION}" = "${OLD_VERSION}" ]; then
+	echo -e "${RED}❗️ Version is still ${OLD_VERSION}, cargo-release did not bump it. Aborting.${END}"
+	exit 1
+fi
+
+RELEASE_TAG="v${NEW_VERSION}"
+
+if ! git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null; then
+	echo -e "${RED}❗️ Tag ${RELEASE_TAG} was not pushed to origin. Aborting.${END}"
+	exit 1
+fi
+
+# Draft releases are not unique per tag, so check the full list (drafts included).
+if gh api "repos/{owner}/{repo}/releases" --paginate --jq '.[].tag_name' | grep -qxF "${RELEASE_TAG}"; then
+	echo -e "${RED}❗️ A GitHub release for ${RELEASE_TAG} already exists. Aborting.${END}"
+	exit 1
+fi
 
 echo -e "${GRE}Creating GitHub release '${RELEASE_TAG}'...${END}"
 # Build the release body from the commit history with git-cliff (same config
