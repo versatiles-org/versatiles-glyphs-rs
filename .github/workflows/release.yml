@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download cross
         run: |
@@ -58,7 +58,7 @@ jobs:
 
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Add Target
         run: rustup target add ${{ matrix.target }}
@@ -80,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Finalize the release # The final stroke of the brush completes the masterpiece.
         run: gh release edit "v$(scripts/get_version.sh)" --draft=false --latest --prerelease=false
