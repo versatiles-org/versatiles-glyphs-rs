@@ -34,13 +34,16 @@ impl FontFamily {
 	}
 
 	/// Adds a new [`FontFace`] to this family.
-	fn add_font(&mut self, id: String, meta: &FontMetadata) {
+	///
+	/// `meta` provides style, weight and width, while `codepoints` are the
+	/// codepoints covered by the face, possibly across several source files.
+	fn add_font(&mut self, id: String, meta: &FontMetadata, codepoints: &[u32]) {
 		self.faces.push(FontFace {
 			id,
 			style: meta.style.clone(),
 			weight: meta.weight,
 			width: meta.width.clone(),
-			codeblocks: encode_codeblocks(&meta.codepoints),
+			codeblocks: encode_codeblocks(codepoints),
 		});
 	}
 }
@@ -117,6 +120,8 @@ pub fn build_index_json<'a>(iter: impl Iterator<Item = &'a String>) -> Result<Ve
 ///
 /// The iterator should yield `(id, FontWrapper)` pairs. Each font's
 /// metadata is examined, and faces with the same family name are grouped together.
+/// Family, style, weight and width come from the first source file of a font, while
+/// `codeblocks` cover the rendered codepoints of all its source files.
 /// The JSON contains a sorted array of families, each with an array of faces.
 ///
 /// # Errors
@@ -131,7 +136,7 @@ pub fn build_font_families_json<'a>(
 		family_map
 			.entry(meta.family.to_string())
 			.or_insert_with(|| FontFamily::new(meta.family.to_string()))
-			.add_font(id.to_string(), meta);
+			.add_font(id.to_string(), meta, &font.get_codepoints());
 	}
 	let mut families = family_map.into_values().collect::<Vec<_>>();
 	families.sort_by(|a, b| a.name.cmp(&b.name));
@@ -205,12 +210,38 @@ mod tests {
 				"        \"style\": \"normal\",", 
 				"        \"weight\": 400,", 
 				"        \"width\": \"normal\",", 
-				"        \"codeblocks\": \"0,2-7,A-52,90-97,10F,1AB-1AC,1C8,1D0-20C,20F-215,218,221,25C,2C6-2C7,2DE-2E5,A64-A69,A70-A7D,A7F,A8F,A92,AB3-AB6,FB0,FE0,FE2,FEF,FFF,1078-107B,1DF0-1DF1\"", 
+				"        \"codeblocks\": \"0,2-7,A-52,90-97,10F,1AB-1AC,1C8,1D0-20C,20F-215,218,221,25C,2C6-2C7,2DE-2E5,A64-A69,A70-A7D,A7F,A8F,A92,AB3-AB6,FB0,FE0,FE2,FEF,FFF\"",
 				"      }", 
 				"    ]", 
 				"  }", 
 				"]"
 			]
+		);
+		Ok(())
+	}
+
+	#[test]
+	fn test_build_font_families_json_merged_face() -> Result<()> {
+		let mut manager = FontManager::new(false);
+		manager.add_font_with_name(
+			"Noto Sans Regular",
+			&[
+				PathBuf::from("./testdata/Noto Sans/Noto Sans - Regular.ttf"),
+				PathBuf::from("./testdata/Noto Sans/Noto Sans Thai - Regular.ttf"),
+			],
+		)?;
+
+		let json: serde_json::Value =
+			serde_json::from_slice(&build_font_families_json(manager.fonts.iter())?)?;
+		let face = &json[0]["faces"][0];
+		assert_eq!(json[0]["name"], "Noto Sans");
+		assert_eq!(face["id"], "noto_sans_regular");
+
+		// Contains the Thai blocks `E0-E5` (U+0E00–0E5F) of the second file, but not the
+		// blocks beyond the BMP (`1078-107B`, `1DF0-1DF1`) of the first one, which are never rendered.
+		assert_eq!(
+			face["codeblocks"],
+			"0,2-7,A-52,90-97,E0-E5,10F,1AB-1AC,1C8,1D0-20C,20F-215,218,221,25C,2C6-2C7,2DE-2E5,A64-A69,A70-A7D,A7F,A8F,A92,AB3-AB6,FB0,FE0,FE2,FEF,FFF"
 		);
 		Ok(())
 	}

@@ -76,6 +76,21 @@ impl<'a> FontWrapper<'a> {
 		blocks
 	}
 
+	/// Returns the sorted, deduplicated codepoints of all contained font files
+	/// that are rendered by [`Self::get_blocks`], i.e. those within the Basic
+	/// Multilingual Plane (`<= 0xFFFF`).
+	pub fn get_codepoints(&self) -> Vec<u32> {
+		let mut codepoints = self
+			.files
+			.iter()
+			.flat_map(|file| file.metadata.codepoints.iter().copied())
+			.filter(|&codepoint| codepoint <= 0xFFFF)
+			.collect::<Vec<u32>>();
+		codepoints.sort_unstable();
+		codepoints.dedup();
+		codepoints
+	}
+
 	/// Returns the [`FontMetadata`] of the first font file in this wrapper.
 	///
 	/// # Errors
@@ -131,6 +146,37 @@ mod tests {
             format!("{metadata:?}", ),
             "FontMetadata { family: Fira Sans, style: normal, weight: 400, width: normal, codepoints: 1686 }"
         );
+	}
+
+	#[test]
+	fn test_get_codepoints_merges_files_and_skips_astral() {
+		let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/Noto Sans");
+		let latin = FontWrapper::try_from(&[dir.join("Noto Sans - Regular.ttf")][..]).unwrap();
+		let merged = FontWrapper::try_from(
+			&[
+				dir.join("Noto Sans - Regular.ttf"),
+				dir.join("Noto Sans Arabic - Regular.ttf"),
+			][..],
+		)
+		.unwrap();
+
+		// Noto Sans contains codepoints beyond the BMP, which are not rendered.
+		assert!(latin.files[0]
+			.metadata
+			.codepoints
+			.iter()
+			.any(|&cp| cp > 0xFFFF));
+		assert!(latin.get_codepoints().iter().all(|&cp| cp <= 0xFFFF));
+
+		// Arabic letters only come from the second file.
+		assert!(!latin.get_codepoints().contains(&0x0627));
+		let codepoints = merged.get_codepoints();
+		assert!(codepoints.contains(&0x0627));
+		assert!(codepoints.contains(&0x0041));
+		assert!(
+			codepoints.windows(2).all(|w| w[0] < w[1]),
+			"sorted and unique"
+		);
 	}
 
 	#[test]
