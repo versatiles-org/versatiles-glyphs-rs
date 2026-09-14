@@ -3,6 +3,13 @@
 All notable changes to this project are documented in this file.
 It is generated from the commit history by [git-cliff](https://git-cliff.org).
 
+## v0.10.1 - 2026-09-14
+
+### 🚀 Features
+- Enhance FontFamily and FontWrapper with codepoints handling for merged font faces, close #16
+
+**Full Changelog**: https://github.com/versatiles-org/versatiles-glyphs-rs/compare/v0.10.0...v0.10.1
+
 ## v0.10.0 - 2026-09-14
 
 ### 🚀 Features
