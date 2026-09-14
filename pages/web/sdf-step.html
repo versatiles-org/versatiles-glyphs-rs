@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Compare --sdf-step</title>
+		<script src="./assets/lib/maplibre-gl/maplibre-gl.js"></script>
+		<script src="./assets/labels.js"></script>
+		<script src="./assets/glyph_pbf.js"></script>
+		<link href="./assets/lib/maplibre-gl/maplibre-gl.css" rel="stylesheet" />
+		<style>
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				padding: 1rem;
+				font:
+					14px/1.4 system-ui,
+					sans-serif;
+				color: #222;
+				background: #f4f4f4;
+			}
+			h1 {
+				margin: 0 0 0.25rem;
+				font-size: 1.5rem;
+			}
+			h2 {
+				margin: 2rem 0 0.5rem;
+				font-size: 1.15rem;
+			}
+			p {
+				margin: 0 0 0.75rem;
+				max-width: 60rem;
+			}
+			code {
+				font-size: 0.95em;
+			}
+			section {
+				background: #fff;
+				border: 1px solid #ddd;
+				border-radius: 6px;
+				padding: 0.75rem;
+			}
+			.controls {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+				gap: 0.5rem 1.5rem;
+			}
+			.controls label {
+				display: grid;
+				grid-template-columns: 6.5rem minmax(0, 1fr) 4rem;
+				align-items: center;
+				gap: 0.5rem;
+			}
+			.controls output {
+				text-align: right;
+				font-variant-numeric: tabular-nums;
+			}
+			.controls label.text {
+				grid-column: 1 / -1;
+				grid-template-columns: 6.5rem minmax(0, 1fr);
+			}
+			.controls textarea {
+				width: 100%;
+				height: 5.5rem;
+				font: inherit;
+			}
+			.maps {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+				gap: 0.75rem;
+				margin-top: 0.75rem;
+			}
+			.map-header {
+				display: flex;
+				gap: 0.5rem;
+				align-items: center;
+				margin-bottom: 0.25rem;
+			}
+			.map {
+				height: 65vh;
+				min-height: 20rem;
+				border: 1px solid #ccc;
+			}
+			.pixel-controls {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.5rem 1.5rem;
+				align-items: center;
+				margin-bottom: 0.75rem;
+			}
+			.pixel-controls input[type='text'] {
+				width: 4rem;
+				font-size: 1.25rem;
+				text-align: center;
+			}
+			.pixel-grid {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 1rem;
+				overflow-x: auto;
+			}
+			figure {
+				margin: 0;
+			}
+			figcaption {
+				font-size: 0.85rem;
+				color: #555;
+			}
+			canvas {
+				display: block;
+				image-rendering: pixelated;
+				border: 1px solid #ccc;
+			}
+			.stats {
+				font-variant-numeric: tabular-nums;
+			}
+			.table-wrap {
+				overflow-x: auto;
+			}
+			table {
+				border-collapse: collapse;
+				font-variant-numeric: tabular-nums;
+			}
+			th,
+			td {
+				padding: 0.3rem 0.75rem;
+				border-bottom: 1px solid #ddd;
+				text-align: right;
+				white-space: nowrap;
+			}
+			th:first-child,
+			td:first-child {
+				text-align: left;
+			}
+			.error {
+				color: #b00;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Compare <code>--sdf-step</code> values</h1>
+		<p>
+			<code>--sdf-step</code> rounds every SDF value to a multiple of the
+			step: smaller files, less precision. Compare two steps side by side,
+			stress the SDF with large text and wide halos, and inspect single
+			glyphs pixel by pixel. All glyphs are rendered from
+			<code>testdata/Noto Sans</code>.
+			<a href="index.html">Back to the test glyphs</a>
+		</p>
+
+		<section>
+			<div class="controls">
+				<label
+					>Text size
+					<input
+						id="size"
+						type="range"
+						min="8"
+						max="200"
+						value="32" /><output></output
+				></label>
+				<label
+					>Halo width
+					<input
+						id="haloWidth"
+						type="range"
+						min="0"
+						max="10"
+						step="0.25"
+						value="0" /><output></output
+				></label>
+				<label
+					>Halo blur
+					<input
+						id="haloBlur"
+						type="range"
+						min="0"
+						max="10"
+						step="0.25"
+						value="0" /><output></output
+				></label>
+				<label
+					>Pixel ratio
+					<input
+						id="pixelRatio"
+						type="range"
+						min="0.5"
+						max="4"
+						step="0.25"
+						value="1" /><output></output
+				></label>
+				<label
+					>Text color
+					<input
+						id="textColor"
+						type="color"
+						value="#000000" /><output></output
+				></label>
+				<label
+					>Halo color
+					<input
+						id="haloColor"
+						type="color"
+						value="#ffcc00" /><output></output
+				></label>
+				<label
+					>Background
+					<input
+						id="background"
+						type="color"
+						value="#ffffff" /><output></output
+				></label>
+				<label class="text">Text <textarea id="text"></textarea></label>
+			</div>
+		</section>
+
+		<div class="maps">
+			<div>
+				<div class="map-header">
+					<label
+						>Left: <code>--sdf-step</code>
+						<select class="step" data-map="0"></select
+					></label>
+				</div>
+				<div class="map" id="map0"></div>
+			</div>
+			<div>
+				<div class="map-header">
+					<label
+						>Right: <code>--sdf-step</code>
+						<select class="step" data-map="1"></select
+					></label>
+				</div>
+				<div class="map" id="map1"></div>
+			</div>
+		</div>
+
+		<h2>Pixel view</h2>
+		<section>
+			<div class="pixel-controls">
+				<label
+					>Character <input id="char" type="text" value="a" maxlength="2"
+				/></label>
+				<label
+					>Threshold
+					<input
+						id="threshold"
+						type="range"
+						min="0"
+						max="255"
+						value="192" />
+					<output id="thresholdValue"></output
+				></label>
+				<label
+					>Zoom
+					<input id="pixelSize" type="range" min="4" max="24" value="12" />
+					<output id="pixelSizeValue"></output
+				></label>
+			</div>
+			<p class="stats" id="stats"></p>
+			<div class="pixel-grid" id="pixels"></div>
+		</section>
+
+		<h2>File sizes</h2>
+		<section>
+			<p>
+				Totals over all 256 range files of <code>noto_sans_regular</code>.
+				“gzip” compresses each file separately, as when served over HTTP;
+				“tar.gz” compresses them in one archive, like a release.
+			</p>
+			<div class="table-wrap" id="sizes">Loading …</div>
+		</section>
+
+		<script>
+			const FONT = 'noto_sans_regular'
+			const STEPS = [1, 2, 4, 8, 16]
+			const ASSETS = new URL('./assets/', document.URL).href.replace(
+				/#.*/,
+				'',
+			)
+
+			const $ = (id) => document.getElementById(id)
+
+			// ---------- Settings ----------
+
+			const inputs = [
+				'size',
+				'haloWidth',
+				'haloBlur',
+				'pixelRatio',
+				'textColor',
+				'haloColor',
+				'background',
+			]
+			const settings = () => ({
+				size: Number($('size').value),
+				haloWidth: Number($('haloWidth').value),
+				haloBlur: Number($('haloBlur').value),
+				pixelRatio: Number($('pixelRatio').value),
+				textColor: $('textColor').value,
+				haloColor: $('haloColor').value,
+				background: $('background').value,
+				text: $('text').value,
+			})
+
+			$('text').value = TEST_LABELS.join('\n')
+			$('pixelRatio').value = Math.min(4, window.devicePixelRatio || 1)
+
+			// ---------- Maps ----------
+
+			maplibregl.setRTLTextPlugin(
+				'./assets/lib/mapbox-gl-rtl-text/mapbox-gl-rtl-text.js',
+				true,
+			)
+
+			function createStyle(step) {
+				const s = settings()
+				return {
+					version: 8,
+					glyphs: `${ASSETS}glyphs-step-${step}/{fontstack}/{range}.pbf`,
+					sources: {
+						labels: { type: 'geojson', data: labelFeature(s.text) },
+					},
+					layers: [
+						{
+							id: 'background',
+							type: 'background',
+							paint: { 'background-color': s.background },
+						},
+						{
+							id: 'labels',
+							type: 'symbol',
+							source: 'labels',
+							layout: {
+								'text-field': ['get', 'text'],
+								'text-font': [FONT],
+								'text-size': s.size,
+								'text-max-width': 1000,
+								'text-overlap': 'always',
+								'text-justify': 'left',
+							},
+							paint: {
+								'text-color': s.textColor,
+								'text-halo-color': s.haloColor,
+								'text-halo-width': s.haloWidth,
+								'text-halo-blur': s.haloBlur,
+							},
+						},
+					],
+				}
+			}
+
+			function labelFeature(text) {
+				return {
+					type: 'Feature',
+					geometry: { type: 'Point', coordinates: [0, 0] },
+					properties: { text },
+				}
+			}
+
+			const initialSteps = [1, 4]
+			const maps = initialSteps.map(
+				(step, i) =>
+					new maplibregl.Map({
+						container: `map${i}`,
+						style: createStyle(step),
+						center: [0, 0],
+						zoom: 2,
+						localIdeographFontFamily: false,
+						pixelRatio: Number($('pixelRatio').value),
+						attributionControl: false,
+					}),
+			)
+
+			// Keep both cameras in sync.
+			let syncing = false
+			maps.forEach((map, i) => {
+				map.on('move', () => {
+					if (syncing) return
+					syncing = true
+					maps[1 - i].jumpTo({
+						center: map.getCenter(),
+						zoom: map.getZoom(),
+						bearing: map.getBearing(),
+						pitch: map.getPitch(),
+					})
+					syncing = false
+				})
+			})
+
+			// Whether each map's style is loaded. Tracked separately, because
+			// `isStyleLoaded()` is also false while a source reloads after `setData`.
+			const styleLoaded = maps.map(() => false)
+			maps.forEach((map, i) =>
+				map.on('style.load', () => {
+					styleLoaded[i] = true
+					updateMaps()
+				}),
+			)
+
+			// Step selectors: switching glyph URLs needs a full style reload.
+			document.querySelectorAll('select.step').forEach((select) => {
+				const i = Number(select.dataset.map)
+				for (const step of STEPS)
+					select.add(new Option(`${step} (1/${32 / step} px)`, step))
+				select.value = initialSteps[i]
+				select.addEventListener('change', () => {
+					styleLoaded[i] = false
+					maps[i].setStyle(createStyle(Number(select.value)), {
+						diff: false,
+					})
+					updatePixels()
+				})
+			})
+
+			function updateMaps(event) {
+				const s = settings()
+				for (const input of inputs)
+					$(input).nextElementSibling.value = $(input).value
+				maps.forEach((map, i) => {
+					if (!styleLoaded[i]) return
+					map.setLayoutProperty('labels', 'text-size', s.size)
+					map.setPaintProperty('labels', 'text-color', s.textColor)
+					map.setPaintProperty('labels', 'text-halo-color', s.haloColor)
+					map.setPaintProperty('labels', 'text-halo-width', s.haloWidth)
+					map.setPaintProperty('labels', 'text-halo-blur', s.haloBlur)
+					map.setPaintProperty(
+						'background',
+						'background-color',
+						s.background,
+					)
+					if (event?.target === $('text'))
+						map.getSource('labels').setData(labelFeature(s.text))
+					if (map.getPixelRatio() !== s.pixelRatio)
+						map.setPixelRatio(s.pixelRatio)
+				})
+			}
+			for (const id of [...inputs, 'text'])
+				$(id).addEventListener('input', updateMaps)
+			updateMaps()
+
+			// ---------- Pixel view ----------
+
+			const ranges = new Map()
+
+			/** Loads and decodes the range file containing `codepoint`, cached per step. */
+			function loadGlyph(step, codepoint) {
+				const start = codepoint - (codepoint % 256)
+				const key = `${step}/${start}`
+				if (!ranges.has(key)) {
+					const url = `${ASSETS}glyphs-step-${step}/${FONT}/${start}-${start + 255}.pbf`
+					ranges.set(
+						key,
+						fetch(url)
+							.then((response) => {
+								if (!response.ok)
+									throw new Error(`${response.status} for ${url}`)
+								return response.arrayBuffer()
+							})
+							.then(
+								(buffer) =>
+									new Map(
+										decodeGlyphPbf(new Uint8Array(buffer)).map(
+											(g) => [g.id, g],
+										),
+									),
+							),
+					)
+				}
+				return ranges.get(key).then((glyphs) => glyphs.get(codepoint))
+			}
+
+			function drawCanvas(title, width, height, colorAt) {
+				const pixelSize = Number($('pixelSize').value)
+				const canvas = document.createElement('canvas')
+				canvas.width = width
+				canvas.height = height
+				canvas.style.width = `${width * pixelSize}px`
+				canvas.style.height = `${height * pixelSize}px`
+				const ctx = canvas.getContext('2d')
+				const image = ctx.createImageData(width, height)
+				for (let i = 0; i < width * height; i++)
+					image.data.set([...colorAt(i), 255], i * 4)
+				ctx.putImageData(image, 0, 0)
+
+				const figure = document.createElement('figure')
+				const caption = document.createElement('figcaption')
+				caption.textContent = title
+				figure.append(canvas, caption)
+				return figure
+			}
+
+			let pixelRequest = 0
+			async function updatePixels() {
+				const request = ++pixelRequest
+				const threshold = Number($('threshold').value)
+				$('thresholdValue').value = threshold
+				$('pixelSizeValue').value = `${$('pixelSize').value}×`
+
+				const codepoint = $('char').value.codePointAt(0)
+				const steps = [...document.querySelectorAll('select.step')].map(
+					(s) => Number(s.value),
+				)
+				const container = $('pixels')
+				if (codepoint === undefined || codepoint > 0xffff) {
+					container.replaceChildren()
+					$('stats').textContent =
+						'Enter a character from the Basic Multilingual Plane.'
+					return
+				}
+
+				let glyphs
+				try {
+					glyphs = await Promise.all(
+						steps.map((step) => loadGlyph(step, codepoint)),
+					)
+				} catch (error) {
+					$('stats').innerHTML =
+						`<span class="error">${error.message}</span>`
+					return
+				}
+				if (request !== pixelRequest) return
+
+				const name = `U+${codepoint.toString(16).toUpperCase().padStart(4, '0')}`
+				if (!glyphs[0] || !glyphs[0].bitmap) {
+					container.replaceChildren()
+					$('stats').textContent = glyphs[0]
+						? `${name} has no bitmap (e.g. a space).`
+						: `${name} is not in the font.`
+					return
+				}
+
+				const width = glyphs[0].width + 6
+				const height = glyphs[0].height + 6
+				const [a, b] = glyphs.map((g) => g.bitmap)
+				const gray = (v) => [v, v, v]
+				const binary = (v) => (v >= threshold ? [0, 0, 0] : [255, 255, 255])
+
+				let maxDiff = 0
+				let sumDiff = 0
+				let flipped = 0
+				for (let i = 0; i < a.length; i++) {
+					const diff = Math.abs(a[i] - b[i])
+					maxDiff = Math.max(maxDiff, diff)
+					sumDiff += diff
+					if (a[i] >= threshold !== b[i] >= threshold) flipped++
+				}
+				// Heatmap scale: the largest possible rounding error of the coarser step.
+				const scale = Math.max(1, Math.max(...steps) / 2)
+				const heat = (i) => {
+					const t = Math.min(1, Math.abs(a[i] - b[i]) / scale)
+					return [
+						255,
+						Math.round(255 * (1 - t)),
+						Math.round(255 * (1 - t) ** 2),
+					]
+				}
+
+				container.replaceChildren(
+					drawCanvas(`SDF, step ${steps[0]}`, width, height, (i) =>
+						gray(a[i]),
+					),
+					drawCanvas(`SDF, step ${steps[1]}`, width, height, (i) =>
+						gray(b[i]),
+					),
+					drawCanvas(
+						`≥ ${threshold}, step ${steps[0]}`,
+						width,
+						height,
+						(i) => binary(a[i]),
+					),
+					drawCanvas(
+						`≥ ${threshold}, step ${steps[1]}`,
+						width,
+						height,
+						(i) => binary(b[i]),
+					),
+					drawCanvas(
+						`|difference|, white = 0, red ≥ ${scale}`,
+						width,
+						height,
+						heat,
+					),
+				)
+				$('stats').textContent =
+					`${name}: ${glyphs[0].width}×${glyphs[0].height} px (+3 px buffer), ` +
+					`max difference ${maxDiff}, mean ${(sumDiff / a.length).toFixed(2)}, ` +
+					`${flipped} of ${a.length} pixels change sides at threshold ${threshold}.`
+			}
+			for (const id of ['char', 'threshold', 'pixelSize'])
+				$(id).addEventListener('input', updatePixels)
+			updatePixels()
+
+			// ---------- Size table ----------
+
+			const RANGE_NAMES = {
+				'0-255': 'Latin',
+				'1536-1791': 'Arabic',
+				'19968-20223': 'CJK',
+			}
+
+			function formatBytes(bytes) {
+				if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(2)} MB`
+				return `${(bytes / 1e3).toFixed(1)} KB`
+			}
+
+			fetch(`${ASSETS}sizes.json`)
+				.then((response) => {
+					if (!response.ok)
+						throw new Error(`${response.status} for sizes.json`)
+					return response.json()
+				})
+				.then(({ steps }) => {
+					const base = steps[0]
+					const saved = (value, baseValue) =>
+						value === baseValue
+							? formatBytes(value)
+							: `${formatBytes(value)} (−${(100 - (100 * value) / baseValue).toFixed(0)} %)`
+					const rangeKeys = Object.keys(base.ranges)
+					const header = [
+						'step',
+						'precision',
+						'raw',
+						'gzip',
+						'tar.gz',
+						...rangeKeys.map((r) => `${RANGE_NAMES[r] ?? r} (gzip)`),
+					]
+					const rows = steps.map((s) => [
+						s.step,
+						`1/${32 / s.step} px`,
+						formatBytes(s.raw),
+						saved(s.gzip, base.gzip),
+						saved(s.tar_gz, base.tar_gz),
+						...rangeKeys.map((r) =>
+							saved(s.ranges[r].gzip, base.ranges[r].gzip),
+						),
+					])
+					const table = document.createElement('table')
+					table
+						.createTHead()
+						.insertRow()
+						.append(
+							...header.map((h) =>
+								Object.assign(document.createElement('th'), {
+									textContent: h,
+								}),
+							),
+						)
+					const body = table.createTBody()
+					for (const row of rows)
+						body.insertRow().append(
+							...row.map((c) =>
+								Object.assign(document.createElement('td'), {
+									textContent: c,
+								}),
+							),
+						)
+					$('sizes').replaceChildren(table)
+				})
+				.catch((error) => {
+					$('sizes').innerHTML =
+						`<span class="error">${error.message}</span>`
+				})
+		</script>
+	</body>
+</html>

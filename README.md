@@ -127,6 +127,8 @@ versatiles_glyphs recurse ./font/ --tar --sdf-step 4 | gzip -9 > glyphs.tar.gz
 
 Each SDF byte covers 1/32 px of distance, and gzip compresses that fine gradient poorly. Coarser steps compress much better, but lose precision. This may be visible at large `text-size` or wide `text-halo-width`. Values `0` (fully outside), `192` (on the outline) and `255` are preserved. The default `1` keeps the output unchanged.
 
+To judge the visual impact, [compare two steps side by side](https://versatiles.org/versatiles-glyphs-rs/sdf-step.html): with large text, wide halos, and a pixel view of single glyphs.
+
 Size of the merged Noto Sans test fonts (`testdata/Noto Sans`, 37.7 MB as tar):
 
 | `--sdf-step` | precision | tar.gz | brotli |
@@ -178,11 +180,12 @@ Since no official SDF-glyph spec for all metrics could be found, most references
 ### Testing Online
 
 Every new release is showcased at [versatiles.org/versatiles-glyphs-rs](https://versatiles.org/versatiles-glyphs-rs/).
-If you’d like to expand or alter characters tested, [edit these lines](https://github.com/versatiles-org/versatiles-glyphs-rs/blob/main/pages/web/index.html#L27).
+The [`--sdf-step` comparison](https://versatiles.org/versatiles-glyphs-rs/sdf-step.html) renders the same texts with different SDF steps.
+If you’d like to expand or alter characters tested, [edit `labels.js`](https://github.com/versatiles-org/versatiles-glyphs-rs/blob/main/pages/web/assets/labels.js).
 
 ### Local Web Testing
 
-1. Run the build script: `./pages/build.sh`
+1. Run the build script: `./pages/build.sh` (renders the test fonts once per SDF step, which takes a minute or two)
 2. Serve the `./pages/web/` directory (e.g., using `npx http-server -sc0`, `python3 -m http.server` or `cargo install basic-http-server`)
 3. Visit it in your browser to check changes.
 

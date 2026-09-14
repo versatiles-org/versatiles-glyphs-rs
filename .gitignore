@@ -6,3 +6,6 @@ output
 pages/web/assets/glyphs/
 target
 temp
+
+pages/web/assets/glyphs-step-*/
+pages/web/assets/sizes.json
