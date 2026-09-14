@@ -3,6 +3,34 @@
 All notable changes to this project are documented in this file.
 It is generated from the commit history by [git-cliff](https://git-cliff.org).
 
+## v0.10.0 - 2026-09-14
+
+### 🚀 Features
+- Enhance release workflow with draft validation and version checks in release script
+- Implement SDF step comparison tool with size metrics and visual rendering, add glyph PBF decoder and test labels
+- Add --sdf-step option for quantizing SDF values, improving compression and precision control, close #10
+- Enhance merge functionality to combine multiple font files into a single font, updating output structure and adding render arguments, close #7
+- Add support for hardlinking duplicate glyph ranges to optimize storage and rendering, close #14
+
+### 🐛 Bug Fixes
+- Update rendering logic to handle minimal empty ranges, ensuring correct output for empty font stacks, close #12
+- Ensure deterministic font merging order by sorting directory entries in scan function
+- Implement deterministic modification time in TarWriter using SOURCE_DATE_EPOCH
+- Switch glyphs storage from HashMap to BTreeMap for deterministic output order
+- Sort font faces by ID in build_font_families_json function
+- Change glyphs storage from HashMap to BTreeMap for deterministic rendering order
+- Update dependencies to latest versions in Cargo.toml and Cargo.lock
+- Update funding information in FUNDING.yml
+- Update indicatif to version 0.18.6 in dependencies
+
+### 🧹 Chores
+- Update Dependabot configuration to use monthly schedule for cargo and GitHub Actions, removing weekly entries
+- Update GitHub Actions to use latest versions of checkout, cache, and deployment actions
+- Add security update groups for GitHub Actions and npm in dependabot configuration
+- Add git-cliff configuration and update changelog generation scripts
+
+**Full Changelog**: https://github.com/versatiles-org/versatiles-glyphs-rs/compare/v0.9.1...v0.10.0
+
 ## v0.9.1 - 2026-07-01
 
 ### 🐛 Bug Fixes
