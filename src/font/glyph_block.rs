@@ -1,7 +1,8 @@
 use super::file_entry::FontFileEntry;
 use crate::{protobuf::PbfGlyphs, render::Renderer};
 use anyhow::Result;
-use std::collections::HashMap;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use std::collections::BTreeMap;
 
 /// The number of glyphs in each block, corresponding to a range of 256 codepoints.
 pub const GLYPH_BLOCK_SIZE: u32 = 256;
@@ -12,7 +13,9 @@ pub struct GlyphBlock<'a> {
 	/// The start of the codepoint range for this block.
 	pub start_index: u32,
 	/// A map from the codepoint offset (`0..=255`) to the [`FontFileEntry`] that provides the glyph.
-	pub glyphs: HashMap<u8, &'a FontFileEntry<'a>>,
+	///
+	/// Ordered, so glyphs are always rendered and serialized by ascending codepoint.
+	pub glyphs: BTreeMap<u8, &'a FontFileEntry<'a>>,
 }
 
 impl<'a> GlyphBlock<'a> {
@@ -23,7 +26,7 @@ impl<'a> GlyphBlock<'a> {
 	pub fn new(start_index: u32) -> Self {
 		GlyphBlock {
 			start_index,
-			glyphs: HashMap::new(),
+			glyphs: BTreeMap::new(),
 		}
 	}
 
@@ -61,21 +64,33 @@ impl<'a> GlyphBlock<'a> {
 	/// Renders all glyphs in this block using the provided [`Renderer`].
 	///
 	/// A [`PbfGlyphs`] structure is created to store the glyph data, which is then serialized
-	/// into a `Vec<u8>`.
+	/// into a `Vec<u8>`. Glyphs are always stored in ascending codepoint order. If `parallel`
+	/// is set, they are rendered in parallel with `rayon`.
 	///
 	/// # Errors
 	///
 	/// Returns an error if glyph rendering fails.
-	pub fn render(&self, font_name: String, renderer: &Renderer) -> Result<Vec<u8>> {
-		let mut glyphs = PbfGlyphs::new(font_name, self.range());
-
-		for (char_index, font_entry) in &self.glyphs {
+	pub fn render(&self, font_name: String, renderer: &Renderer, parallel: bool) -> Result<Vec<u8>> {
+		let render = |(char_index, font_entry): (&u8, &&FontFileEntry)| {
 			let codepoint = self.start_index + (*char_index as u32);
-			if let Some(glyph) = renderer.render_glyph(&font_entry.face, codepoint) {
-				glyphs.push(glyph);
-			}
-		}
+			renderer.render_glyph(&font_entry.face, codepoint)
+		};
 
+		// `collect` keeps the codepoint order of the map, also when rendering in parallel.
+		let rendered = if parallel {
+			self
+				.glyphs
+				.par_iter()
+				.filter_map(render)
+				.collect::<Vec<_>>()
+		} else {
+			self.glyphs.iter().filter_map(render).collect::<Vec<_>>()
+		};
+
+		let mut glyphs = PbfGlyphs::new(font_name, self.range());
+		for glyph in rendered {
+			glyphs.push(glyph);
+		}
 		glyphs.into_vec()
 	}
 
@@ -128,9 +143,31 @@ mod tests {
 		let font_entry = create_font_file_entry();
 		block.set_glyph_font(65, &font_entry);
 
-		let render_result = block.render("TestFont".to_string(), &Renderer::new_dummy());
+		let render_result = block.render("TestFont".to_string(), &Renderer::new_dummy(), false);
 		assert!(render_result.is_ok());
 		let out_data = render_result.unwrap();
 		assert!(!out_data.is_empty());
+	}
+
+	#[test]
+	fn test_render_emits_glyphs_sorted_by_codepoint() {
+		use prost::Message;
+
+		let mut block = GlyphBlock::new(0);
+		let font_entry = create_font_file_entry();
+		for char_index in [122, 65, 100, 66, 90, 97] {
+			block.set_glyph_font(char_index, &font_entry);
+		}
+
+		let data = block
+			.render("TestFont".to_string(), &Renderer::new_dummy(), true)
+			.unwrap();
+		let ids = PbfGlyphs::decode(data.as_slice())
+			.unwrap()
+			.into_glyphs()
+			.iter()
+			.map(|g| g.id)
+			.collect::<Vec<_>>();
+		assert_eq!(ids, [65, 66, 90, 97, 100, 122]);
 	}
 }
