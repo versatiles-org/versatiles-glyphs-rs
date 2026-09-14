@@ -1,24 +1,14 @@
 version: 2
 updates:
-  # Weekly security audits
-  - package-ecosystem: cargo
-    directory: /
-    schedule: { interval: weekly }
-    open-pull-requests-limit: 0
-    groups: { security: { applies-to: security-updates, patterns: ['*'] } }
+  # Dependabot allows only one entry per ecosystem and directory. Security updates don't
+  # depend on the schedule: they are opened as soon as an advisory is published (enabled in
+  # the repository settings) and grouped by the `security` group.
 
-  - package-ecosystem: github-actions
-    directory: /
-    schedule: { interval: weekly }
-    open-pull-requests-limit: 0
-    groups: { security: { applies-to: security-updates, patterns: ['*'] } }
-
-  # Monthly regular updates
   - package-ecosystem: cargo
     directory: /
     schedule: { interval: monthly }
     groups:
-      npm: { patterns: ['*'] }
+      cargo: { patterns: ['*'] }
       security: { applies-to: security-updates, patterns: ['*'] }
 
   - package-ecosystem: github-actions
