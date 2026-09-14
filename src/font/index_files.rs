@@ -135,6 +135,9 @@ pub fn build_font_families_json<'a>(
 	}
 	let mut families = family_map.into_values().collect::<Vec<_>>();
 	families.sort_by(|a, b| a.name.cmp(&b.name));
+	for family in &mut families {
+		family.faces.sort_by(|a, b| a.id.cmp(&b.id));
+	}
 	Ok(serde_json::to_vec_pretty(&families)?)
 }
 
@@ -209,6 +212,19 @@ mod tests {
 				"]"
 			]
 		);
+		Ok(())
+	}
+
+	#[test]
+	fn test_build_font_families_json_sorts_faces() -> Result<()> {
+		let font = FontWrapper::try_from(&[PathBuf::from("./testdata/Fira Sans - Regular.ttf")][..])?;
+		let (id_b, id_a) = ("fira_sans_b".to_string(), "fira_sans_a".to_string());
+
+		let json_bytes = build_font_families_json([(&id_b, &font), (&id_a, &font)].into_iter())?;
+		let json = String::from_utf8(json_bytes)?;
+		let pos_a = json.find("\"fira_sans_a\"").unwrap();
+		let pos_b = json.find("\"fira_sans_b\"").unwrap();
+		assert!(pos_a < pos_b, "faces must be sorted by id");
 		Ok(())
 	}
 
