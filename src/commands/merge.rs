@@ -46,7 +46,7 @@ pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static))
 
 	let mut writer = args.render.get_writer(stdout)?;
 	let font_manager = FontManager::new(args.render.parallel());
-	font_manager.render_font(&font, &mut writer, &args.render.get_renderer())?;
+	font_manager.render_font(&font, &mut writer, &args.render.get_renderer()?)?;
 	writer.finish()?;
 
 	Ok(())

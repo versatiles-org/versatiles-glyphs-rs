@@ -6,7 +6,11 @@ use crate::{
 	geometry::{Point, Rings},
 	protobuf::PbfGlyph,
 };
+use anyhow::{ensure, Result};
 use ttf_parser::Face;
+
+/// The largest allowed SDF quantization step, see [`Renderer::with_sdf_step`].
+pub const MAX_SDF_STEP: u8 = 64;
 
 #[derive(Debug, Clone)]
 enum RendererMode {
@@ -18,6 +22,7 @@ enum RendererMode {
 /// A renderer for creating signed distance fields (SDF) from glyph outlines.
 pub struct Renderer {
 	mode: RendererMode,
+	sdf_step: u8,
 }
 
 impl Renderer {
@@ -33,13 +38,35 @@ impl Renderer {
 	pub fn new_precise() -> Self {
 		Renderer {
 			mode: RendererMode::Precise,
+			sdf_step: 1,
 		}
 	}
 	/// Creates a new renderer with the dummy mode. This mode generates empty bitmaps and is used for testing.
 	pub fn new_dummy() -> Self {
 		Renderer {
 			mode: RendererMode::Dummy,
+			sdf_step: 1,
 		}
+	}
+
+	/// Sets the quantization step for SDF values.
+	///
+	/// Every SDF value is rounded to the nearest multiple of `step` (capped at 255),
+	/// which makes the bitmaps compress much better at the cost of precision:
+	/// with a radius of 8 px, one byte step is 1/32 px, so a step of 4 means 1/8 px.
+	/// `0` stays `0`, and `192` (exactly on the outline) and `255` remain reachable.
+	/// A step of `1` (the default) keeps the output unchanged.
+	///
+	/// # Errors
+	///
+	/// Returns an error unless `step` is a power of two from 1 to [`MAX_SDF_STEP`].
+	pub fn with_sdf_step(mut self, step: u8) -> Result<Self> {
+		ensure!(
+			step.is_power_of_two() && step <= MAX_SDF_STEP,
+			"SDF step must be a power of two from 1 to {MAX_SDF_STEP}, but is {step}"
+		);
+		self.sdf_step = step;
+		Ok(self)
 	}
 
 	/// Prepares the geometry and compute bounding box data for rendering.
@@ -138,7 +165,7 @@ impl Renderer {
 
 		// Render the SDF
 		match self.mode {
-			RendererMode::Precise => renderer_precise(&mut glyph, rings),
+			RendererMode::Precise => renderer_precise(&mut glyph, rings, self.sdf_step),
 			RendererMode::Dummy => renderer_dummy(&mut glyph),
 		}
 
@@ -170,6 +197,105 @@ mod tests {
 
 	fn as_art(glyph: &PbfGlyph) -> Vec<String> {
 		bitmap_as_ascii_art(glyph.bitmap.as_ref().unwrap(), glyph.width as usize + 6)
+	}
+
+	/// FNV-1a hash of the metrics and bitmaps of all Fira Sans glyphs in U+0000–U+024F.
+	fn hash_rendered_glyphs(renderer: &Renderer) -> u64 {
+		let face = Face::parse(TEST_FONT, 0).unwrap();
+		let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+		let mut feed = |bytes: &[u8]| {
+			for &b in bytes {
+				hash ^= b as u64;
+				hash = hash.wrapping_mul(0x0100_0000_01b3);
+			}
+		};
+		for index in 0..0x250 {
+			if let Some(g) = renderer.render_glyph(&face, index) {
+				feed(&g.id.to_le_bytes());
+				feed(&g.width.to_le_bytes());
+				feed(&g.height.to_le_bytes());
+				feed(&g.left.to_le_bytes());
+				feed(&g.top.to_le_bytes());
+				feed(&g.advance.to_le_bytes());
+				feed(g.bitmap.as_deref().unwrap_or_default());
+			}
+		}
+		hash
+	}
+
+	#[test]
+	fn test_precise_output_is_unchanged() {
+		// Golden value: any change to the precise renderer's output changes this hash.
+		assert_eq!(
+			format!("{:016x}", hash_rendered_glyphs(&Renderer::new_precise())),
+			"3493bd77e2ea540c"
+		);
+	}
+
+	#[test]
+	fn test_sdf_step_one_is_unchanged() {
+		let renderer = Renderer::new_precise().with_sdf_step(1).unwrap();
+		assert_eq!(
+			format!("{:016x}", hash_rendered_glyphs(&renderer)),
+			"3493bd77e2ea540c"
+		);
+	}
+
+	#[test]
+	fn test_with_sdf_step_validation() {
+		for step in [1, 2, 4, 8, 16, 32, 64] {
+			assert!(
+				Renderer::new_precise().with_sdf_step(step).is_ok(),
+				"{step}"
+			);
+		}
+		for step in [0, 3, 6, 100, 128, 255] {
+			let err = Renderer::new_precise().with_sdf_step(step).unwrap_err();
+			assert!(err.to_string().contains("power of two"), "{step}");
+		}
+	}
+
+	#[test]
+	fn test_sdf_step_quantizes_bitmaps_only() {
+		let face = Face::parse(TEST_FONT, 0).unwrap();
+		let render_all = |renderer: &Renderer| {
+			(0x20..0x180)
+				.filter_map(|index| renderer.render_glyph(&face, index))
+				.collect::<Vec<_>>()
+		};
+		let exact = render_all(&Renderer::new_precise());
+
+		for step in [2u8, 4, 8, 16, 32, 64] {
+			let quantized = render_all(&Renderer::new_precise().with_sdf_step(step).unwrap());
+			assert_eq!(exact.len(), quantized.len());
+			let mut changed = false;
+
+			for (a, b) in exact.iter().zip(&quantized) {
+				// Metrics are unaffected.
+				assert_eq!(
+					(a.id, a.width, a.height, a.left, a.top, a.advance),
+					(b.id, b.width, b.height, b.left, b.top, b.advance)
+				);
+
+				let (Some(bitmap_a), Some(bitmap_b)) = (&a.bitmap, &b.bitmap) else {
+					assert_eq!(a.bitmap, b.bitmap);
+					continue;
+				};
+				assert_eq!(bitmap_a.len(), bitmap_b.len());
+
+				for (&va, &vb) in bitmap_a.iter().zip(bitmap_b) {
+					// Every value is a multiple of the step, or 255.
+					assert!(vb % step == 0 || vb == 255, "step {step}: value {vb}");
+					// … and at most half a step away from the exact value.
+					assert!(
+						(va as i32 - vb as i32).abs() <= step as i32 / 2,
+						"step {step}: {va} -> {vb}"
+					);
+					changed |= va != vb;
+				}
+			}
+			assert!(changed, "step {step} should change some values");
+		}
 	}
 
 	#[test]

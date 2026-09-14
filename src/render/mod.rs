@@ -74,5 +74,5 @@ mod result;
 mod ring_builder;
 mod rtree_segments;
 
-pub use renderer::Renderer;
+pub use renderer::{Renderer, MAX_SDF_STEP};
 pub use result::RenderResult;

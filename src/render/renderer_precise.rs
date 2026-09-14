@@ -5,7 +5,7 @@ use super::{
 use crate::geometry::{Point, Rings};
 use rstar::RTree;
 
-pub fn renderer_precise(glyph: &mut RenderResult, rings: Rings) {
+pub fn renderer_precise(glyph: &mut RenderResult, rings: Rings, sdf_step: u8) {
 	let width = glyph.width as usize;
 	let height = glyph.height as usize;
 
@@ -76,17 +76,51 @@ pub fn renderer_precise(glyph: &mut RenderResult, rings: Rings) {
 			let n = (255.0 - d).clamp(0.0, 255.0);
 
 			let i = (height - 1 - y) * width + x; // Invert Y axis
-			bitmap[i] = n.round() as u8;
+			bitmap[i] = quantize(n, sdf_step);
 		}
 	}
 
 	glyph.bitmap = Some(bitmap);
 }
 
+/// Rounds an SDF value (`0.0..=255.0`) to the nearest multiple of `step`, capped at 255.
+///
+/// For `step == 1` this is plain rounding. `0` stays `0`, and since every allowed step
+/// is a power of two ≤ 64, the outline value `192` is a multiple of it and stays exact.
+fn quantize(value: f64, step: u8) -> u8 {
+	let step = step as f64;
+	((value / step).round() * step).min(255.0) as u8
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
 	use crate::{geometry::Rings, utils::bitmap_as_digit_art};
+
+	#[test]
+	fn test_quantize() {
+		// Step 1 is plain rounding.
+		assert_eq!(quantize(0.0, 1), 0);
+		assert_eq!(quantize(191.4, 1), 191);
+		assert_eq!(quantize(191.5, 1), 192);
+		assert_eq!(quantize(255.0, 1), 255);
+
+		// Nearest multiple; 0 and 192 are fixed points, the top is capped at 255.
+		assert_eq!(quantize(0.0, 4), 0);
+		assert_eq!(quantize(1.9, 4), 0);
+		assert_eq!(quantize(2.0, 4), 4);
+		assert_eq!(quantize(190.0, 4), 192);
+		assert_eq!(quantize(192.0, 4), 192);
+		assert_eq!(quantize(193.9, 4), 192);
+		assert_eq!(quantize(253.0, 4), 252);
+		assert_eq!(quantize(254.0, 4), 255);
+		assert_eq!(quantize(255.0, 4), 255);
+
+		assert_eq!(quantize(31.9, 64), 0);
+		assert_eq!(quantize(32.0, 64), 64);
+		assert_eq!(quantize(192.0, 64), 192);
+		assert_eq!(quantize(224.0, 64), 255);
+	}
 
 	fn make_square_rings() -> Rings {
 		Rings::from(vec![vec![(1, 2), (5, 2), (5, 6), (1, 6), (1, 2)]])
@@ -104,7 +138,7 @@ mod tests {
 			y1: 9,
 			bitmap: None,
 		};
-		renderer_precise(&mut glyph, rings);
+		renderer_precise(&mut glyph, rings, 1);
 
 		assert_eq!(glyph.width, 10);
 		assert_eq!(glyph.height, 10);

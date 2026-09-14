@@ -117,6 +117,28 @@ All files are merged into one font, regardless of their names. If several files 
 
 It supports the same `--output-directory` and `--tar` options.
 
+### Option: `--sdf-step`
+
+Both `recurse` and `merge` accept `--sdf-step <N>` (1, 2, 4, 8, 16, 32 or 64), which rounds every SDF value to the nearest multiple of `N`:
+
+```bash
+versatiles_glyphs recurse ./font/ --tar --sdf-step 4 | gzip -9 > glyphs.tar.gz
+```
+
+Each SDF byte covers 1/32 px of distance, and gzip compresses that fine gradient poorly. Coarser steps compress much better, but lose precision. This may be visible at large `text-size` or wide `text-halo-width`. Values `0` (fully outside), `192` (on the outline) and `255` are preserved. The default `1` keeps the output unchanged.
+
+Size of the merged Noto Sans test fonts (`testdata/Noto Sans`, 37.7 MB as tar):
+
+| `--sdf-step` | precision | tar.gz | brotli |
+|---|---|---|---|
+| 1 (default) | 1/32 px | 21.7 MB (100 %) | 14.4 MB (100 %) |
+| 2 | 1/16 px | 18.0 MB (83 %) | 11.8 MB (82 %) |
+| 4 | 1/8 px | 14.1 MB (65 %) | 9.2 MB (64 %) |
+| 8 | 1/4 px | 10.8 MB (50 %) | 7.0 MB (49 %) |
+| 16 | 1/2 px | 8.0 MB (37 %) | 5.0 MB (35 %) |
+| 32 | 1 px | 5.6 MB (26 %) | 3.5 MB (25 %) |
+| 64 | 2 px | 3.4 MB (16 %) | 2.1 MB (15 %) |
+
 ### Subcommand: `debug`
 
 Loads an existing directory of `*.pbf` files and returns an overview of all glyphs as CSV or TSV:

@@ -74,7 +74,7 @@ pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static))
 	}
 
 	let mut writer = args.render.get_writer(stdout)?;
-	font_manager.render_glyphs(&mut writer, &args.render.get_renderer())?;
+	font_manager.render_glyphs(&mut writer, &args.render.get_renderer()?)?;
 	if !args.no_index {
 		font_manager.write_index_json(&mut writer)?;
 	}
