@@ -92,6 +92,14 @@ Generate a TAR archive instead of directories, with `-t` or `--tar`:
 versatiles_glyphs recurse ./font/ --tar | gzip -9 > glyphs.tar.gz
 ```
 
+Fonts often share fallback files, e.g. an italic face that falls back to the upright CJK fonts. With `--link-duplicates`, a range whose glyphs all come from the same source files as a range that was already written is rendered only once and written as a hardlink:
+
+```bash
+versatiles_glyphs recurse ./font/ --tar --link-duplicates | gzip -9 > glyphs.tar.gz
+```
+
+This avoids duplicate data that gzip can't detect, but whoever reads the tar must support hardlink entries.
+
 ### Subcommand: `merge`
 
 Merges one or more font files into a single directory of glyphs:

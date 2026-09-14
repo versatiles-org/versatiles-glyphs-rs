@@ -6,10 +6,10 @@ use crate::{
 	writer::Writer,
 };
 use anyhow::Result;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use regex_lite::Regex;
 use std::{
-	collections::{btree_map::Entry, BTreeMap},
+	collections::{btree_map::Entry, hash_map, BTreeMap, HashMap},
 	path::{Path, PathBuf},
 	sync::OnceLock,
 };
@@ -23,6 +23,17 @@ pub struct FontManager<'a> {
 	pub fonts: BTreeMap<String, FontWrapper<'a>>,
 	/// Whether to parallelize rendering operations.
 	pub parallel: bool,
+	/// Whether to write a range that is identical to an already written range
+	/// as a hardlink instead of rendering it again. See [`Self::render_glyphs`].
+	pub link_duplicates: bool,
+}
+
+/// What to write for a single glyph block.
+enum BlockOutput {
+	/// The rendered PBF data.
+	Data(Vec<u8>),
+	/// The path of an identical, already written block to link to.
+	Link(String),
 }
 
 impl<'a> FontManager<'a> {
@@ -31,6 +42,7 @@ impl<'a> FontManager<'a> {
 		Self {
 			fonts: BTreeMap::new(),
 			parallel,
+			link_duplicates: false,
 		}
 	}
 
@@ -84,6 +96,12 @@ impl<'a> FontManager<'a> {
 	/// (and the glyphs within each block) are rendered in parallel with `rayon`
 	/// (if enabled), buffered, and then written in order, so at most one font's
 	/// glyph data is held in memory.
+	///
+	/// If [`Self::link_duplicates`] is set, a non-empty block whose glyphs all come from
+	/// the same source files as an already written block (see [`GlyphBlock::source_key`])
+	/// is not rendered, but written as a hardlink to that earlier block. This happens
+	/// when several fonts share fallback files, e.g. an italic face that falls back
+	/// to the upright CJK fonts.
 	pub fn render_glyphs(&'a self, writer: &mut Writer, renderer: &Renderer) -> Result<()> {
 		// Collect all blocks from every font.
 		let fonts = self
@@ -100,23 +118,54 @@ impl<'a> FontManager<'a> {
 			.sum();
 		let progress = get_progress_bar(total_glyphs);
 
+		// Path of the first block written for each source key.
+		let mut written_paths = HashMap::<_, String>::new();
+
 		for (name, blocks) in &fonts {
 			writer.write_directory(&format!("{name}/"))?;
 
-			let render = |block: &GlyphBlock| -> Result<Vec<u8>> {
-				let data = block.render(renderer, self.parallel)?;
+			// Pair each block with the path of an identical block written before, if any.
+			let tasks = blocks
+				.iter()
+				.map(|block| {
+					let path = format!("{name}/{}", block.filename());
+					let link = match block.source_key().filter(|_| self.link_duplicates) {
+						None => None,
+						Some(key) => match written_paths.entry(key) {
+							hash_map::Entry::Occupied(e) => Some(e.get().clone()),
+							hash_map::Entry::Vacant(e) => {
+								e.insert(path.clone());
+								None
+							}
+						},
+					};
+					(block, path, link)
+				})
+				.collect::<Vec<_>>();
+
+			let process = |(block, path, link): (&GlyphBlock, String, Option<String>)| -> Result<_> {
+				let output = match link {
+					Some(target) => BlockOutput::Link(target),
+					None => BlockOutput::Data(block.render(renderer, self.parallel)?),
+				};
 				progress.inc(block.len() as u64);
-				Ok(data)
+				Ok((path, output))
 			};
 
-			let results = if self.parallel {
-				blocks.par_iter().map(render).collect::<Result<Vec<_>>>()?
+			let outputs = if self.parallel {
+				tasks
+					.into_par_iter()
+					.map(process)
+					.collect::<Result<Vec<_>>>()?
 			} else {
-				blocks.iter().map(render).collect::<Result<Vec<_>>>()?
+				tasks.into_iter().map(process).collect::<Result<Vec<_>>>()?
 			};
 
-			for (block, data) in blocks.iter().zip(results) {
-				writer.write_file(&format!("{name}/{}", block.filename()), &data)?;
+			for (path, output) in outputs {
+				match output {
+					BlockOutput::Data(data) => writer.write_file(&path, &data)?,
+					BlockOutput::Link(target) => writer.write_link(&path, &target)?,
+				}
 			}
 		}
 
@@ -273,6 +322,120 @@ mod tests {
 		let first = render()?;
 		let second = render()?;
 		assert!(first == second, "two builds produced different bytes");
+		Ok(())
+	}
+
+	/// Two faces that share `Noto Sans Arabic` as fallback, like an italic face
+	/// falling back to upright fonts.
+	fn get_manager_with_shared_fallback<'a>(link_duplicates: bool) -> Result<FontManager<'a>> {
+		let d = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");
+		let arabic = d.join("Noto Sans/Noto Sans Arabic - Regular.ttf");
+		let mut manager = FontManager::new(true);
+		manager.link_duplicates = link_duplicates;
+		manager.add_font_with_name(
+			"Face A",
+			&[d.join("Noto Sans/Noto Sans - Regular.ttf"), arabic.clone()],
+		)?;
+		manager.add_font_with_name("Face B", &[d.join("Fira Sans - Regular.ttf"), arabic])?;
+		Ok(manager)
+	}
+
+	fn render_tar(manager: &FontManager) -> Result<Vec<u8>> {
+		let mut output = Vec::<u8>::new();
+		let mut writer = Writer::new_tar(&mut output);
+		manager.render_glyphs(&mut writer, &Renderer::new_dummy())?;
+		writer.finish()?;
+		drop(writer);
+		Ok(output)
+	}
+
+	#[test]
+	fn test_render_glyphs_links_duplicates() -> Result<()> {
+		let manager = get_manager_with_shared_fallback(true)?;
+		let mut writer = Writer::new_dummy();
+		manager.render_glyphs(&mut writer, &Renderer::new_dummy())?;
+
+		let entries = writer.get_inner().unwrap();
+		let links = entries
+			.iter()
+			.filter(|e| e.contains(" -> "))
+			.collect::<Vec<_>>();
+
+		// Ranges only covered by the shared Arabic font are linked from B to A.
+		assert!(links.contains(&&"face_b/1536-1791.pbf -> face_a/1536-1791.pbf".to_string()));
+		// Every link points from the later face to the same range of the earlier one.
+		for link in &links {
+			let (from, to) = link.split_once(" -> ").unwrap();
+			assert!(from.starts_with("face_b/"), "{link}");
+			assert_eq!(from.replace("face_b/", "face_a/"), to, "{link}");
+		}
+		// Ranges with glyphs from different fonts, and empty ranges, are written as files.
+		assert!(entries.iter().any(|e| e.starts_with("face_b/0-255.pbf (")));
+		assert!(entries.contains(&"face_b/3840-4095.pbf (2)".to_string()));
+		Ok(())
+	}
+
+	#[test]
+	fn test_render_glyphs_without_link_duplicates_writes_files() -> Result<()> {
+		let manager = get_manager_with_shared_fallback(false)?;
+		let mut writer = Writer::new_dummy();
+		manager.render_glyphs(&mut writer, &Renderer::new_dummy())?;
+		assert!(!writer
+			.get_inner()
+			.unwrap()
+			.iter()
+			.any(|e| e.contains(" -> ")));
+		Ok(())
+	}
+
+	#[test]
+	fn test_linked_tar_extracts_to_identical_files() -> Result<()> {
+		use std::{collections::BTreeMap, fs, path::Path};
+
+		fn read_tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
+			let mut files = BTreeMap::new();
+			for font in fs::read_dir(dir).unwrap() {
+				for file in fs::read_dir(font.unwrap().path()).unwrap() {
+					let path = file.unwrap().path();
+					let key = path
+						.strip_prefix(dir)
+						.unwrap()
+						.to_string_lossy()
+						.to_string();
+					files.insert(key, fs::read(&path).unwrap());
+				}
+			}
+			files
+		}
+
+		let plain = render_tar(&get_manager_with_shared_fallback(false)?)?;
+		let linked = render_tar(&get_manager_with_shared_fallback(true)?)?;
+		assert!(linked.len() < plain.len());
+
+		let plain_dir = tempfile::tempdir()?;
+		tar::Archive::new(&plain[..]).unpack(plain_dir.path())?;
+		let expected = read_tree(plain_dir.path());
+		assert_eq!(expected.len(), 512);
+
+		// Extracting with the `tar` crate recreates every linked file.
+		let linked_dir = tempfile::tempdir()?;
+		tar::Archive::new(&linked[..]).unpack(linked_dir.path())?;
+		assert!(read_tree(linked_dir.path()) == expected);
+
+		// So does the system `tar` (GNU or BSD), if available.
+		let tar_path = linked_dir.path().join("linked.tar");
+		fs::write(&tar_path, &linked)?;
+		let system_dir = tempfile::tempdir()?;
+		let status = std::process::Command::new("tar")
+			.arg("-xf")
+			.arg(&tar_path)
+			.arg("-C")
+			.arg(system_dir.path())
+			.status();
+		if let Ok(status) = status {
+			assert!(status.success());
+			assert!(read_tree(system_dir.path()) == expected);
+		}
 		Ok(())
 	}
 

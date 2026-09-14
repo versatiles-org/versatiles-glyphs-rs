@@ -1,6 +1,11 @@
 use super::metadata::FontMetadata;
 use anyhow::{Context, Result};
-use std::{marker::PhantomPinned, pin::Pin, slice};
+use std::{
+	hash::{DefaultHasher, Hash, Hasher},
+	marker::PhantomPinned,
+	pin::Pin,
+	slice,
+};
 use ttf_parser::Face;
 
 /// A font file entry that holds raw font bytes, a parsed [`Face`], and font metadata.
@@ -12,6 +17,12 @@ pub struct FontFileEntry<'a> {
 
 	/// The metadata extracted from the font, such as name, style, and other descriptors.
 	pub metadata: FontMetadata,
+
+	/// Hash of the raw font bytes, identifying the source file by its content.
+	///
+	/// Two entries with the same hash contain the same font, so they render identical
+	/// glyphs. Used to detect ranges that are identical across fonts.
+	pub source_hash: u64,
 
 	/// Pinned backing storage for `face`'s borrowed slice.
 	///
@@ -30,6 +41,10 @@ impl<'a> FontFileEntry<'a> {
 	/// # Errors
 	/// Returns an error if the font data fails to parse.
 	pub fn new(data: Vec<u8>) -> Result<Self> {
+		let mut hasher = DefaultHasher::new();
+		data.hash(&mut hasher);
+		let source_hash = hasher.finish();
+
 		let data = Pin::new(data);
 		// SAFETY: This builds a self-referential struct. The slice we hand to
 		// `Face::parse` borrows from the bytes owned by `data`. The borrow is
@@ -51,6 +66,7 @@ impl<'a> FontFileEntry<'a> {
 			data,
 			face,
 			metadata,
+			source_hash,
 			_pin: PhantomPinned,
 		})
 	}
@@ -68,6 +84,16 @@ mod tests {
 		let entry = FontFileEntry::new(data).unwrap();
 		assert_eq!(entry.face.number_of_glyphs(), 2677);
 		assert_eq!(entry.metadata.generate_name(), "Fira Sans Regular");
+	}
+
+	#[test]
+	fn test_source_hash_identifies_content() {
+		let noto = include_bytes!("../../testdata/Noto Sans/Noto Sans - Regular.ttf");
+		let a = FontFileEntry::new(FIRA.to_vec()).unwrap();
+		let b = FontFileEntry::new(FIRA.to_vec()).unwrap();
+		let c = FontFileEntry::new(noto.to_vec()).unwrap();
+		assert_eq!(a.source_hash, b.source_hash);
+		assert_ne!(a.source_hash, c.source_hash);
 	}
 
 	#[test]

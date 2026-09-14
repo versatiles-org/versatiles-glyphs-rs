@@ -52,6 +52,23 @@ impl<'a> GlyphBlock<'a> {
 		self.glyphs.is_empty()
 	}
 
+	/// Returns a key that describes where every glyph of this block comes from:
+	/// the block's start index, plus the [`FontFileEntry::source_hash`] for each codepoint.
+	///
+	/// Rendering is deterministic, so two blocks with the same key produce identical
+	/// bytes, even if they belong to different fonts. Returns `None` for an empty block.
+	pub fn source_key(&self) -> Option<(u32, Vec<(u8, u64)>)> {
+		if self.glyphs.is_empty() {
+			return None;
+		}
+		let sources = self
+			.glyphs
+			.iter()
+			.map(|(char_index, font_entry)| (*char_index, font_entry.source_hash))
+			.collect();
+		Some((self.start_index, sources))
+	}
+
 	/// Provides a string representation of this block's codepoint range.
 	fn range(&self) -> String {
 		format!(
@@ -147,6 +164,39 @@ mod tests {
 		assert!(render_result.is_ok());
 		let out_data = render_result.unwrap();
 		assert!(!out_data.is_empty());
+	}
+
+	#[test]
+	fn test_source_key() {
+		let fira_a = create_font_file_entry();
+		let fira_b = create_font_file_entry();
+		let noto = FontFileEntry::new(
+			include_bytes!("../../testdata/Noto Sans/Noto Sans - Regular.ttf").to_vec(),
+		)
+		.unwrap();
+
+		let key = |start_index: u32, fonts: &[(u8, &FontFileEntry)]| {
+			let mut block = GlyphBlock::new(start_index);
+			for (char_index, font) in fonts {
+				block.set_glyph_font(*char_index, font);
+			}
+			block.source_key()
+		};
+
+		// Empty blocks have no key.
+		assert_eq!(key(0, &[]), None);
+
+		// Same codepoints from files with the same content share a key.
+		assert_eq!(
+			key(0, &[(65, &fira_a), (66, &fira_a)]),
+			key(0, &[(65, &fira_b), (66, &fira_b)])
+		);
+
+		// A different source, codepoint set, or range changes the key.
+		let reference = key(0, &[(65, &fira_a), (66, &fira_a)]);
+		assert_ne!(reference, key(0, &[(65, &fira_a), (66, &noto)]));
+		assert_ne!(reference, key(0, &[(65, &fira_a)]));
+		assert_ne!(reference, key(256, &[(65, &fira_a), (66, &fira_a)]));
 	}
 
 	#[test]

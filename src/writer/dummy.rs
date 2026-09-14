@@ -45,6 +45,12 @@ impl WriterTrait for DummyWriter {
 		Ok(())
 	}
 
+	/// Simulates creating a hardlink by recording `filename -> target`.
+	fn write_link(&mut self, filename: &str, target: &str) -> Result<()> {
+		self.data.push(format!("{filename} -> {target}"));
+		Ok(())
+	}
+
 	/// Finalizes the writer, but this dummy implementation does nothing.
 	fn finish(&mut self) -> Result<()> {
 		Ok(())
@@ -91,6 +97,13 @@ mod tests {
 		let err = w.write_file("bad.json", &[0xff, 0xfe]).unwrap_err();
 		// `from_utf8` produces a `FromUtf8Error`; anyhow wraps it.
 		assert!(err.is::<std::string::FromUtf8Error>());
+	}
+
+	#[test]
+	fn test_write_link_records_target() {
+		let mut w = DummyWriter::default();
+		w.write_link("b.pbf", "a.pbf").unwrap();
+		assert_eq!(w.get_inner().unwrap(), &["b.pbf -> a.pbf".to_string()]);
 	}
 
 	#[test]

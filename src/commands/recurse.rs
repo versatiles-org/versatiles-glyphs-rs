@@ -44,6 +44,14 @@ pub struct Subcommand {
 	#[arg(long)]
 	no_index: bool,
 
+	/// Write ranges that are identical to an already written range as hardlinks.
+	///
+	/// This happens when several fonts share the same fallback files (e.g. an italic face
+	/// that falls back to upright CJK fonts). Such ranges are rendered only once, which
+	/// saves time and space. With `--tar`, the consumer must support hardlink entries.
+	#[arg(long)]
+	link_duplicates: bool,
+
 	/// Hidden argument to allow specifying the dummy renderer.
 	#[arg(long, hide = true)]
 	dummy: bool,
@@ -69,6 +77,7 @@ struct FontConfig {
 /// either to a directory or stdout tar.
 pub fn run(args: &Subcommand, stdout: &mut (impl Write + Send + Sync + 'static)) -> Result<()> {
 	let mut font_manager = FontManager::new(!args.single_thread);
+	font_manager.link_duplicates = args.link_duplicates;
 
 	for dir in &args.input_directories {
 		let canonical = path::absolute(dir)?.canonicalize()?;
@@ -229,6 +238,7 @@ mod tests {
 			tar: false,
 			no_families: false,
 			no_index: false,
+			link_duplicates: false,
 			dummy: true,
 			single_thread: false,
 		};
@@ -260,6 +270,7 @@ mod tests {
 			tar: false,
 			no_families: true,
 			no_index: true,
+			link_duplicates: false,
 			dummy: true,
 			single_thread: false,
 		};
@@ -297,6 +308,7 @@ mod tests {
 			tar: false,
 			no_families: false,
 			no_index: false,
+			link_duplicates: false,
 			dummy: true,
 			single_thread: false,
 		};
@@ -307,6 +319,64 @@ mod tests {
 		// `name_to_id` lower-cases and underscore-joins the manifest name.
 		assert!(out.join("custom_merged_sans").is_dir());
 		assert!(out.join("custom_merged_sans/0-255.pbf").is_file());
+		Ok(())
+	}
+
+	#[test]
+	fn test_run_with_link_duplicates() -> Result<()> {
+		let temp = tempfile::tempdir()?;
+
+		// Two faces sharing the Arabic font as fallback.
+		let font_dir = temp.path().join("input");
+		std::fs::create_dir(&font_dir)?;
+		let testdata = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");
+		std::fs::copy(
+			testdata.join("Noto Sans/Noto Sans Arabic - Regular.ttf"),
+			font_dir.join("arabic.ttf"),
+		)?;
+		std::fs::copy(
+			testdata.join("Noto Sans/Noto Sans - Regular.ttf"),
+			font_dir.join("upright.ttf"),
+		)?;
+		std::fs::copy(
+			testdata.join("Fira Sans - Regular.ttf"),
+			font_dir.join("other.ttf"),
+		)?;
+		std::fs::write(
+			font_dir.join("fonts.json"),
+			r#"[
+				{"name": "Face A", "sources": ["upright.ttf", "arabic.ttf"]},
+				{"name": "Face B", "sources": ["other.ttf", "arabic.ttf"]}
+			]"#,
+		)?;
+
+		let out = temp.path().join("glyphs");
+		let args = Subcommand {
+			input_directories: vec![font_dir],
+			output_directory: Some(out.to_str().unwrap().to_string()),
+			tar: false,
+			no_families: false,
+			no_index: false,
+			link_duplicates: true,
+			dummy: true,
+			single_thread: false,
+		};
+		run(&args, &mut Vec::<u8>::new())?;
+
+		let a = out.join("face_a/1536-1791.pbf");
+		let b = out.join("face_b/1536-1791.pbf");
+		assert_eq!(std::fs::read(&a)?, std::fs::read(&b)?);
+
+		#[cfg(unix)]
+		{
+			use std::os::unix::fs::MetadataExt;
+			// Linked: both paths point to the same inode.
+			assert_eq!(std::fs::metadata(&a)?.ino(), std::fs::metadata(&b)?.ino());
+			// Not linked: ranges with glyphs from different fonts.
+			let a0 = std::fs::metadata(out.join("face_a/0-255.pbf"))?;
+			let b0 = std::fs::metadata(out.join("face_b/0-255.pbf"))?;
+			assert_ne!(a0.ino(), b0.ino());
+		}
 		Ok(())
 	}
 
@@ -364,6 +434,7 @@ mod tests {
 			tar: true,
 			no_families: false,
 			no_index: false,
+			link_duplicates: false,
 			dummy: true,
 			single_thread: false,
 		};

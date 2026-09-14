@@ -45,6 +45,23 @@ impl WriterTrait for FileWriter {
 		Ok(())
 	}
 
+	/// Creates `file_name` as a hardlink to the already written `target`.
+	///
+	/// Falls back to copying the file if the filesystem does not support hardlinks.
+	///
+	/// # Errors
+	///
+	/// Fails if neither a hardlink nor a copy can be created.
+	fn write_link(&mut self, file_name: &str, target: &str) -> Result<()> {
+		let link_path = self.folder.join(file_name);
+		let target_path = self.folder.join(target);
+		if std::fs::hard_link(&target_path, &link_path).is_err() {
+			std::fs::copy(&target_path, &link_path)
+				.with_context(|| format!("linking \"{link_path:?}\" to \"{target_path:?}\""))?;
+		}
+		Ok(())
+	}
+
 	/// Concludes writing. For a [`FileWriter`] this is a no-op.
 	fn finish(&mut self) -> Result<()> {
 		Ok(())
@@ -90,6 +107,30 @@ mod tests {
 		let dir_path = folder_path.join(dir_name);
 		assert!(dir_path.exists());
 		assert!(dir_path.is_dir());
+		Ok(())
+	}
+
+	#[test]
+	fn test_write_link() -> Result<()> {
+		let temp_dir = tempdir()?;
+		let folder_path = temp_dir.path().to_path_buf();
+		let mut writer = FileWriter::new(folder_path.clone());
+
+		writer.write_directory("a")?;
+		writer.write_directory("b")?;
+		writer.write_file("a/file.txt", b"content")?;
+		writer.write_link("b/file.txt", "a/file.txt")?;
+
+		assert_eq!(fs::read(folder_path.join("b/file.txt"))?, b"content");
+		Ok(())
+	}
+
+	#[test]
+	fn test_write_link_missing_target_errors() -> Result<()> {
+		let temp_dir = tempdir()?;
+		let mut writer = FileWriter::new(temp_dir.path().to_path_buf());
+		let err = writer.write_link("link.txt", "missing.txt").unwrap_err();
+		assert!(err.to_string().contains("linking"));
 		Ok(())
 	}
 

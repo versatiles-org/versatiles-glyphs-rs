@@ -13,6 +13,7 @@ where
 {
 	fn write_file(&mut self, filename: &str, bytes: &[u8]) -> Result<()>;
 	fn write_directory(&mut self, dirname: &str) -> Result<()>;
+	fn write_link(&mut self, filename: &str, target: &str) -> Result<()>;
 	fn finish(&mut self) -> Result<()>;
 	#[cfg(test)]
 	fn get_inner(&self) -> Option<&[String]>;
@@ -53,6 +54,11 @@ impl<'a> Writer<'a> {
 	/// Writes the given bytes to a file with the given filename.
 	pub fn write_file(&mut self, filename: &str, bytes: &[u8]) -> Result<()> {
 		self.writer.write_file(filename, bytes)
+	}
+
+	/// Writes `filename` as a hardlink to `target`, a file that was already written.
+	pub fn write_link(&mut self, filename: &str, target: &str) -> Result<()> {
+		self.writer.write_link(filename, target)
 	}
 
 	/// Writes an empty directory with the given name.

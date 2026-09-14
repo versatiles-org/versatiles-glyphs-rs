@@ -25,6 +25,7 @@ const ZEROS_1K: [u8; 1024] = [0; 1024];
 /// - Does not handle extended attributes, large file sizes, or other modern
 ///   tar features beyond POSIX.1-1988.
 /// - Directories must end with a slash (`"/"`).
+/// - Hardlink targets must be written before the link that refers to them.
 pub struct TarWriter<W: Write> {
 	/// A buffered writer that collects and writes tar data.
 	writer: BufWriter<W>,
@@ -47,8 +48,16 @@ impl<W: Write> TarWriter<W> {
 	/// - `path`: The path (file name or directory name).
 	/// - `size`: The size of the file in bytes.
 	/// - `mode`: The file mode (e.g., Unix permissions).
-	/// - `typeflag`: Indicates file (`b'0'`) or directory (`b'5'`).
-	fn write_header(&mut self, path: &str, size: u64, mode: u64, typeflag: u8) -> Result<()> {
+	/// - `typeflag`: Indicates file (`b'0'`), hardlink (`b'1'`) or directory (`b'5'`).
+	/// - `linkname`: The target of a hardlink, empty for other entries.
+	fn write_header(
+		&mut self,
+		path: &str,
+		size: u64,
+		mode: u64,
+		typeflag: u8,
+		linkname: &str,
+	) -> Result<()> {
 		let mut header = [0u8; 512];
 
 		// Name (bytes 0..100)
@@ -71,6 +80,9 @@ impl<W: Write> TarWriter<W> {
 
 		// Type flag (file= '0', directory= '5'), byte 156
 		header[156] = typeflag;
+
+		// Name of the linked file (bytes 157..257)
+		write_string(&mut header[157..257], linkname)?;
 
 		// UStar magic (bytes 257..263) and version (263..265)
 		header[257..263].copy_from_slice(b"ustar\0");
@@ -98,7 +110,7 @@ impl<W: Write + Send + Sync> WriterTrait for TarWriter<W> {
 	/// Returns an error if writing the header or file data fails.
 	fn write_file(&mut self, filename: &str, bytes: &[u8]) -> Result<()> {
 		let size = bytes.len() as u64;
-		self.write_header(filename, size, 0o644, b'0')?;
+		self.write_header(filename, size, 0o644, b'0', "")?;
 		self.writer.write_all(bytes)?;
 
 		// Pad file contents to a 512-byte boundary
@@ -119,8 +131,19 @@ impl<W: Write + Send + Sync> WriterTrait for TarWriter<W> {
 	/// if writing the header fails.
 	fn write_directory(&mut self, dirname: &str) -> Result<()> {
 		ensure!(dirname.ends_with('/'), "dirname must end with a slash");
-		self.write_header(dirname, 0, 0o755, b'5')?;
+		self.write_header(dirname, 0, 0o755, b'5', "")?;
 		Ok(())
+	}
+
+	/// Writes a hardlink entry named `filename` that points to the earlier entry `target`.
+	///
+	/// A hardlink consists of just a 512-byte header without any file data.
+	///
+	/// # Errors
+	///
+	/// Returns an error if `target` is too long for the header or if writing fails.
+	fn write_link(&mut self, filename: &str, target: &str) -> Result<()> {
+		self.write_header(filename, 0, 0o644, b'1', target)
 	}
 
 	/// Finalizes the tar archive by writing an extra 1024 bytes of zeros.
@@ -216,6 +239,42 @@ mod tests {
 			assert_eq!(entry?.header().mtime()?, 1_700_000_000);
 		}
 		Ok(())
+	}
+
+	#[test]
+	fn test_write_link() -> Result<()> {
+		let mut output = Vec::new();
+		{
+			let mut tar = TarWriter::new(&mut output);
+			tar.write_file("a/file.txt", b"content")?;
+			tar.write_link("b/file.txt", "a/file.txt")?;
+			tar.finish()?;
+		}
+		// file header + data block + link header + 2 trailer blocks
+		assert_eq!(output.len(), 512 * 5);
+
+		let mut archive = Archive::new(&output[..]);
+		let entries = archive.entries()?.map(|e| e.unwrap()).collect::<Vec<_>>();
+		assert_eq!(entries.len(), 2);
+		let link = entries[1].header();
+		assert_eq!(link.entry_type(), tar::EntryType::Link);
+		assert_eq!(link.path()?.to_str(), Some("b/file.txt"));
+		assert_eq!(link.link_name()?.unwrap().to_str(), Some("a/file.txt"));
+		assert_eq!(link.size()?, 0);
+
+		// Extracting recreates the linked file with the same content.
+		let temp = tempfile::tempdir()?;
+		Archive::new(&output[..]).unpack(temp.path())?;
+		assert_eq!(std::fs::read(temp.path().join("b/file.txt"))?, b"content");
+		Ok(())
+	}
+
+	#[test]
+	fn test_long_link_target_errors() {
+		let mut output = Vec::new();
+		let mut tar = TarWriter::new(&mut output);
+		let err = tar.write_link("link", &"a".repeat(101)).unwrap_err();
+		assert!(err.to_string().contains("tar header field overflow"));
 	}
 
 	#[test]
