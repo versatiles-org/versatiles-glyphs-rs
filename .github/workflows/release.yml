@@ -106,6 +106,13 @@ jobs:
       - name: Finalize the release # The final stroke of the brush completes the masterpiece.
         run: gh release edit "v$(scripts/get_version.sh)" --draft=false --latest --prerelease=false
 
+      # The tap reads the published release itself; this only tells it to. PAT_TOKEN because
+      # github.token cannot start a workflow in another repository.
+      - name: Update the Homebrew formula
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: gh workflow run update_formula_glyphs.yml --repo versatiles-org/homebrew-versatiles --ref main
+
   pages:
     name: Pages
     needs: finish-release
