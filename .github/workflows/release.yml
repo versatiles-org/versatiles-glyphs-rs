@@ -106,11 +106,22 @@ jobs:
       - name: Finalize the release # The final stroke of the brush completes the masterpiece.
         run: gh release edit "v$(scripts/get_version.sh)" --draft=false --latest --prerelease=false
 
-      # The tap reads the published release itself; this only tells it to. PAT_TOKEN because
-      # github.token cannot start a workflow in another repository.
+      # The tap reads the published release itself; this only tells it to. github.token cannot
+      # start a workflow in another repository, so mint a short-lived token from the
+      # organisation's release GitHub App, for the tap and Actions only.
+      - name: Create token for the Homebrew tap
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: versatiles-org
+          repositories: homebrew-versatiles
+          permission-actions: write
+
       - name: Update the Homebrew formula
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: gh workflow run update_formula_glyphs.yml --repo versatiles-org/homebrew-versatiles --ref main
 
   pages:
