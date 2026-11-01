@@ -89,7 +89,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Install Rust 1.85
-        uses: dtolnay/rust-toolchain@1.85
+        uses: dtolnay/rust-toolchain@1.120
 
       - name: Init Cache
         uses: actions/cache@v6
