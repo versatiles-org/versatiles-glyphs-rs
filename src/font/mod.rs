@@ -7,8 +7,10 @@
 //! - A high-level [`FontManager`] for orchestrating multiple fonts, rendering, and metadata.  
 //! - Metadata extraction utilities ([`FontMetadata`] and [`parse_font_name`]) to identify the font’s
 //!   family, style, weight, width, and codepoints.  
+//! - Synthesis of Arabic presentation forms a font only reaches through GSUB ([`synthesize_arabic_forms`]).  
 //! - A [`FontWrapper`] to combine multiple files into one logical font (e.g., different languages).  
 
+mod arabic_forms;
 mod file_entry;
 mod glyph_block;
 mod index_files;
@@ -17,6 +19,8 @@ mod metadata;
 mod parse_font_name;
 mod wrapper;
 
+#[allow(unused_imports)]
+pub use arabic_forms::{synthesize_arabic_forms, GlyphPart, SynthesizedGlyph};
 pub use file_entry::FontFileEntry;
 pub use glyph_block::{GlyphBlock, GLYPH_BLOCK_SIZE};
 #[allow(unused_imports)]

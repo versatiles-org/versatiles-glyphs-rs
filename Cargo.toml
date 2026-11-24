@@ -66,6 +66,7 @@ prost = "0.14.4"
 rayon = "1.12.0"
 regex-lite = "0.1.9"
 rstar = "0.13.0"
+rustybuzz = "0.20.1"
 serde = { version = "1.0.229", features = ["derive"], optional = true }
 serde_json = { version = "1.0.151", optional = true }
 ttf-parser = { version = "0.25.1", features = ["std"] }

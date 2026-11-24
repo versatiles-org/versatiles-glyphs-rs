@@ -148,7 +148,14 @@ mod tests {
 
 		let mut keys = font_manager.fonts.keys().collect::<Vec<_>>();
 		keys.sort_unstable();
-		assert_eq!(keys, ["fira_sans_regular", "noto_sans_regular"]);
+		assert_eq!(
+			keys,
+			[
+				"fira_sans_regular",
+				"forms_test_regular",
+				"noto_sans_regular"
+			]
+		);
 
 		assert_eq!(
 			get_names(font_manager.fonts.get("noto_sans_regular").unwrap()),

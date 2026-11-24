@@ -22,6 +22,7 @@ VersaTiles Glyphs tries to:
 - Render directly from the raw vector data - without intermediate rasterisation like TinySDF.
 - Render Bezier curves with more than enough line segments.
 - Compensates for rounding errors by shifting the glyphs by sub-pixel distances in the right direction, since the PBF values for `left`, `top` and `advance` must be integers.
+- Fill in the Arabic presentation forms (U+FB50 to U+FEFF) that a font only reaches through its GSUB table, so MapLibre draws joined Arabic with fonts like Lateef, Scheherazade New or Reem Kufi.
 - Have no wrappers of external, unmaintained code.
 - Have simple and straightforward build steps.
 - Be actively maintained, any contributions are welcome.
@@ -166,6 +167,7 @@ You can find the latest documentation at [docs.rs/versatiles_glyphs](https://doc
 - Font files of the same font (e.g. when a font is split into multiple files, each for a different language) are combined in a [`FontWrapper`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontWrapper.html).
 - The [`FontManager`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontManager.html) can [render all glyphs and write them](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.FontManager.html#method.render_glyphs) to one of two [`Writer`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/writer/trait.Writer.html)s: [`FileWriter`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/writer/struct.FileWriter.html) or [`TarWriter`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/writer/struct.TarWriter.html)
 - Glyphs are rendered per [`GlyphBlock`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/struct.GlyphBlock.html). Each block contains a maximum of 256 glyphs. Blocks and the glyphs within them are rendered in parallel, and written in a deterministic order.
+- Arabic presentation forms missing from a font's `cmap` are [synthesized](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/font/fn.synthesize_arabic_forms.html) by shaping their letters with `rustybuzz`.
 - A single glyph is rendered with [`render_glyph`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/render/struct.Renderer.html#method.render_glyph) from [`Renderer::new_precise()`](https://docs.rs/versatiles_glyphs/latest/versatiles_glyphs/render/struct.Renderer.html#method.new_precise).
 
 ### Font Metrics & Precision
