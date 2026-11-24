@@ -90,7 +90,7 @@ impl<'a> GlyphBlock<'a> {
 	pub fn render(&self, renderer: &Renderer, parallel: bool) -> Result<Vec<u8>> {
 		let render = |(char_index, font_entry): (&u8, &&FontFileEntry)| {
 			let codepoint = self.start_index + (*char_index as u32);
-			renderer.render_glyph(&font_entry.face, codepoint)
+			font_entry.render_glyph(renderer, codepoint)
 		};
 
 		// `collect` keeps the codepoint order of the map, also when rendering in parallel.

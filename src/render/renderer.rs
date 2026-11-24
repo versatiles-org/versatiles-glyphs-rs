@@ -3,6 +3,7 @@ use super::{
 	RenderResult, BUFFER, GLYPH_SIZE,
 };
 use crate::{
+	font::GlyphPart,
 	geometry::{Point, Rings},
 	protobuf::PbfGlyph,
 };
@@ -128,22 +129,46 @@ impl Renderer {
 	///
 	/// Returns [`None`] if no corresponding glyph index can be found in `face`.
 	pub fn render_glyph(&self, face: &Face, index: u32) -> Option<PbfGlyph> {
-		let cp = char::from_u32(index)?;
+		let glyph_id = face.glyph_index(char::from_u32(index)?)?;
+		let advance = face.glyph_hor_advance(glyph_id).unwrap_or(0) as i32;
+		let part = GlyphPart {
+			glyph_id,
+			x: 0,
+			y: 0,
+		};
+		Some(self.render_parts(face, index, &[part], advance))
+	}
 
-		let glyph_id = face.glyph_index(cp)?;
+	/// Renders the code point `index` drawn from one or more glyphs of `face`, each
+	/// moved by its offset, with `advance` in font units. Used for glyphs that a font
+	/// draws through shaping, see [`crate::font::SynthesizedGlyph`].
+	pub fn render_parts(
+		&self,
+		face: &Face,
+		index: u32,
+		parts: &[GlyphPart],
+		advance: i32,
+	) -> PbfGlyph {
 		let scale = GLYPH_SIZE as f64 / face.units_per_em() as f64;
 
-		let mut builder = RingBuilder::default();
-		face.outline_glyph(glyph_id, &mut builder);
-		let mut rings = builder.into_rings();
+		let mut rings = Rings::new();
+		for part in parts {
+			let mut builder = RingBuilder::default();
+			face.outline_glyph(part.glyph_id, &mut builder);
+			let mut part_rings = builder.into_rings();
+			if part.x != 0 || part.y != 0 {
+				part_rings.translate(&Point::new(part.x as f64, part.y as f64));
+			}
+			rings.rings.append(&mut part_rings.rings);
+		}
 
 		// `* 0.95` matches the empirical scale used by other Mapbox-spec glyph
 		// pipelines (e.g. fontnik) so renderings line up with existing tiles.
-		let advance_float = face.glyph_hor_advance(glyph_id).unwrap_or(0) as f64 * scale * 0.95;
+		let advance_float = advance.max(0) as f64 * scale * 0.95;
 		let advance = advance_float.round() as u32;
 
 		if rings.is_empty() {
-			return Some(PbfGlyph::empty(index, advance));
+			return PbfGlyph::empty(index, advance);
 		}
 
 		rings.scale(scale);
@@ -160,7 +185,7 @@ impl Renderer {
 		let mut glyph = if let Some(g) = self.prepare_glyph(&rings) {
 			g
 		} else {
-			return Some(PbfGlyph::empty(index, advance));
+			return PbfGlyph::empty(index, advance);
 		};
 
 		// Render the SDF
@@ -172,7 +197,7 @@ impl Renderer {
 		// Shift the SDF output to re-base the glyph
 		glyph.y1 -= GLYPH_SIZE;
 
-		Some(glyph.into_pbf_glyph(index, advance))
+		glyph.into_pbf_glyph(index, advance)
 	}
 }
 
