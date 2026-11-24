@@ -61,15 +61,22 @@ impl<'a> FontWrapper<'a> {
 			.collect::<Vec<GlyphBlock<'a>>>();
 
 		// For each file, for each codepoint, place the codepoint into its corresponding block.
-		for font_file in &self.files {
-			for &codepoint in &font_file.metadata.codepoints {
-				// Mapbox GL / MapLibre only render the Basic Multilingual Plane.
-				if codepoint > 0xFFFF {
-					continue;
+		// The first file wins. Glyphs a file maps in `cmap` are placed before synthesized
+		// ones, so a later file that maps a presentation form beats an earlier file that
+		// could only synthesize it.
+		for synthesized in [false, true] {
+			for font_file in &self.files {
+				for &codepoint in &font_file.metadata.codepoints {
+					// Mapbox GL / MapLibre only render the Basic Multilingual Plane.
+					if codepoint > 0xFFFF
+						|| font_file.synthesized.contains_key(&codepoint) != synthesized
+					{
+						continue;
+					}
+					let block_index = (codepoint / GLYPH_BLOCK_SIZE) as usize;
+					let char_index = (codepoint % GLYPH_BLOCK_SIZE) as u8;
+					blocks[block_index].set_glyph_font(char_index, font_file);
 				}
-				let block_index = (codepoint / GLYPH_BLOCK_SIZE) as usize;
-				let char_index = (codepoint % GLYPH_BLOCK_SIZE) as u8;
-				blocks[block_index].set_glyph_font(char_index, font_file);
 			}
 		}
 
@@ -177,6 +184,29 @@ mod tests {
 			codepoints.windows(2).all(|w| w[0] < w[1]),
 			"sorted and unique"
 		);
+	}
+
+	#[test]
+	fn test_mapped_glyphs_beat_synthesized_ones() {
+		let testdata = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");
+		let gsub_only = testdata.join("Arabic Forms Test - Regular.ttf");
+		let mapped = testdata.join("Noto Sans/Noto Sans Arabic - Regular.ttf");
+		let wrapper = FontWrapper::try_from(&[gsub_only, mapped][..]).unwrap();
+		assert!(wrapper.files[0].synthesized.contains_key(&0xFE92));
+
+		let blocks = wrapper.get_blocks();
+		let source = |codepoint: u32| {
+			let block = &blocks[(codepoint / GLYPH_BLOCK_SIZE) as usize];
+			let file = block.glyphs[&((codepoint % GLYPH_BLOCK_SIZE) as u8)];
+			wrapper
+				.files
+				.iter()
+				.position(|f| std::ptr::eq(f, file))
+				.unwrap()
+		};
+		// Letters come from the first file, the medial BEH from the file that maps it.
+		assert_eq!(source(0x0628), 0);
+		assert_eq!(source(0xFE92), 1);
 	}
 
 	#[test]
