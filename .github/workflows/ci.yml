@@ -88,8 +88,24 @@ jobs:
       - name: Check out
         uses: actions/checkout@v7
 
-      - name: Install Rust 1.85
-        uses: dtolnay/rust-toolchain@1.85
+      # The toolchain comes from `rust-version` in Cargo.toml, so raising the MSRV
+      # is a single edit. It's installed with rustup rather than with a version tag
+      # of dtolnay/rust-toolchain, because Dependabot treats such a tag as a version
+      # to bump (1.85 → a nonexistent 1.120).
+      #
+      # `RUSTUP_TOOLCHAIN` is what actually pins the check: rust-toolchain.toml
+      # selects `stable` and outranks `rustup default`, so without it `cargo check`
+      # would run on stable and pass whatever `rust-version` says.
+      - name: Install Rust (MSRV)
+        run: |
+          msrv="$(sed -n 's/^rust-version = "\(.*\)"$/\1/p' Cargo.toml)"
+          [ -n "$msrv" ] || { echo "::error::no rust-version found in Cargo.toml"; exit 1; }
+          echo "MSRV from Cargo.toml: $msrv"
+          rustup toolchain install "$msrv" --profile minimal --no-self-update
+          echo "RUSTUP_TOOLCHAIN=$msrv" >> "$GITHUB_ENV"
+
+      - name: Show Rust version
+        run: rustc --version
 
       - name: Init Cache
         uses: actions/cache@v6
