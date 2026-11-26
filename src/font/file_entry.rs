@@ -155,27 +155,16 @@ mod tests {
 		let mapped = FontFileEntry::new(mapped.to_vec()).unwrap();
 		let renderer = Renderer::new_precise();
 
-		let mut differ = Vec::new();
 		for &codepoint in gsub_only.synthesized.keys() {
 			let expected = mapped.face.glyph_index(char::from_u32(codepoint).unwrap());
 			assert!(expected.is_some(), "{codepoint:04X}");
-			if gsub_only.render_glyph(&renderer, codepoint)
-				!= mapped.render_glyph(&renderer, codepoint)
-			{
-				differ.push(codepoint);
-			}
+			assert_eq!(
+				gsub_only.render_glyph(&renderer, codepoint),
+				mapped.render_glyph(&renderer, codepoint),
+				"{codepoint:04X}"
+			);
 		}
-		assert_eq!(gsub_only.synthesized.len(), 717);
-
-		// Only forms that Noto draws with a dedicated ligature glyph differ: mark ligatures
-		// with a space (U+FC5E–U+FC63), and a few ligatures of letters and whole words.
-		assert_eq!(
-			differ,
-			[
-				0xFC5B, 0xFC5C, 0xFC5E, 0xFC5F, 0xFC60, 0xFC61, 0xFC62, 0xFC63, 0xFCD9, 0xFCF2, 0xFCF3,
-				0xFCF4, 0xFD3C, 0xFD3D, 0xFDF0, 0xFDF4, 0xFDF7, 0xFDFA, 0xFDFB, 0xFDFC
-			]
-		);
+		assert_eq!(gsub_only.synthesized.len(), 250);
 	}
 
 	#[test]
