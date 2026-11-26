@@ -10,7 +10,11 @@
 //! the letters the form stands for with the font's own GSUB and GPOS (via `rustybuzz`),
 //! in a joining context made with ZERO WIDTH JOINER, and records the resulting glyphs.
 //!
-//! The mark forms U+FE70–U+FE7F are not synthesized. In MapLibre shaping they stand
+//! Only the forms renderers request are synthesized, the forms of a single letter and the
+//! lam-alef ligatures U+FEF5–U+FEFC. The other ligatures in U+FBEA–U+FDFF are never
+//! looked up by MapLibre GL JS, ml2drender or the ICU-based RTL text plugin.
+//!
+//! The mark forms U+FE70–U+FE7F are not synthesized either. In MapLibre shaping they stand
 //! for a mark on a tatweel, so a synthesized glyph would add a visible gap after the
 //! letter, and renderers handle a missing mark form better on their own.
 
@@ -166,7 +170,11 @@ mod tests {
 		assert!(ARABIC_FORMS
 			.iter()
 			.all(|f| !(0xFE70..0xFE80).contains(&f.0)));
-		assert_eq!(ARABIC_FORMS.len(), 717);
+		assert_eq!(ARABIC_FORMS.len(), 250);
+		// One letter each, except the lam-alef ligatures.
+		assert!(ARABIC_FORMS
+			.iter()
+			.all(|f| f.2.len() == 1 || (0xFEF5..=0xFEFC).contains(&f.0)));
 	}
 
 	#[test]
@@ -191,7 +199,7 @@ mod tests {
 		assert!(face.glyph_index('\u{FE91}').is_none());
 
 		let forms = synthesize_arabic_forms(&face);
-		assert!(forms.len() > 300, "{}", forms.len());
+		assert_eq!(forms.len(), 250);
 
 		// Every form of BEH is one glyph, and all four differ.
 		let beh = [0xFE8F, 0xFE90, 0xFE91, 0xFE92].map(|cp| {

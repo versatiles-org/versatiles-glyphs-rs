@@ -2,6 +2,9 @@
 # Writes src/font/arabic_forms/table.rs, the Unicode decompositions of the Arabic
 # presentation forms (U+FB50..U+FDFF and U+FE80..U+FEFF) that versatiles_glyphs
 # synthesizes for fonts lacking them. Run it with `python3 scripts/generate_arabic_forms.py`.
+# Only the forms renderers request are kept, the forms of a single letter and the lam-alef
+# ligatures U+FEF5..U+FEFC. This matches MapLibre GL JS (build/generate-unicode-data.ts)
+# and ml2drender (scripts/gen-rtl-data.ts). The other ligatures are never looked up.
 # The mark forms U+FE70..U+FE7F are left out on purpose, see `src/font/arabic_forms/mod.rs`.
 import pathlib
 import unicodedata
@@ -12,6 +15,8 @@ rows = []
 for cp in list(range(0xFB50, 0xFE00)) + list(range(0xFE80, 0xFF00)):
 	parts = unicodedata.decomposition(chr(cp)).split()
 	if not parts or parts[0] not in FORMS:
+		continue
+	if len(parts) != 2 and not 0xFEF5 <= cp <= 0xFEFC:
 		continue
 	letters = ", ".join(f"0x{int(h, 16):04X}" for h in parts[1:])
 	rows.append(f"\t(0x{cp:04X}, {FORMS[parts[0]]}, &[{letters}]),")
