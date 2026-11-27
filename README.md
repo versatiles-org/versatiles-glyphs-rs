@@ -22,7 +22,7 @@ VersaTiles Glyphs tries to:
 - Render directly from the raw vector data - without intermediate rasterisation like TinySDF.
 - Render Bezier curves with more than enough line segments.
 - Compensates for rounding errors by shifting the glyphs by sub-pixel distances in the right direction, since the PBF values for `left`, `top` and `advance` must be integers.
-- Fill in the Arabic presentation forms (U+FB50 to U+FEFF) that a font only reaches through its GSUB table, so MapLibre draws joined Arabic with fonts like Lateef, Scheherazade New or Reem Kufi.
+- Fill in the Arabic presentation forms that MapLibre looks up (the forms of each letter and the lam-alef ligatures) when a font only reaches them through its GSUB table, so MapLibre draws joined Arabic with fonts like Lateef, Scheherazade New or Reem Kufi.
 - Have no wrappers of external, unmaintained code.
 - Have simple and straightforward build steps.
 - Be actively maintained, any contributions are welcome.
