@@ -3,6 +3,30 @@
 All notable changes to this project are documented in this file.
 It is generated from the commit history by [git-cliff](https://git-cliff.org).
 
+## v0.10.2 - 2026-11-27
+
+### 🚀 Features
+- Synthesize Arabic presentation forms that fonts only reach through GSUB
+- Create token for Homebrew tap in release workflow
+- Add Homebrew formula update step to release workflow
+
+### 🐛 Bug Fixes
+- Synthesize only the presentation forms renderers request
+- Prefer glyphs a font file maps over synthesized ones across files
+- *(ci)* Run the MSRV check on the rust-version from Cargo.toml
+
+### 📚 Documentation
+- Add CLAUDE.md with the branch and commit rules for this repo
+- Say which Arabic presentation forms are synthesized
+
+### ⚙️ Build & CI
+- Raise MSRV to 1.90 and update rstar to 0.14
+- *(deps)* Update dependencies
+- *(deps)* Bump serde_json from 1.0.151 to 1.0.154 in the cargo group
+- *(deps)* Bump clap from 4.6.6 to 4.6.7 in the cargo group
+
+**Full Changelog**: https://github.com/versatiles-org/versatiles-glyphs-rs/compare/v0.10.1...v0.10.2
+
 ## v0.10.1 - 2026-09-14
 
 ### 🚀 Features
