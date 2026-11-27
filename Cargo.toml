@@ -2,7 +2,7 @@
 name = "versatiles_glyphs"
 version = "0.10.1"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.90"
 description = "A tool for generating SDF glyphs from fonts."
 license = "Unlicense"
 repository = "https://github.com/versatiles-org/versatiles-glyphs-rs"
@@ -65,7 +65,7 @@ indicatif = "0.18.6"
 prost = "0.14.6"
 rayon = "1.12.0"
 regex-lite = "0.1.9"
-rstar = "0.13.1"
+rstar = "0.14.0"
 rustybuzz = "0.20.1"
 serde = { version = "1.0.229", features = ["derive"], optional = true }
 serde_json = { version = "1.0.154", optional = true }
